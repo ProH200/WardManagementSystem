@@ -1,0 +1,40 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.PatientMovement
+
+<form asp-action="UpdateMovement" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="MovementId" value="@Model.MovementId" />
+
+    <div class="mb-3">
+        <label>Patient Name</label>
+        <input type="text" class="form-control" value="@Model.PatientAdmission.Patient.FirstName @Model.PatientAdmission.Patient.LastName" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label>From Location</label>
+        <input type="text" class="form-control" value="@Model.FromLocation" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label>To Location</label>
+        <input type="text" class="form-control" value="@Model.ToLocation" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label>Movement Date *</label>
+        <input type="date" name="Date" class="form-control" value="@Model.Date.ToString("yyyy-MM-dd")" required />
+    </div>
+
+    <div class="mb-3">
+        <label>Reason *</label>
+        <textarea name="Reason" class="form-control" rows="3" required>@Model.Reason</textarea>
+    </div>
+
+    <div class="text-end">
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle me-1"></i> Update Movement
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancel
+        </button>
+    </div>
+</form>

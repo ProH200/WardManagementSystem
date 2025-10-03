@@ -1,0 +1,118 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.PatientAdmission
+
+@{
+    ViewData["Title"] = "Discharge Patient";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var daysAdmitted = Model.AdmissionDate.HasValue
+            ? (DateTime.Today - Model.AdmissionDate.Value.Date).Days
+            : 0;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary">
+                        <i class="bi bi-box-arrow-right me-2"></i>Discharge Patient
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Discharge" asp-controller="DoctorDischarge">Discharge Patients</a></li>
+                            <li class="breadcrumb-item active">Confirm Discharge</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Discharge Confirmation -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirm Patient Discharge</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Patient Information -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Patient to be Discharged</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Name:</strong> @Model.Patient.FirstName @Model.Patient.LastName</p>
+                                <p class="mb-1"><strong>ID Number:</strong> @Model.Patient.IdentityNumber</p>
+                                <p class="mb-1"><strong>Admission Date:</strong> @Model.AdmissionDate?.ToString("dd MMM yyyy")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Ward:</strong> @Model.Bed?.Room?.Ward?.Name</p>
+                                <p class="mb-1"><strong>Room:</strong> @Model.Bed?.Room?.RoomNumber</p>
+                                <p class="mb-0"><strong>Bed:</strong> <span class="badge bg-warning text-dark">@Model.Bed?.BedNumber</span></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="mb-0"><strong>Admission Reason:</strong> @Model.Reason</p>
+                        <p class="mb-0"><strong>Days Admitted:</strong> <span class="badge bg-info">@daysAdmitted days</span></p>
+                    </div>
+
+                    <!-- Discharge Form -->
+                    <form asp-action="DischargePatient" asp-controller="DoctorDischarge" method="post">
+                        <input type="hidden" name="admissionId" value="@Model.AdmissionId" />
+
+                        <div class="form-group mb-4">
+                            <label for="dischargeNotes" class="form-label fw-bold">Discharge Notes</label>
+                            <textarea name="dischargeNotes" class="form-control" rows="4"
+                                      placeholder="Add any final notes about the patient's condition, recovery, or follow-up requirements..."></textarea>
+                            <small class="form-text text-muted">Optional: Add discharge summary or follow-up instructions.</small>
+                        </div>
+
+                        <!-- Important Notice -->
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Important</h6>
+                            <p class="mb-2">By discharging this patient:</p>
+                            <ul class="mb-2">
+                                <li>The bed <strong>@Model.Bed?.BedNumber</strong> will be marked as <strong>Available</strong></li>
+                                <li>The patient will be removed from your active patients list</li>
+                                <li>A discharge record will be created</li>
+                            </ul>
+                            <p class="mb-0"><strong>This action cannot be undone.</strong></p>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-success"
+                                    onclick="return confirm('Are you sure you want to discharge this patient?')">
+                                <i class="bi bi-check-circle me-1"></i>Confirm Discharge
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+ <!--Toast-->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            @if (TempData["ToastMessage"] != null)
+            {
+                    <text>
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        icon: '@TempData["ToastType"]',
+                        title: '@TempData["ToastMessage"]'
+                    });
+                    </text>
+            }
+        });
+    </script>
+}

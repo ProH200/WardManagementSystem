@@ -1,0 +1,415 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.ConsumablesSubsystem.Prescription>
+
+@{
+    ViewData["Title"] = "Prescriptions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+   body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+.gradient-bg {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    width: 100%;
+}
+
+    .prescription-card {
+        background: white;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid #667eea;
+    }
+
+        .prescription-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.4em 0.8em;
+        border-radius: 20px;
+    }
+
+    .medication-count {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    .patient-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 2px dashed #dee2e6;
+    }
+
+    .filter-buttons .btn {
+        border-radius: 20px;
+        padding: 0.5rem 1.2rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-box {
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 1rem;
+    }
+
+    .action-btn {
+        border-radius: 12px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+
+    .floating-btn {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+</style>
+
+<div class="gradient-bg py-4">
+    <div class="container">
+        <!-- Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded-circle p-3 me-3">
+                        <i class="bi bi-capsule-pill text-white fs-4"></i>
+                    </div>
+                    <div>
+                        <h1 class="fw-bold text-dark mb-1">Prescriptions</h1>
+                        <p class="text-muted mb-0">Manage and track patient medications</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary me-md-2">
+                    <i class="bi bi-arrow-left me-1"></i> Dashboard
+                </a>
+                <a asp-action="CreatePrescription" asp-controller="DoctorPrescription"
+                   class="btn btn-primary btn-lg floating-btn">
+                    <i class="bi bi-plus-circle me-2"></i>New Prescription
+                </a>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                    <span class="fw-medium">@TempData["SuccessMessage"]</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Filters and Search -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="filter-buttons">
+                    <button class="btn btn-outline-primary active me-2 mb-2" data-filter="all">All</button>
+                    <button class="btn btn-outline-warning me-2 mb-2" data-filter="pending">Pending</button>
+                    <button class="btn btn-outline-success me-2 mb-2" data-filter="processed">Processed</button>
+                    <button class="btn btn-outline-info mb-2" data-filter="delivered">Delivered</button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group search-box bg-white shadow-sm">
+                    <span class="input-group-text border-0 bg-transparent">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-0" placeholder="Search prescriptions...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Prescriptions Grid -->
+        @if (!Model.Any())
+        {
+            <div class="empty-state text-center py-5 my-4">
+                <i class="bi bi-prescription2 display-1 text-muted mb-3"></i>
+                <h4 class="text-muted mb-3">No Prescriptions Found</h4>
+                <p class="text-muted mb-4">Start by creating your first prescription for a patient.</p>
+                <a asp-action="CreatePrescription" asp-controller="DoctorPrescription"
+                   class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>Create First Prescription
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4" id="prescriptionsGrid">
+                @foreach (var prescription in Model)
+                {
+                    <div class="col-xl-6 col-xxl-4" data-status="@(prescription.IsProcessed ? "processed" : prescription.IsDelivered ? "delivered" : "pending")">
+                        <div class="prescription-card p-4 h-100">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="patient-avatar me-3">
+                                        @prescription.Patient?.FirstName?[0]@prescription.Patient?.LastName?[0]
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0">@prescription.Patient?.FirstName @prescription.Patient?.LastName</h6>
+                                        <small class="text-muted">@prescription.DateWritten.ToString("MMM dd, yyyy")</small>
+                                    </div>
+                                </div>
+                                <div class="medication-count">
+                                    @prescription.PrescriptionMedications.Count
+                                </div>
+                            </div>
+
+                            <!-- Status -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                @if (prescription.IsProcessed)
+                                {
+                                    <span class="status-badge bg-success">
+                                        <i class="bi bi-check-circle me-1"></i>Processed
+                                    </span>
+                                }
+                                else if (prescription.IsDelivered)
+                                {
+                                    <span class="status-badge bg-info text-white">
+                                        <i class="bi bi-truck me-1"></i>Delivered
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge bg-warning text-dark">
+                                        <i class="bi bi-clock me-1"></i>Pending
+                                    </span>
+                                }
+                                <small class="text-muted">#@prescription.PrescriptionId</small>
+                            </div>
+
+                            <!-- Medications Preview -->
+                            <div class="mb-3">
+                                <small class="text-muted fw-medium d-block mb-2">Medications:</small>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var med in prescription.PrescriptionMedications.Take(3))
+                                    {
+                                        <span class="badge bg-light text-dark border">
+                                            @med.Medication?.Name
+                                        </span>
+                                    }
+                                    @if (prescription.PrescriptionMedications.Count > 3)
+                                    {
+                                        <span class="badge bg-light text-muted border">
+                                            +@(prescription.PrescriptionMedications.Count - 3) more
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                <small class="text-muted">
+                                    <i class="bi bi-person-badge me-1"></i>
+                                    Dr. @prescription.Employee?.FirstName?[0]. @prescription.Employee?.LastName
+                                </small>
+                                <a asp-action="PrescriptionDetails" asp-controller="DoctorPrescription"
+                                   asp-route-id="@prescription.PrescriptionId"
+                                   class="btn btn-primary btn-sm action-btn">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Donut Chart Visualization -->
+        @if (Model.Any())
+        {
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="card border-0 bg-white shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4 text-dark">Prescription Status Distribution</h5>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="position-relative text-center">
+                                        <canvas id="statusChart" width="200" height="200"></canvas>
+                                        <div class="position-absolute top-50 start-50 translate-middle">
+                                            <h4 class="fw-bold mb-0">@Model.Count()</h4>
+                                            <small class="text-muted">Total</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning rounded me-3" style="width: 20px; height: 20px;"></div>
+                                                <div class="flex-grow-1">
+                                                    <h5 class="fw-bold mb-0">@Model.Count(p => !p.IsProcessed && !p.IsDelivered)</h5>
+                                                    <small class="text-muted">Pending Prescriptions</small>
+                                                </div>
+                                                <div class="text-muted">
+                                                    @((Model.Count(p => !p.IsProcessed && !p.IsDelivered) / (double)Model.Count() * 100).ToString("F1"))%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mb-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info rounded me-3" style="width: 20px; height: 20px;"></div>
+                                                <div class="flex-grow-1">
+                                                    <h5 class="fw-bold mb-0">@Model.Count(p => p.IsProcessed)</h5>
+                                                    <small class="text-muted">Processed Prescriptions</small>
+                                                </div>
+                                                <div class="text-muted">
+                                                    @((Model.Count(p => p.IsProcessed) / (double)Model.Count() * 100).ToString("F1"))%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success rounded me-3" style="width: 20px; height: 20px;"></div>
+                                                <div class="flex-grow-1">
+                                                    <h5 class="fw-bold mb-0">@Model.Count(p => p.IsDelivered)</h5>
+                                                    <small class="text-muted">Delivered Prescriptions</small>
+                                                </div>
+                                                <div class="text-muted">
+                                                    @((Model.Count(p => p.IsDelivered) / (double)Model.Count() * 100).ToString("F1"))%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                const ctx = document.getElementById('statusChart').getContext('2d');
+                const statusChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pending', 'Processed', 'Delivered'],
+                        datasets: [{
+                            data: [
+                                @Model.Count(p => !p.IsProcessed && !p.IsDelivered),
+                                @Model.Count(p => p.IsProcessed),
+                                @Model.Count(p => p.IsDelivered)
+                            ],
+                            backgroundColor: [
+                                '#ffc107',
+                                '#0dcaf0',
+                                '#198754'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        responsive: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            </script>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Filter functionality
+            const filterButtons = document.querySelectorAll('.filter-buttons .btn');
+            const prescriptionCards = document.querySelectorAll('#prescriptionsGrid > div');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active', 'btn-primary'));
+                    filterButtons.forEach(btn => btn.classList.add('btn-outline-primary'));
+
+                    // Add active class to clicked button
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('active', 'btn-primary');
+
+                    const filter = this.getAttribute('data-filter');
+
+                    prescriptionCards.forEach(card => {
+                        if (filter === 'all' || card.getAttribute('data-status') === filter) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // Search functionality
+            const searchInput = document.querySelector('input[type="text"]');
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                prescriptionCards.forEach(card => {
+                    const patientName = card.querySelector('h6').textContent.toLowerCase();
+                    const medications = card.textContent.toLowerCase();
+
+                    if (patientName.includes(searchTerm) || medications.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+
+            // Add staggered animation to cards
+            prescriptionCards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+}

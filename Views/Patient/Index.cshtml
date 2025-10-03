@@ -1,0 +1,253 @@
+﻿@model List<Wellness_Wardens_Project.Models.PatientManagementSubsystem.Patient>
+
+@{
+    ViewData["Title"] = "Patient Dashboard";
+}
+
+<!-- Dashboard Header -->
+<div class="dashboard-header mb-4">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h2 mb-0">Nurse / Nursing sister Dashboard</h1>
+            <p class="text-muted">Manage all patient records efficiently</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" id="gridViewBtn">
+                    <i class="fas fa-th-large"></i> Grid View
+                </button>
+                <button class="btn btn-outline-secondary" id="listViewBtn">
+                    <i class="fas fa-list"></i> List View
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" id="searchInput"
+                           placeholder="Search patients by name or id...">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Grid View -->
+<div id="gridView" class="view-mode">
+    <div class="row g-4" id="patientGrid">
+        @foreach (var patient in Model)
+        {
+            <div class="col-xl-3 col-lg-4 col-md-6 patient-card"
+                 data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
+                 data-id="@patient.IdentityNumber">
+                <div class="card patient-dashboard-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0 pt-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="patient-avatar rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 50px; height: 50px; background-color: #005b96;">
+                                <span class="text-white fw-bold fs-5">
+                                    @patient.FirstName[0]@patient.LastName[0]
+                                </span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                        type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-action="Folder" asp-route-id="@patient.PatientId">
+                                            <i class="fas fa-folder me-2"></i> View Folder
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title mb-1">@patient.FirstName @patient.LastName</h5>
+                        <p class="text-muted small mb-2">ID: @patient.IdentityNumber</p>
+
+                        <div class="patient-info mt-3">
+                            <div class="row text-center g-2">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Age</small>
+                                    <strong>@(DateTime.Now.Year - patient.DateOfBirth.Year)</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Gender</small>
+                                    <strong>@patient.Gender</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-grid gap-2">
+                            <a asp-action="Folder" asp-route-id="@patient.PatientId"
+                               class="btn btn-sm" style="background-color: #005b96; color: white;">
+                                <i class="fas fa-clipboard me-1"></i> Medical Folder
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- List View -->
+<div id="listView" class="view-mode d-none">
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Identity Number</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var patient in Model)
+                        {
+                            <tr class="patient-row"
+                                data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
+                                data-id="@patient.IdentityNumber">
+                                <td>@patient.IdentityNumber</td>
+                                <td>@patient.FirstName</td>
+                                <td>@patient.LastName</td>
+                                <td>
+                                    <a asp-action="Folder" asp-route-id="@patient.PatientId"
+                                       class="btn btn-sm" style="background-color: #005b96; color: white;">
+                                        <i class="fas fa-folder me-1"></i> View Folder
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- No Results Message -->
+<div id="noResults" class="text-center d-none mt-5">
+    <div class="alert alert-warning">
+        <i class="fas fa-search fa-2x mb-3"></i>
+        <h4>No patients found</h4>
+        <p class="mb-0">Try adjusting your search criteria or filters</p>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .patient-dashboard-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: 1px solid #e3e6f0;
+        }
+
+            .patient-dashboard-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+        .patient-avatar {
+            font-size: 1.1rem;
+        }
+
+        .view-mode {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .dashboard-header {
+            background: #005b96;
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const gridViewBtn = document.getElementById('gridViewBtn');
+            const listViewBtn = document.getElementById('listViewBtn');
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
+            const searchInput = document.getElementById('searchInput');
+            const noResults = document.getElementById('noResults');
+
+            // View mode toggle
+            gridViewBtn.addEventListener('click', function () {
+                gridView.classList.remove('d-none');
+                listView.classList.add('d-none');
+                gridViewBtn.classList.add('active');
+                listViewBtn.classList.remove('active');
+            });
+
+            listViewBtn.addEventListener('click', function () {
+                listView.classList.remove('d-none');
+                gridView.classList.add('d-none');
+                listViewBtn.classList.add('active');
+                gridViewBtn.classList.remove('active');
+            });
+
+            // Initialize with grid view active
+            gridViewBtn.classList.add('active');
+
+            // Search and filter function
+            function filterPatients() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                let hasMatches = false;
+
+                // Filter grid view cards
+                const patientCards = document.querySelectorAll('.patient-card');
+                patientCards.forEach(card => {
+                    const name = card.dataset.name;
+                    const id = card.dataset.id;
+                    const matchesSearch = name.includes(searchTerm) || id.includes(searchTerm);
+
+                    card.style.display = matchesSearch ? 'block' : 'none';
+                    if (matchesSearch) hasMatches = true;
+                });
+
+                // Filter list view rows
+                const patientRows = document.querySelectorAll('.patient-row');
+                patientRows.forEach(row => {
+                    const name = row.dataset.name;
+                    const id = row.dataset.id;
+                    const matchesSearch = name.includes(searchTerm) || id.includes(searchTerm);
+
+                    row.style.display = matchesSearch ? '' : 'none';
+                    if (matchesSearch) hasMatches = true;
+                });
+
+                // Show/hide no results message
+                noResults.classList.toggle('d-none', hasMatches || searchTerm === '');
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', filterPatients);
+        });
+    </script>
+}

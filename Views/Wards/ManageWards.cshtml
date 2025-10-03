@@ -1,0 +1,261 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Ward>
+
+@{
+    ViewData["Title"] = "Manage Wards";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link href="~/css/admin.css" rel="stylesheet" />
+<link href="~/css/helpanimation.css" rel="stylesheet" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="text-primary"><i class="bi bi-hospital me-2"></i>Ward Management</h2>
+    <div>
+        <a asp-controller="Administration" asp-action="Dashboard" class="btn btn-outline-primary me-2">
+            <i class="bi bi-house-door me-1"></i> Dashboard
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addWardModal">
+            <i class="bi bi-plus-circle me-1"></i> Add Ward
+        </button>
+    </div>
+</div>
+
+<div class="mb-3">
+    <input type="text" id="wardSearch" class="form-control" placeholder="Search Wards by Name or Description...">
+</div>
+
+<div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle text-center" id="wardTable">
+        <thead class="table-primary">
+            <tr>
+                <th>Ward Name</th>
+                <th>Ward Description</th>
+                <th>Rooms</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var wrd in Model)
+            {
+                <tr>
+                    <td class="text-primary fw-bold"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#rooms-@wrd.WardId"
+                        aria-expanded="false"
+                        aria-controls="rooms-@wrd.WardId"
+                        style="cursor: pointer;">
+                        @wrd.Name
+                    </td>
+
+                    <td>@wrd.Description</td>
+                    <td>@wrd.Rooms?.Count()</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editWardModal"
+                                data-id="@wrd.WardId"
+                                data-name="@wrd.Name"
+                                data-description="@wrd.Description">
+                            <i class="bi bi-pencil-square"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal-@wrd.WardId">
+                            <i class="bi bi-trash3-fill"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+
+                <!-- Collapsible row for Rooms -->
+                <tr class="collapse bg-light" id="rooms-@wrd.WardId">
+                    <td colspan="4" class="text-start">
+                        @if (wrd.Rooms != null && wrd.Rooms.Any())
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var room in wrd.Rooms)
+                                {
+                                    <li class="list-group-item">
+                                        <i class="bi bi-door-open me-2 text-primary"></i>
+                                        <strong>Room Number:</strong> @room.RoomNumber
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No rooms available for this ward.</p>
+                        }
+                    </td>
+                </tr>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteModal-@wrd.WardId" tabindex="-1"
+                     aria-labelledby="deleteModalLabel-@wrd.WardId" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form asp-action="SoftDeleteWard" method="post">
+                                @Html.AntiForgeryToken()
+                                @Html.Hidden("id", wrd.WardId)
+
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title" id="deleteModalLabel-@wrd.WardId">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i> Delete Ward
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <p class="fw-bold">Are you sure you want to delete this ward?</p>
+                                    <ul class="list-group">
+                                        <li class="list-group-item"><strong>Name:</strong> @wrd.Name</li>
+                                        <li class="list-group-item"><strong>Description:</strong> @wrd.Description</li>
+                                    </ul>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </tbody>
+    </table>
+
+    <!-- Add Ward Modal -->
+    <div class="modal fade" id="addWardModal" tabindex="-1" aria-labelledby="addWardModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content rounded-4">
+                <div class="modal-header text-white" style="background-color: #008A00;">
+                    <h5 class="modal-title" id="addWardModalLabel"><i class="bi bi-hospital me-2"></i>Add Ward</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form asp-action="AddWard" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ward Name</label>
+                            <input name="Name" class="form-control" placeholder="Enter ward name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <input name="Description" class="form-control" placeholder="Enter ward description" />
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
+                                <i class="bi bi-check2-circle me-1"></i> Save Ward
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Ward Modal -->
+    <div class="modal fade" id="editWardModal" tabindex="-1" aria-labelledby="editWardModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content rounded-4">
+                <div class="modal-header text-white" style="background-color: #008A00;">
+                    <h5 class="modal-title" id="editWardModalLabel"><i class="bi bi-hospital me-2"></i>Edit Ward</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form asp-action="EditWard" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="editWardId" name="WardId" />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ward Name</label>
+                            <input id="editWardName" name="Name" class="form-control" placeholder="Enter ward name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <input id="editWardDescription" name="Description" class="form-control" placeholder="Enter ward description" />
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
+                                <i class="bi bi-check2-circle me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mb-3 text-end">
+        <a asp-controller="Reports" asp-action="WardReport" class="btn btn-danger me-2">
+            <i class="bi btn-info"></i> Reports
+        </a>
+    </div>
+</div>
+
+<div id="doctor-note" role="alert" aria-live="polite" aria-atomic="true" title="Need help? Click the '?' on the bottom right.">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="#0d6efd" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <circle cx="32" cy="14" r="12" fill="#0d6efd" />
+        <rect x="18" y="26" width="28" height="30" rx="8" ry="8" fill="#0d6efd" />
+        <rect x="28" y="34" width="8" height="12" fill="#f8f9fa" />
+        <line x1="32" y1="20" x2="32" y2="14" stroke="#f8f9fa" stroke-width="2" />
+        <line x1="28" y1="24" x2="36" y2="24" stroke="#f8f9fa" stroke-width="2" />
+    </svg>
+
+    <p>If you are unsure about anything,<br>please click the small '?' bellow.</p>
+</div>
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/toast.js"></script>
+    <script>
+        const wardSearchInput = document.getElementById('wardSearch');
+        const wardTableRows = document.querySelectorAll('#wardTable tbody tr');
+
+        wardSearchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+
+            wardTableRows.forEach(row => {
+                const nameCell = row.querySelector('td:nth-child(1)');
+                const descCell = row.querySelector('td:nth-child(2)');
+
+                const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
+                const descText = descCell ? descCell.textContent.toLowerCase() : '';
+
+                row.style.display = (nameText.includes(query) || descText.includes(query)) ? '' : 'none';
+            });
+        });
+    </script>
+
+    <script>
+        var editWardModal = document.getElementById('editWardModal');
+        editWardModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var name = button.getAttribute('data-name');
+            var description = button.getAttribute('data-description');
+
+            document.getElementById('editWardId').value = id;
+            document.getElementById('editWardName').value = name;
+            document.getElementById('editWardDescription').value = description;
+        });
+    </script>
+
+    <script>
+        var successMessage = '@TempData["SuccessMessage"]';
+        if (successMessage) {
+            showToast('success', successMessage);
+        }
+
+        @foreach (var modelState in ViewData.ModelState.Values)
+        {
+                    foreach (var error in modelState.Errors)
+                    {
+                                <text>
+                                    showToast('error', '@error.ErrorMessage');
+                                </text>
+                    }
+        }
+    </script>
+
+}
+

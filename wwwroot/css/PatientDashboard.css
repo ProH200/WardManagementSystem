@@ -1,0 +1,45 @@
+﻿/* Ward Admin Page Styles */
+body {
+    background-color: #CAD5E2; /* Light gray background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #212529; /* Bootstrap default text */
+    margin: 0;
+    padding: 0;
+}
+
+/* Card styling */
+.card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+/* Accent color for headers and highlights */
+.card-header,
+.btn-primary,
+.bg-primary {
+    background-color: #0d6efd !important; /* Blue accent */
+    color: #fff !important;
+}
+
+/* Buttons */
+.btn-outline-primary {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: #fff;
+    }
+
+/* Headings */
+h1, h2, h3, h4, h5 {
+    color: #0d6efd; /* Blue headings for consistency */
+}

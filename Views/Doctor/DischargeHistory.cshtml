@@ -1,0 +1,433 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.PatientManagementSubsystem.Discharge>
+
+@{
+    ViewData["Title"] = "Discharge History";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .gradient-bg {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px 0;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        border: none;
+    }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+        }
+
+    .discharge-table {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .table-row {
+        transition: all 0.3s ease;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+        .table-row:hover {
+            background-color: #f8f9ff;
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+    .patient-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 0.5em 1em;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 2px dashed #dee2e6;
+        padding: 3rem;
+    }
+
+    .floating-btn {
+        animation: float 3s ease-in-out infinite;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.8s ease-in;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+</style>
+
+<div class="gradient-bg">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="row mb-4 fade-in">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="fw-bold gradient-text mb-2">
+                            <i class="bi bi-clock-history me-3 pulse"></i>Discharge History
+                        </h1>
+                        <p class="text-muted fs-5">Comprehensive overview of all patient discharges and analytics</p>
+                    </div>
+                    <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-light btn-lg floating-btn border-0 shadow">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Discharge
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <!-- Empty State -->
+            <div class="row fade-in">
+                <div class="col-12">
+                    <div class="empty-state text-center">
+                        <i class="bi bi-person-check display-1 text-muted mb-4"></i>
+                        <h3 class="text-muted mb-3">No Discharge History Found</h3>
+                        <p class="text-muted fs-5 mb-4">No patients have been discharged yet. Discharges will appear here once processed.</p>
+                        <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>Process First Discharge
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Summary Statistics Cards -->
+            <div class="row mb-4 fade-in">
+                <div class="col-md-3 mb-3">
+                    <div class="stats-card p-4 text-center h-100">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="patient-avatar bg-white text-primary">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                        <h2 class="stat-number mb-2">@Model.Count()</h2>
+                        <p class="mb-0 opacity-75">Total Discharges</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stats-card p-4 text-center h-100">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="patient-avatar bg-white text-info">
+                                <i class="bi bi-calendar-range"></i>
+                            </div>
+                        </div>
+                        @{
+                            var avgStay = Model.Any(d => d.PatientAdmission.AdmissionDate.HasValue)
+                            ? Model.Where(d => d.PatientAdmission.AdmissionDate.HasValue)
+                            .Average(d => (d.DischargeDate - d.PatientAdmission.AdmissionDate.Value.Date).Days)
+                            : 0;
+                        }
+                        <h2 class="stat-number mb-2">@avgStay.ToString("F1")</h2>
+                        <p class="mb-0 opacity-75">Avg Stay (Days)</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stats-card p-4 text-center h-100">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="patient-avatar bg-white text-success">
+                                <i class="bi bi-calendar-week"></i>
+                            </div>
+                        </div>
+                        @{
+                            var recentDischarges = Model.Count(d => d.DischargeDate >= DateTime.Today.AddDays(-7));
+                        }
+                        <h2 class="stat-number mb-2">@recentDischarges</h2>
+                        <p class="mb-0 opacity-75">This Week</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stats-card p-4 text-center h-100">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="patient-avatar bg-white text-warning">
+                                <i class="bi bi-calendar-month"></i>
+                            </div>
+                        </div>
+                        @{
+                            var thisMonth = Model.Count(d => d.DischargeDate.Month == DateTime.Today.Month &&
+                            d.DischargeDate.Year == DateTime.Today.Year);
+                        }
+                        <h2 class="stat-number mb-2">@thisMonth</h2>
+                        <p class="mb-0 opacity-75">This Month</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discharge History Table -->
+            <div class="row fade-in">
+                <div class="col-12">
+                    <div class="glass-card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 discharge-table">
+                                    <thead class="table-header">
+                                        <tr>
+                                            <th class="ps-4 py-3" style="border-radius: 16px 0 0 0;">Patient Information</th>
+                                            <th class="py-3">Admission Date</th>
+                                            <th class="py-3">Discharge Date</th>
+                                            <th class="py-3">Stay Duration</th>
+                                            <th class="py-3">Location</th>
+                                            <th class="pe-4 py-3" style="border-radius: 0 16px 0 0;">Discharge Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var discharge in Model.OrderByDescending(d => d.DischargeDate))
+                                        {
+                                            var daysStayed = discharge.PatientAdmission.AdmissionDate.HasValue
+                                            ? (discharge.DischargeDate - discharge.PatientAdmission.AdmissionDate.Value.Date).Days
+                                            : 0;
+
+                                            <tr class="table-row">
+                                                <td class="ps-4 py-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="patient-avatar me-3">
+                                                            @if (discharge.Patient?.FirstName != null && discharge.Patient?.LastName != null)
+                                                            {
+                                                                @(discharge.Patient.FirstName[0].ToString() + discharge.Patient.LastName[0].ToString())
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-person"></i>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <strong class="d-block">@discharge.Patient?.FirstName @discharge.Patient?.LastName</strong>
+                                                            <small class="text-muted">ID: @discharge.Patient?.IdentityNumber</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="py-3">
+                                                    <span class="text-dark fw-semibold">@discharge.PatientAdmission.AdmissionDate?.ToString("dd MMM yyyy")</span>
+                                                </td>
+                                                <td class="py-3">
+                                                    <span class="status-badge bg-success bg-opacity-10 text-success">
+                                                        @discharge.DischargeDate.ToString("dd MMM yyyy")
+                                                    </span>
+                                                </td>
+                                                <td class="py-3">
+                                                    <span class="status-badge bg-info bg-opacity-10 text-info">
+                                                        <i class="bi bi-clock me-1"></i>@daysStayed days
+                                                    </span>
+                                                </td>
+                                                <td class="py-3">
+                                                    <div class="text-dark">
+                                                        <div class="fw-semibold">@discharge.PatientAdmission.Bed?.Room?.Ward?.Name</div>
+                                                        <small class="text-muted">
+                                                            Room @discharge.PatientAdmission.Bed?.Room?.RoomNumber, Bed @discharge.PatientAdmission.Bed?.BedNumber
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td class="pe-4 py-3">
+                                                    @if (!string.IsNullOrEmpty(discharge.Description))
+                                                    {
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-chat-text me-2 text-muted"></i>
+                                                            <span class="text-dark" title="@discharge.Description">
+                                                                @(discharge.Description.Length > 50 ? discharge.Description.Substring(0, 50) + "..." : discharge.Description)
+                                                            </span>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted fst-italic">No discharge notes provided</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Summary Footer -->
+            <div class="row mt-4 fade-in">
+                <div class="col-12">
+                    <div class="glass-card">
+                        <div class="card-body py-3">
+                            <div class="row text-center">
+                                <div class="col-md-3 border-end">
+                                    <div class="py-2">
+                                        <h4 class="fw-bold text-primary mb-1">@Model.Count()</h4>
+                                        <small class="text-muted">Total Discharges</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 border-end">
+                                    <div class="py-2">
+                                        <h4 class="fw-bold text-info mb-1">@avgStay.ToString("F1") days</h4>
+                                        <small class="text-muted">Average Stay Duration</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 border-end">
+                                    <div class="py-2">
+                                        <h4 class="fw-bold text-success mb-1">@recentDischarges</h4>
+                                        <small class="text-muted">Discharges This Week</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="py-2">
+                                        <h4 class="fw-bold text-warning mb-1">@thisMonth</h4>
+                                        <small class="text-muted">Discharges This Month</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    // Add smooth animations and interactions
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add loading animation to table rows
+        const tableRows = document.querySelectorAll('.table-row');
+        tableRows.forEach((row, index) => {
+            row.style.animationDelay = `${index * 0.1}s`;
+        });
+
+        // Add hover effects to stats cards
+        const statsCards = document.querySelectorAll('.stats-card');
+        statsCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Add click animation to back button
+        const backButton = document.querySelector('.floating-btn');
+        if (backButton) {
+            backButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    window.location.href = this.href;
+                }, 200);
+            });
+        }
+    });
+</script>
+
+<!--Toast-->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            @if (TempData["ToastMessage"] != null)
+            {
+                    <text>
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        icon: '@TempData["ToastType"]',
+                        title: '@TempData["ToastMessage"]'
+                    });
+                    </text>
+            }
+        });
+    </script>
+}

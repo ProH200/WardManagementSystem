@@ -1,0 +1,219 @@
+﻿@model Wellness_Wardens_Project.ViewModels.PatientManagementSubsystem.PatientAdmissionViewModel
+
+@{
+    ViewData["Title"] = "Patient Admission";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #CAD5E2;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #212529;
+        margin: 0;
+        padding: 0;
+    }
+
+    .card {
+        background-color: #D6E0EB;
+    }
+
+        .card input, .card select, .card textarea {
+            background-color: #E0E8F0;
+            border: 1px solid #B0C4D0;
+            border-radius: 6px;
+        }
+
+            .card input:focus, .card select:focus, .card textarea:focus {
+                background-color: #EDF2F7;
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+            }
+
+    .btn {
+        min-width: 120px;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="card shadow-sm p-4">
+        <h3 class="mb-4">Patient Admission</h3>
+
+        <!-- Step 1: Select Patient -->
+        <div id="selectPatientStep">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Select Patient</label>
+                <select id="patientSelect" class="form-select">
+                    <option value="">-- Select Patient --</option>
+                    @foreach (var patient in ViewBag.Patients)
+                    {
+                        <option value="@patient.Value" data-name="@patient.Text">@patient.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="d-flex">
+                <a asp-controller="Admission_Discharge" asp-action="Admissions" class="btn btn-secondary me-3">Cancel</a>
+                <button type="button" id="nextStepBtn" class="btn btn-primary">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Admission Form -->
+        <div id="admissionFormStep" style="display:none; margin-top:20px;">
+            <h5 class="mb-3">Admit Patient: <span id="selectedPatientName"></span></h5>
+            <form asp-action="AdmitPatient" method="post" id="admitPatientForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="PatientId" name="PatientId" required />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ward</label>
+                    <select id="wardSelect" name="WardId" class="form-select" required>
+                        <option value="">-- Select Ward --</option>
+                        @foreach (var ward in ViewBag.Wards)
+                        {
+                            <option value="@ward.Value">@ward.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Room</label>
+                    <select id="roomSelect" name="RoomId" class="form-select" required>
+                        <option value="">-- Select Room --</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Bed</label>
+                    <select id="bedSelect" name="BedId" class="form-select" required>
+                        <option value="">-- Select Bed --</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Assign Doctor/Nurse</label>
+                    <select asp-for="EmployeeId" asp-items="Model.Employees" class="form-select" required>
+                        <option value="">-- Select Doctor/Nurse --</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Admission Date</label>
+                    <input type="date" name="AdmissionDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Reason</label>
+                    <textarea name="Reason" class="form-control" required></textarea>
+                </div>
+
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-success me-2">Admit Patient</button>
+                    <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            // Step 1: Next button → Check admission status
+            $('#nextStepBtn').click(function () {
+                var selectedOption = $('#patientSelect option:selected');
+                var patientId = selectedOption.val();
+                var patientName = selectedOption.data('name');
+
+                if (!patientId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Please select a patient first.',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                    return;
+                }
+
+                // Call backend check
+                $.getJSON('/Admission_Discharge/CheckActiveAdmission', { patientId: patientId })
+                    .done(function (response) {
+                        if (response.isAdmitted) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '⚠️ Patient is already admitted and not discharged!',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                            return;
+                        }
+
+                        // Passed → Show admission form
+                        $('#PatientId').val(patientId);
+                        $('#selectedPatientName').text(patientName);
+                        $('#admissionFormStep').slideDown();
+                        $('#selectPatientStep').slideUp();
+                    })
+                    .fail(function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '❌ Error checking patient admission status.',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    });
+            });
+
+            // Cancel button → back to select
+            $('#cancelBtn').click(function () {
+                $('#admissionFormStep').slideUp();
+                $('#selectPatientStep').slideDown();
+                $('#admitPatientForm')[0].reset();
+            });
+
+            // Ward → Room → Bed cascading
+            $('#wardSelect').change(function () {
+                var wardId = $(this).val();
+                $.getJSON('/Admission_Discharge/GetRooms', { wardId: wardId }, function (rooms) {
+                    var roomSelect = $('#roomSelect');
+                    roomSelect.empty().append('<option value="">-- Select Room --</option>');
+                    $.each(rooms, function (i, room) {
+                        roomSelect.append('<option value="' + room.roomId + '">' + room.roomNumber + '</option>');
+                    });
+                    $('#bedSelect').empty().append('<option value="">-- Select Bed --</option>');
+                });
+            });
+
+            $('#roomSelect').change(function () {
+                var roomId = $(this).val();
+                $.getJSON('/Admission_Discharge/GetBeds', { roomId: roomId }, function (beds) {
+                    var bedSelect = $('#bedSelect');
+                    bedSelect.empty().append('<option value="">-- Select Bed --</option>');
+                    $.each(beds, function (i, bed) {
+                        bedSelect.append('<option value="' + bed.bedId + '">' + bed.bedNumber + '</option>');
+                    });
+                });
+            });
+
+            // TempData success handling
+            var successMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"] ?? null));
+            if (successMessage) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: successMessage,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        });
+    </script>
+}

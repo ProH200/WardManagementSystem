@@ -1,49 +1,478 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@using Wellness_Wardens_Project.Models
+@using Wellness_Wardens_Project.Models.AdministrationSubsystem
+@inject UserManager<Employee> UserManager
+@inject SignInManager<Employee> SignInManager
+
+@{
+    // Get current user and their roles
+    var currentUser = await UserManager.GetUserAsync(User);
+    var userRoles = currentUser != null ? await UserManager.GetRolesAsync(currentUser) : new List<string>();
+
+    // Determine current area for highlighting
+    var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+
+    // Define all subsystems with their access roles
+    var subsystems = new[]
+    {
+        new { Controller = "Home", Action = "Index", Name = "Home", Icon = "fa-home", Roles = new List<string> { "All" } },
+        new { Controller = "Administration", Action = "Dashboard", Name = "Administration", Icon = "fa-user-shield", Roles = new List<string> { "Admin" } },
+        new { Controller = "Administration", Action = "WardAdminDashboard", Name = "Patient Management", Icon = "fa-procedures", Roles = new List<string> { "Ward Admin" } },
+        new { Controller = "Patient", Action = "Index", Name = "Patient Care", Icon = "fa-hand-holding-medical", Roles = new List<string> { "Nurse", "Nursing Sister" } },
+        new { Controller = "Home", Action = "Doctors", Name = "Doctor-Patient", Icon = "fa-user-md", Roles = new List<string> { "Doctor"} },
+        new { Controller = "Dashboard", Action = "ScriptManager", Name = "Script Management", Icon = "fa-prescription", Roles = new List<string> { "Script Manager"} },
+        new { Controller = "Dashboard", Action = "StockManager", Name = "Stock Management", Icon = "fa-boxes", Roles = new List<string> { "Stock Manager" } }
+    };
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Wellness_Wardens_Project</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Wellness Wardens</title>
+
+    <!-- CSS Files -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Wellness_Wardens_Project.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <!-- Render page-specific styles -->
+    @RenderSection("Styles", required: false)
+
+    <style>
+        :root {
+            --hospital-blue: #005b96;
+            --healing-teal: #00a3ad;
+            --clean-white: #f8f9fa;
+            --emergency-red: #d9534f;
+            --growth-green: #5cb85c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--hospital-blue) !important;
+            padding: 0.5rem 1rem;
+        }
+
+        .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            margin: 0 auto;
+            display: block;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .nav-link, .dropdown-item {
+            color: white !important;
+        }
+
+            .nav-link:hover, .dropdown-item:hover {
+                color: var(--healing-teal) !important;
+                background-color: transparent !important;
+            }
+
+        .menu-icon {
+            color: white !important;
+            font-size: 1.5rem;
+            padding: 0.5rem;
+        }
+
+        .dropdown-menu {
+            border: 2px solid var(--healing-teal);
+            border-radius: 0;
+            background-color: var(--hospital-blue);
+        }
+
+        /* Sidebar */
+        .offcanvas {
+            width: 280px !important;
+            background-color: var(--hospital-blue);
+            color: white;
+        }
+
+            .offcanvas .nav-link {
+                color: white;
+                padding: 12px 15px;
+                border-radius: 8px;
+                margin: 2px 0;
+                transition: all 0.3s ease;
+            }
+
+                .offcanvas .nav-link:hover {
+                    background-color: var(--healing-teal);
+                    transform: translateX(5px);
+                }
+
+                /* Active subsystem highlighting */
+                .offcanvas .nav-link.active {
+                    background-color: var(--growth-green) !important;
+                    color: white !important;
+                    font-weight: 600;
+                    border-left: 4px solid white;
+                }
+
+                /* Restricted subsystem styling */
+                .offcanvas .nav-link.restricted {
+                    opacity: 0.7;
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+
+                    .offcanvas .nav-link.restricted:hover {
+                        background-color: var(--emergency-red);
+                        opacity: 1;
+                    }
+
+        .offcanvas-header {
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .subsystem-info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        footer {
+            background-color: var(--hospital-blue);
+            color: white;
+        }
+
+            footer a {
+                color: var(--healing-teal);
+            }
+
+        /* Help Widget */
+        .help-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-family: Arial, sans-serif;
+            z-index: 9999;
+        }
+
+        .help-button {
+            width: 50px;
+            height: 50px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .help-menu {
+            margin-top: 10px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .help-menu a {
+                padding: 12px 20px;
+                text-decoration: none;
+                color: #007bff;
+                border-bottom: 1px solid #eee;
+                transition: background-color 0.2s;
+            }
+
+                .help-menu a:hover {
+                    background-color: #f0f8ff;
+                }
+
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Wellness_Wardens_Project</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+                <!-- Sidebar toggle button -->
+                <button class="btn menu-icon" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <!-- Center hospital name -->
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-heartbeat me-2"></i>Wellness Wardens Hospital
+                </a>
+
+                <!-- Right user auth links -->
+                <ul class="navbar-nav auth-links">
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        var user = await UserManager.GetUserAsync(User);
+
+                        @if (user != null)
+                        {
+                            var roles = await UserManager.GetRolesAsync(user);
+                            var role = roles.FirstOrDefault();
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-2"></i>@(role ?? "User"): @user.Title @user.LastName
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
+                                            <button type="submit" class="btn btn-link dropdown-item text-start"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="btn btn-link nav-link text-white"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+                                </form>
+                            </li>
+                        }
+                    }
+                    else
+                    {
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-white" asp-controller="Account" asp-action="Register"><i class="fas fa-user-plus me-1"></i>Register</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-white" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt me-1"></i>Login</a>
                         </li>
-                    </ul>
-                </div>
+                    }
+                </ul>
             </div>
         </nav>
     </header>
+
+    <!-- Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title"><i class="fas fa-hospital-user me-2"></i> Hospital Subsystems</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column">
+                @foreach (var subsystem in subsystems)
+                {
+                    var hasAccess = subsystem.Roles.Contains("All") ||
+                    subsystem.Roles.Any(role => userRoles.Contains(role)) ||
+                    !SignInManager.IsSignedIn(User);
+
+                    var isActive = currentController == subsystem.Controller &&
+                    currentAction == subsystem.Action;
+
+                    <li class="nav-item">
+                        @if (hasAccess)
+                        {
+                            <a class="nav-link @(isActive ? "active" : "")"
+                               asp-controller="@subsystem.Controller"
+                               asp-action="@subsystem.Action">
+                                <i class="fas @subsystem.Icon me-2"></i>@subsystem.Name
+                            </a>
+                        }
+                        else
+                        {
+                            <a class="nav-link restricted subsystem-link"
+                               data-controller="@subsystem.Controller"
+                               data-action="@subsystem.Action"
+                               data-name="@subsystem.Name"
+                               href="#">
+                                <i class="fas @subsystem.Icon me-2"></i>@subsystem.Name
+                                <div class="subsystem-info">
+                                    <i class="fas fa-lock me-1"></i>Restricted Access
+                                </div>
+                            </a>
+                        }
+                    </li>
+                }
+
+                <!-- Privacy Link -->
+                <li class="nav-item mt-3">
+                    <a class="nav-link" asp-controller="Home" asp-action="Privacy">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - Wellness_Wardens_Project - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <!-- Help Widget -->
+    <div class="help-widget">
+        <button id="helpToggle" class="help-button" title="Help">?</button>
+        <div id="helpMenu" class="help-menu hidden">
+            <a href="/Help/FAQ">FAQ?</a>
+            <a href="/Help/Support">Support</a>
+            <a href="/Help/Help">Help</a>
+        </div>
+    </div>
+
+    <footer class="footer mt-auto py-3">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-md-12">
+                    &copy; @DateTime.Now.Year - Wellness Wardens Hospital -
+                    <a asp-controller="Home" asp-action="Privacy">Privacy Policy</a>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <small>Committed to your health and privacy</small>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <!-- JavaScript Files -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Toast Notification Script -->
+    <script>
+        // document.addEventListener("DOMContentLoaded", function () {
+        //     var toastMessage = '@TempData["ToastMessage"]';
+        //     var toastType = '@TempData["ToastType"]';
+
+        //     if (toastMessage && toastMessage !== "") {
+        //         Swal.fire({
+        //             toast: true,
+        //             position: 'top-end',
+        //             showConfirmButton: false,
+        //             timer: 3000,
+        //             icon: toastType || 'info',
+        //             title: toastMessage
+        //         });
+        //     }
+
+            // Help Widget functionality
+            const helpToggle = document.getElementById('helpToggle');
+            const helpMenu = document.getElementById('helpMenu');
+
+            if (helpToggle && helpMenu) {
+                helpToggle.addEventListener('click', () => {
+                    helpMenu.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!helpToggle.contains(e.target) && !helpMenu.contains(e.target)) {
+                        helpMenu.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Restricted subsystem click handler - FIXED VERSION
+
+        document.querySelectorAll('.subsystem-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const subsystemName = this.getAttribute('data-name');
+                const controller = this.getAttribute('data-controller');
+                const action = this.getAttribute('data-action');
+
+                // Build the URL they tried to access
+                const attemptedUrl = `/${controller}/${action}`;
+
+                Swal.fire({
+                    title: 'Access Restricted',
+                    html: `You don't have access to the <strong>${subsystemName}</strong> subsystem.<br><br>
+                          To access this area, you'll need to login with appropriate credentials.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Login with Different Account',
+                    cancelButtonText: 'Stay Logged In',
+                    confirmButtonColor: '#d9534f',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Create a form to submit the logout with returnUrl
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/Account/Logout';
+
+                        const returnUrlInput = document.createElement('input');
+                        returnUrlInput.type = 'hidden';
+                        returnUrlInput.name = 'returnUrl';
+                        returnUrlInput.value = attemptedUrl;
+
+                        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]');
+                        if (antiForgeryToken) {
+                            form.appendChild(antiForgeryToken.cloneNode(true));
+                        }
+
+                        form.appendChild(returnUrlInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            });
+        });
+        });
+    </script>
+    <!-- Toast Script in Layout -->
+    <script>
+        function showToast(type, message) {
+            if (!message) return;
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            })
+
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        }
+
+        // Show messages when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            var successMessage = '@Html.Raw(TempData["Success"] ?? "")';
+            if (successMessage) {
+                showToast('success', successMessage);
+            }
+
+            var errorMessage = '@Html.Raw(TempData["Error"] ?? "")';
+            if (errorMessage) {
+                showToast('error', errorMessage);
+            }
+        });
+    </script>
+
+    <!-- Render page-specific scripts -->
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -1,0 +1,7 @@
+﻿body {
+    background-color: #CAD5E2; /* Light gray background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #212529; /* Bootstrap default text */
+    margin: 0;
+    padding: 0;
+}

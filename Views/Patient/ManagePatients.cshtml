@@ -1,0 +1,188 @@
+﻿@using Wellness_Wardens_Project.ViewModels.PatientManagementSubsystem
+@model IEnumerable<PatientViewModel>
+
+@{
+    ViewData["Title"] = "Manage Patients";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link href="~/css/wardadmin.css" rel="stylesheet" />
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill me-2"></i> Manage Patients</h2>
+        <div>
+            <a asp-controller="Administration" asp-action="WardAdminDashboard" class="btn btn-outline-primary">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+            <a asp-controller="Patient" asp-action="AddPatient" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i> Add Patient
+            </a>
+        </div>
+    </div>
+
+    <p class="text-danger">Click Patient to view more info.</p>
+
+    <!-- Search bar -->
+    <div class="input-group mb-4 shadow" style="background-color:#CAD5E2;">
+        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+        <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
+               placeholder="Search patients by name, phone, or email..." />
+    </div>
+
+    <div id="patientsGrid" class="row g-4">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var patient in Model)
+            {
+                <div class="col-md-6 col-lg-4 patient-card">
+                    <div class="card shadow border-1 h-000 rounded-3" style="background-color:#CAD5E2; cursor:pointer;">
+                        <div class="card-body">
+                            <!-- Compact Header (clickable for collapse) -->
+                            <div class="d-flex align-items-center mb-0"
+                                 data-bs-toggle="collapse" data-bs-target="#patientDetails-@patient.PatientId">
+                                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px;">
+                                    <i class="bi bi-person-fill fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">@patient.FullName</h5>
+                                    <small class="text-muted">@patient.Gender | @patient.DateOfBirth.ToShortDateString()</small>
+                                </div>
+                            </div>
+
+                            <!-- Expanded Details -->
+                            <div class="collapse mt-2" id="patientDetails-@patient.PatientId">
+                                <div class="card shadow border-0 rounded-3 p-2" style="background-color:#CAD5E2;">
+                                    <p class="mb-1"><i class="bi bi-credit-card-2-front me-2 text-secondary"></i><strong>ID:</strong> @patient.IdentityNumber</p>
+                                    <p class="mb-1"><i class="bi bi-telephone-fill me-2 text-secondary"></i><strong>Phone:</strong> @patient.PhoneNumber</p>
+                                    <p class="mb-1"><i class="bi bi-telephone-fill me-2 text-secondary"></i><strong>Emergency no.:</strong> @patient.EmergencyContact</p>
+                                    <p class="mb-1"><i class="bi bi-envelope-fill me-2 text-secondary"></i><strong>Email:</strong> @(patient.Email ?? "N/A")</p>
+                                    <p class="mb-1"><i class="bi bi-house-door-fill me-2 text-secondary"></i><strong>Address:</strong> @patient.HomeAddress</p>
+                                    <p class="mb-1">
+                                        <i class="bi bi-geo-alt me-2 text-secondary"></i>
+                                        <strong>Current Location:</strong> @(patient.CurrentLocation ?? "N/A")
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="bi bi-person-badge me-2 text-secondary"></i>
+                                        <strong>Assigned Staff:</strong> @(patient.AssignedEmployee ?? "N/A")
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(patient.ChronicCondition) || !string.IsNullOrEmpty(patient.ChronicMedication))
+                                    {
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <p class="mb-1"><i class="bi bi-heart-pulse text-danger me-2"></i><strong>Condition:</strong> @patient.ChronicCondition</p>
+                                            <p class="mb-0"><i class="bi bi-capsule-pill text-primary me-2"></i><strong>Medication:</strong> @patient.ChronicMedication</p>
+                                        </div>
+                                    }
+
+                                    <div class="d-flex justify-content mt-3">
+                                        <a asp-controller="Patient" asp-action="GetHistory" asp-route-patientId="@patient.PatientId" class="btn btn-sm btn-outline-info text-black">
+                                            <i class="bi bi-journal-medical"></i> View Medical History
+                                        </a>
+                                        <a asp-action="EditPatient" asp-route-id="@patient.PatientId" class="btn btn-sm btn-outline-primary ms-2">
+                                            <i class="bi bi-pencil-square"></i> Edit
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal-@patient.PatientId">
+                                            <i class="bi bi-trash3"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Delete Modal -->
+                    <div class="modal fade" id="deleteModal-@patient.PatientId" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form asp-action="SoftDeletePatient" asp-controller="Patient" method="post">
+                                    @Html.AntiForgeryToken()
+                                    @Html.Hidden("id", patient.PatientId)
+
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">
+                                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Delete Patient
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete <strong>@patient.FullName</strong>?</p>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center">
+                <div class="alert alert-info shadow-sm">
+                    <i class="bi bi-info-circle me-2"></i> No patients found.
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function showToast(type, message) {
+            if (!message) return;
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const patientCards = document.querySelectorAll('.patient-card');
+
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            let matchFound = false;
+
+            patientCards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                const isMatch = text.includes(query);
+                card.style.display = isMatch ? '' : 'none';
+                if (isMatch) matchFound = true;
+            });
+
+            if (!matchFound && query.trim() !== "") {
+                showToast('warning', 'No patients found matching your search.');
+            }
+        });
+
+        // ✅ success message toast
+        var successMessage = @Html.Raw(Json.Serialize(TempData["SuccessMessage"] ?? ""));
+        if (successMessage) {
+            showToast('success', successMessage);
+        }
+
+        // ❌ validation errors toast
+        @foreach (var modelState in ViewData.ModelState.Values)
+        {
+                foreach (var error in modelState.Errors)
+                {
+                        <text>
+                            showToast('error', @Html.Raw(Json.Serialize(error.ErrorMessage)));
+                        </text>
+                }
+        }
+    </script>
+}
+

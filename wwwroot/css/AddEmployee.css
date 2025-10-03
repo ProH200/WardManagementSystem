@@ -1,0 +1,170 @@
+﻿body {
+    background: #f1f9ff;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.card-container {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+    background: #fff;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+    flex-wrap: wrap;
+}
+
+.form-box {
+    background: #e3f2fd;
+    border-radius: 12px;
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+    .form-box .section-header {
+        font-weight: 700;
+        color: #0288d1;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #81d4fa;
+        padding-bottom: 5px;
+        font-size: 1.1rem;
+    }
+
+    .form-box .optional-note {
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 12px;
+    }
+
+.form-section {
+    flex: 1.2;
+    padding: 40px;
+    min-width: 300px;
+}
+
+    .form-section h2 {
+        font-weight: 700;
+        color: #0288d1;
+        margin-bottom: 15px;
+    }
+
+    .form-section p {
+        color: #666;
+        margin-bottom: 25px;
+    }
+
+.form-label {
+    font-weight: 600;
+    color: #004d66;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    padding: 10px 15px;
+    border: 1px solid #cfd8dc;
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #0288d1;
+        box-shadow: 0 0 5px rgba(2,136,209,0.3);
+    }
+
+.btn-primary {
+    background: #0288d1;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+    .btn-primary:hover {
+        background: #0277bd;
+    }
+
+.btn-secondary {
+    border-radius: 10px;
+    padding: 10px 20px;
+    border: 1px solid #0288d1;
+    color: #0288d1;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+    .btn-secondary:hover {
+        background: #0288d1;
+        color: #fff;
+    }
+
+.d-flex.justify-content-between {
+    margin-top: 20px;
+}
+
+.image-section {
+    flex: 1;
+    background: linear-gradient(135deg, #0288d1, #81d4fa);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    color: white;
+    min-height: 400px;
+    padding: 30px 20px;
+    position: relative;
+}
+
+#lottie-animation {
+    width: 80%;
+    max-width: 300px;
+    margin-bottom: 15px;
+    align-self: center;
+}
+
+.staff-info {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #e3f2fd;
+    line-height: 1.5;
+    background: rgba(0,0,0,0.1);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+    .staff-info h5 {
+        margin-bottom: 10px;
+        color: #b3e5fc;
+    }
+
+    .staff-info ul {
+        list-style-type: disc;
+        padding-left: 20px;
+        margin: 0;
+    }
+
+/* Media query fix */
+@media (max-width: 768px) {
+    .card-container {
+        flex-direction: column;
+    }
+
+    .image-section {
+        min-height: 300px;
+        align-items: center;
+        text-align: center;
+    }
+
+    #lottie-animation {
+        width: 60%;
+    }
+}

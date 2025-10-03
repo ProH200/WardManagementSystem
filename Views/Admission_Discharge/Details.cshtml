@@ -1,0 +1,288 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.PatientAdmission
+
+@{
+    ViewData["Title"] = "Patient Folder";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Only affect the patient folder page */
+    .patient-folder-container {
+        margin: 0;
+        padding: 20px;
+        min-height: calc(100vh - 120px); /* Adjust based on your nav/footer height */
+    }
+    /* Normal screen styles (not affecting other pages) */
+    .patient-folder-content h2 {
+        color: #2c5aa0;
+        margin-bottom: 10px;
+    }
+    body {
+        background-color: #CAD5E2; /* Soft body background */
+        margin: 0;
+        padding: 20px;
+        font-size: 12px;
+    }
+
+    #printableArea {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        max-width: 210mm;
+        margin: 0 auto;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .no-print {
+        max-width: 210mm;
+        margin: 20px auto;
+    }
+
+    /* Compact styles for printing */
+    .compact-section {
+        margin-bottom: 12px !important;
+    }
+
+    .compact-title {
+        font-size: 13px !important;
+        margin-bottom: 8px !important;
+        padding-bottom: 4px !important;
+    }
+
+    .compact-list {
+        margin-bottom: 6px !important;
+    }
+
+    .compact-list li {
+        margin-bottom: 2px !important;
+        padding: 1px 0 !important;
+    }
+
+    .compact-text {
+        font-size: 10px !important;
+        margin-bottom: 4px !important;
+    }
+
+    @@media print {
+        body {
+            background: white;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 11px !important;
+        }
+
+        #btnDownloadPdf, a.btn-secondary, .no-print {
+            display: none !important;
+        }
+
+        #printableArea {
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 10mm !important;
+            width: 210mm !important;
+            min-height: 277mm !important; /* 297mm - 20mm margins */
+            border: none !important;
+            border-radius: 0 !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+        }
+
+        /* Force compact printing */
+        .mb-4 { margin-bottom: 8px !important; }
+        .py-4 { padding-top: 0 !important; padding-bottom: 8px !important; }
+        .px-4 { padding-left: 0 !important; padding-right: 0 !important; }
+        
+        h2 { 
+            margin-top: 0 !important; 
+            margin-bottom: 4px !important;
+            font-size: 16px !important; 
+        }
+        
+        h4 { 
+            margin-bottom: 8px !important;
+            font-size: 13px !important; 
+        }
+        
+        h5 { 
+            margin-bottom: 6px !important;
+            font-size: 11px !important; 
+        }
+        
+        ul { margin-bottom: 4px !important; }
+        li { margin-bottom: 1px !important; }
+        p { margin-bottom: 3px !important; }
+        
+        .border-bottom { border-bottom-width: 1px !important; }
+        .pb-2 { padding-bottom: 4px !important; }
+        .mb-3 { margin-bottom: 6px !important; }
+        .mt-2 { margin-top: 4px !important; }
+
+        /* Page margins */
+        @@page {
+            margin: 10mm !important;
+            size: A4 portrait;
+        }
+    }
+</style>
+<div class="patient-folder-container">
+    <div class="px-4 py-4" id="printableArea">
+        <div class="mb-4 text-center compact-section">
+            <h2 class="text-primary" style="margin-bottom: 2px !important;"><i class="bi bi-hospital"></i> Wellness Wardens Hospital</h2>
+            <h4 class="text-secondary" style="margin-bottom: 4px !important;">Patient Folder</h4>
+            <hr class="border-primary mt-2" style="margin: 4px 0 8px 0 !important;">
+        </div>
+
+        <!-- Patient Information -->
+        <section class="mb-4 compact-section">
+            <h5 class="text-secondary border-bottom pb-2 mb-3 compact-title"><i class="bi bi-person-circle"></i> Patient Information</h5>
+            <ul class="list-unstyled compact-list">
+                <li><strong>Name:</strong> @($"{Model.Patient?.FirstName} {Model.Patient?.LastName}")</li>
+                <li><strong>DOB:</strong> @(Model.Patient != null && Model.Patient.DateOfBirth != default(DateOnly) ? Model.Patient.DateOfBirth.ToString("dd MMM yyyy") : "N/A")</li>
+                <li><strong>Gender:</strong> @(Model.Patient?.Gender ?? "N/A")</li>
+                <li><strong>Email:</strong> @(Model.Patient?.Email ?? "N/A")</li>
+                <li><strong>Phone:</strong> @(Model.Patient?.PhoneNumber ?? "N/A")</li>
+                <li><strong>Address:</strong> @(Model.Patient?.HomeAddress ?? "N/A")</li>
+            </ul>
+        </section>
+
+        <!-- Admission Information (if admitted) -->
+        @if (Model.AdmissionDate != default(DateTime))
+        {
+            <section class="mb-4 compact-section">
+                <h5 class="text-secondary border-bottom pb-2 mb-3 compact-title"><i class="bi bi-hospital"></i> Admission Information</h5>
+                <ul class="list-unstyled compact-list">
+                    <li><strong>Date:</strong> @(Model.AdmissionDate.HasValue? Model.AdmissionDate.Value.ToString("dd MMM yyyy") : "N/A")</li>
+                    <li><strong>Reason:</strong> @(Model.Reason ?? "N/A")</li>
+                    <li>
+                        <strong>Status:</strong>
+                        <span class="badge @(Model.Discharges?.Any() == true ? "bg-success" : "bg-warning text-dark")" style="font-size: 9px !important; padding: 1px 6px !important;">
+                            @(Model.Discharges?.Any() == true ? "Discharged" : (Model.AdmissionDate.HasValue ? "Admitted" : "Not Admitted"))
+                        </span>
+                    </li>
+                    <li><strong>Ward:</strong> @(Model.Bed?.Room?.Ward?.Name ?? "N/A")</li>
+                    <li><strong>Room:</strong> @(Model.Bed?.Room?.RoomNumber ?? "N/A")</li>
+                    <li><strong>Bed:</strong> @(Model.Bed?.BedNumber ?? "N/A")</li>
+                    <li><strong>Assigned Staff:</strong> @(Model.AssignedEmployee != null ? $"{Model.AssignedEmployee.Title} {Model.AssignedEmployee.LastName}" : "N/A")</li>
+                </ul>
+            </section>
+
+            <!-- Patient Movements -->
+            <section class="mb-4 compact-section">
+                <h5 class="text-secondary border-bottom pb-2 mb-3 compact-title"><i class="bi bi-arrow-left-right"></i> Patient Movements</h5>
+                @if (Model.PatientMovements != null && Model.PatientMovements.Any(m => !m.IsDeleted))
+                {
+                    <ul class="list-unstyled compact-list">
+                        @foreach (var move in Model.PatientMovements.Where(m => !m.IsDeleted))
+                        {
+                            <li style="font-size: 10px !important; margin-bottom: 1px !important;">
+                                <strong>@move.Date.ToString("dd MMM yyyy"):</strong>
+                                <span style="font-size: 9px !important;">
+                                    @move.FromLocation → @move.ToLocation
+                                    <em>(Reason: @move.Reason)</em>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted compact-text">No movements recorded.</p>
+                }
+            </section>
+
+            <!-- Discharges -->
+            <section class="mb-4 compact-section">
+                <h5 class="text-secondary border-bottom pb-2 mb-3 compact-title"><i class="bi bi-door-open"></i> Discharges</h5>
+                @if (Model.Discharges != null && Model.Discharges.Any())
+                {
+                    <ul class="list-unstyled compact-list">
+                        @foreach (var discharge in Model.Discharges)
+                        {
+                            <li style="font-size: 10px !important;">
+                                <strong>@discharge.DischargeDate.ToString("dd MMM yyyy"):</strong>
+                                <span style="font-size: 9px !important;">@discharge.Description</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted compact-text">Not yet discharged.</p>
+                }
+            </section>
+        }
+        else
+        {
+            <p class="text-muted compact-text">This patient has not been admitted yet.</p>
+        }
+
+        <!-- Footer for PDF -->
+        <div style="margin-top: 15px; padding-top: 8px; border-top: 1px solid #dee2e6; font-size: 9px; color: #6c757d; text-align: center;">
+            Generated on: @DateTime.Now.ToString("dd MMM yyyy HH:mm") | Wellness Wardens Hospital
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4 no-print">
+        <a asp-action="Admissions" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+        <button class="btn btn-success btn-sm" id="btnDownloadPdf"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    document.getElementById("btnDownloadPdf").addEventListener("click", function () {
+        const element = document.getElementById("printableArea");
+        
+        const opt = {
+            margin: [8, 8, 8, 8], // Smaller margins
+            filename: 'PatientFolder_@($"{Model.Patient?.FirstName}_{Model.Patient?.LastName}").pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                width: 794, // A4 width in pixels at 96 DPI
+                height: 1123 // A4 height in pixels at 96 DPI
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait' 
+            },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        // Show loading state
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Generating...';
+        this.disabled = true;
+
+        html2pdf().set(opt).from(element).save().finally(() => {
+            // Restore button state
+            this.innerHTML = originalText;
+            this.disabled = false;
+        });
+    });
+
+    // Add print optimization
+    const printOptimization = document.createElement('style');
+    printOptimization.textContent = `
+        @@media print {
+            * {
+                box-sizing: border-box;
+            }
+            body, html {
+                width: 210mm !important;
+                height: 297mm !important;
+                overflow: hidden !important;
+            }
+            #printableArea {
+                max-height: 277mm !important;
+                overflow: hidden !important;
+            }
+        }
+    `;
+    document.head.appendChild(printOptimization);
+</script>

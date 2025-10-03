@@ -1,0 +1,243 @@
+﻿@using Wellness_Wardens_Project.ViewModels.AdminSubsystem
+@model AddEmployeeViewModel
+@{
+    ViewData["Title"] = "Add Employee";
+    Layout = "_Layout";
+}
+
+<link href="~/css/addemployee.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="card-container">
+        <!-- Form Section -->
+        <div class="form-section">
+            <h2><i class="bi bi-person-plus-fill"></i> Add New Employee</h2>
+            <p>Register a new hospital staff member. Fill all required fields <i class="text-danger">(with Asterisk)</i>.</p>
+
+            <form asp-action="AddEmployee" method="post">
+                @Html.AntiForgeryToken()
+
+                <!-- Personal Info -->
+                <div class="form-box">
+                    <div class="section-header">Personal Information</div>
+                    <div class="mb-3">
+                        <label asp-for="FirstName" class="form-label">First Name</label> <span class="text-danger">*</span>
+                        <input asp-for="FirstName" class="form-control" placeholder="Enter first name" />
+                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="LastName" class="form-label">Last Name</label> <span class="text-danger">*</span>
+                        <input asp-for="LastName" class="form-control" placeholder="Enter last name" />
+                        <span asp-validation-for="LastName" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label">Title</label> <span class="text-danger">*</span>
+                        <select asp-for="Title" class="form-select">
+                            <option value="">-- Select Title --</option>
+                            <option value="Mr.">Mr.</option>
+                            <option value="Miss.">Miss.</option>
+                            <option value="Mrs.">Mrs.</option>
+                            <option value="Dr.">Dr.</option>
+                        </select>
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Gender" class="form-label">Gender</label> <span class="text-danger">*</span>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PhoneNumber" class="form-label">Phone Number</label> <span class="text-danger">*</span>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="e.g. +27 82 123 4567" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email</label> <span class="text-danger">*</span>
+                        <input asp-for="Email" class="form-control" placeholder="example@hospital.com" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Role & Specialization -->
+                <div class="form-box">
+                    <div class="section-header">Role & Department</div>
+
+                    <div class="mb-3">
+                        <label asp-for="Role" class="form-label">Role</label> <span class="text-danger">*</span>
+                        <select asp-for="Role" class="form-select">
+                            <option value="">-- Select Role --</option>
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <option value="@role">@role</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
+                    </div>
+
+                    <div class="optional-note">Optional: specify medical specialization.</div>
+                    <div class="mb-3">
+                        <label asp-for="Specialization" class="form-label">Specialization</label>
+                        <input asp-for="Specialization" class="form-control" placeholder="e.g. Cardiology, Surgery"
+                               value="@(string.IsNullOrWhiteSpace(Model.Specialization) ? "Not Specified" : Model.Specialization)" />
+                    </div>
+                </div>
+
+                <!-- Account Info -->
+                <div class="form-box">
+                    <div class="section-header">Account Password</div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Password</label> <span class="text-danger">*</span>
+                        <input asp-for="Password" type="password" class="form-control" id="PasswordInput" placeholder="Enter password" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- Password hint -->
+                    <div id="password-hint" class="mt-2">
+                        <p>Password must contain:</p>
+                        <ul style="display: grid; grid-template-columns: repeat(2, auto);column-gap: 2rem;
+                            row-gap: 0.25rem; padding-left: 0; list-style: none; font-size: 13.5px;">
+                            <li id="capital" class="text-danger">At least 1 capital letter</li>
+                            <li id="number" class="text-danger">At least 1 number</li>
+                            <li id="special" class="text-danger">At least 1 special character</li>
+                            <li id="length" class="text-danger">At least 8 characters</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label> <span class="text-danger">*</span>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" id="ConfirmPasswordInput" placeholder="Confirm password" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                </div>
+
+
+                <!-- Buttons -->
+                <div class="d-flex justify-content-between mt-3">
+                    <a asp-action="ManageEmployee" asp-controller="Employee" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Submit</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Side - Animated Section -->
+        <div class="image-section">
+            <div id="lottie-animation"></div>
+            <h3>Welcome to Our Hospital</h3>
+            <p>Join our team and help provide quality healthcare to our community.</p>
+
+            <!-- Staff Info -->
+            <div class="staff-info">
+                <h5>Hospital Staff Overview</h5>
+                <ul>
+                    <li><strong>Doctors:</strong> Provide medical care and specialized treatments.</li>
+                    <li><strong>Nurses:</strong> Assist patients and support medical procedures.</li>
+                    <li><strong>Assistants:</strong> Manage patient data and administrative tasks.</li>
+                    <li><strong>Teamwork:</strong> Staff collaborate to ensure patient safety and comfort.</li>
+                </ul>
+            </div>
+
+            <div id="animation-wrapper" style="position: relative; width: 400px; height: 400px;">
+                <div id="lottie-animation" style="width: 100px; height: 100%;"></div>
+                <canvas id="stars-canvas" style="position: absolute; top: 0; left: 0; pointer-events: none; width: 442px; height: 690px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script src="~/js/password-validation.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.10.2/lottie.min.js"></script>
+    <script>
+        // Lottie animation
+        const animation = lottie.loadAnimation({
+            container: document.getElementById('lottie-animation'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'https://assets8.lottiefiles.com/packages/lf20_rhnmhzwj.json'
+        });
+        animation.setSpeed(3.7);
+
+        // Star canvas
+        const canvas = document.getElementById('stars-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        const stars = [];
+        const numStars = 100;
+
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 2 + 1,
+                speed: Math.random() * 0.5 + 0.2
+            });
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let star of stars) {
+                star.y -= star.speed;
+                if (star.y < 0) star.y = canvas.height;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fill();
+            }
+            requestAnimationFrame(animateStars);
+        }
+
+        animateStars();
+
+        // Handle resizing
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        });
+    </script>
+
+    <!-- SweetAlert2 for validation error toasts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Show validation errors as SweetAlert error toasts
+        @if (!ViewData.ModelState.IsValid)
+        {
+                foreach (var modelState in ViewData.ModelState.Values)
+                {
+                        foreach (var error in modelState.Errors)
+                        {
+                                <text>
+                                    Swal.fire({
+                                        toast: true,
+                                        position: 'top-end',
+                                        icon: 'error',
+                                        title: '@error.ErrorMessage',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                </text>
+                        }
+                }
+        }
+    </script>
+}
+

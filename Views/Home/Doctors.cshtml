@@ -1,0 +1,660 @@
+﻿@{
+    ViewData["Title"] = "Doctor Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Doctor Dashboard</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Existing left content unchanged -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>Welcome, Doctor!</h5>
+                    <p>Access patient folders, schedule visits, prescribe medications, and manage discharges.</p>
+                </div>
+            </div>
+
+            <!-- Doctor Tools -->
+            <div class="card shadow-lg border-0 rounded-3 mb-4">
+                <div class="card-header text-white text-center py-3"
+                     style="background: linear-gradient(90deg, #198754, #20c997); border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <h4 class="mb-1"><i class="bi bi-person-badge-fill me-2"></i> Doctor Tools</h4>
+                </div>
+                <div class="card-body bg-light">
+                    <div class="row g-4">
+                        <!-- Patient Folders -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder-symlink-fill display-4 text-success mb-3"></i>
+                                    <h5 class="card-title">Patient Folders</h5>
+                                    <p class="text-muted">View and update patient records.</p>
+                                    <a asp-action="Index" asp-controller="PatientFolder" class="btn btn-outline-success w-100">
+                                        Access Folders
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other tools -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-calendar2-plus-fill display-4 text-primary mb-3"></i>
+                                    <h5 class="card-title">Schedule Visits</h5>
+                                    <p class="text-muted">Plan and manage ward visits.</p>
+                                    <a asp-action="ScheduleVisit" asp-controller="Doctor" class="btn btn-outline-primary w-100">
+                                        Manage Visits
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-journal-medical display-4 text-warning mb-3"></i>
+                                    <h5 class="card-title">Visit Notes</h5>
+                                    <p class="text-muted">Record progress and nurse instructions.</p>
+                                    <a asp-action="RecordVisits" asp-controller="DoctorVisit" class="btn btn-outline-warning w-100">
+                                        Record Notes
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-capsule-pill display-4 text-danger mb-3"></i>
+                                    <h5 class="card-title">Prescriptions</h5>
+                                    <p class="text-muted">Prescribe and manage medication.</p>
+                                    <a asp-action="Prescriptions" asp-controller="DoctorPrescription" class="btn btn-outline-danger w-100">
+                                        Manage Prescriptions
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-box-arrow-right display-4 text-secondary mb-3"></i>
+                                    <h5 class="card-title">Discharge</h5>
+                                    <p class="text-muted">Discharge recovered patients.</p>
+                                    <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-outline-secondary w-100">
+                                        Discharge Patients
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-chat-dots-fill display-4 text-info mb-3"></i>
+                                    <h5 class="card-title">Instructions</h5>
+                                    <p class="text-muted">Leave notes for nurses/assistants.</p>
+                                    <a asp-action="Instructions" asp-controller="DoctorInstructions" class="btn btn-outline-info w-100">
+                                        Manage Instructions
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar (Closable) -->
+        <div class="col-md-4">
+            <div id="sidebarContent">
+                <div class="calendar-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <button class="btn btn-sm btn-outline-primary" id="prev-month"><i class="bi bi-chevron-left"></i></button>
+                        <h5 id="calendar-month-year" class="m-0"></h5>
+                        <button class="btn btn-sm btn-outline-primary" id="next-month"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <table class="calendar-table">
+                        <thead>
+                            <tr>
+                                <th>Mon</th>
+                                <th>Tue</th>
+                                <th>Wed</th>
+                                <th>Thu</th>
+                                <th>Fri</th>
+                                <th>Sat</th>
+                                <th>Sun</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendar-body"></tbody>
+                    </table>
+                </div>
+
+                <!--Upcoming events-->
+                <div class="card shadow-sm mt-3 float-end" style="width: 300px;">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Upcoming Events</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="upcomingEvents" class="list-group">
+                            <li class="list-group-item text-muted">No events yet</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Event Modal with Individual Event Management -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="eventForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manage Event for <span id="modalDate"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="eventDate" />
+                    <input type="hidden" id="editingEventId" />
+
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Event Title</label>
+                        <input type="text" class="form-control" id="eventTitle" placeholder="Enter title">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Event Time</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="startTime" class="form-label small">Start Time</label>
+                                <input type="time" class="form-control" id="startTime" value="09:00">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="endTime" class="form-label small">End Time</label>
+                                <input type="time" class="form-control" id="endTime" value="10:00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="existing-events-container mt-3">
+                        <h6 class="border-bottom pb-2">Existing Events on This Date</h6>
+                        <div class="existing-events" id="existingEvents" style="max-height: 150px; overflow-y: auto;">
+                            <!-- Existing events will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-success" id="saveEvent">Add Event</button>
+                        <button type="button" class="btn btn-warning" id="updateEvent" style="display: none;">Update Event</button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-danger" id="deleteEvent">Remove All</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f8faff;
+        }
+
+        .calendar-container {
+            background: #fff;
+            padding: 6px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            margin-left: 100px;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .calendar-table th, .calendar-table td {
+                text-align: center;
+                padding: 1px;
+                border: 1px solid #eee;
+                cursor: pointer;
+            }
+
+        .calendar-day {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            border-radius: 50%;
+        }
+
+        .event-day .calendar-day {
+            background-color: #fde2e4;
+            border: 1px solid #dc3545;
+        }
+
+        .today .calendar-day {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Additional styles for event indicators */
+        .event-indicator {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Styles for individual event actions */
+        .event-actions {
+            margin-top: 5px;
+        }
+
+            .event-actions .btn {
+                padding: 0.1rem 0.4rem;
+                font-size: 0.7rem;
+                margin-right: 3px;
+            }
+
+        .existing-event-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        let currentDate = new Date();
+        let events = {};
+        let selectedCell = null;
+        let currentEditingEvent = null;
+
+        async function loadEvents() {
+            try {
+                const res = await fetch("/Doctor/GetEvents");
+                const data = await res.json();
+                events = {};
+                data.forEach(ev => {
+                    const eventKey = ev.date || ev.VisitDate;
+                    if (!events[eventKey]) events[eventKey] = [];
+                    events[eventKey].push({
+                        id: ev.id || Date.now() + Math.random(),
+                        title: ev.title || ev.Title || "Scheduled Visit",
+                        startTime: ev.startTime || ev.StartTime || "09:00",
+                        endTime: ev.endTime || ev.EndTime || "10:00"
+                    });
+                });
+                generateCalendar(currentDate);
+                renderUpcomingEvents();
+            } catch (error) {
+                console.error("Error loading events:", error);
+                events = {};
+                generateCalendar(currentDate);
+                renderUpcomingEvents();
+            }
+        }
+
+        function generateCalendar(date) {
+            const body = document.getElementById("calendar-body");
+            const title = document.getElementById("calendar-month-year");
+            body.innerHTML = "";
+            const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            title.textContent = monthNames[date.getMonth()] + " " + date.getFullYear();
+
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const daysInMonth = new Date(date.getFullYear(), date.getMonth()+1, 0).getDate();
+            let startDay = firstDay === 0 ? 6 : firstDay - 1;
+            let day = 1;
+
+            for (let i = 0; i < 6; i++) {
+                const row = document.createElement("tr");
+                for (let j = 0; j < 7; j++) {
+                    const cell = document.createElement("td");
+                    if ((i === 0 && j < startDay) || day > daysInMonth) {
+                        cell.innerHTML = "";
+                    } else {
+                        const dayDiv = document.createElement("div");
+                        dayDiv.className = "calendar-day";
+                        dayDiv.textContent = day;
+                        cell.appendChild(dayDiv);
+
+                        const key = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,"0")}-${day.toString().padStart(2,"0")}`;
+                        if (events[key]) {
+                            cell.classList.add("event-day");
+                            const eventIndicator = document.createElement("div");
+                            eventIndicator.className = "event-indicator";
+                            eventIndicator.textContent = events[key].length + " event(s)";
+                            cell.appendChild(eventIndicator);
+                        }
+                        if (day === new Date().getDate() && date.getMonth() === new Date().getMonth() && date.getFullYear() === new Date().getFullYear()) {
+                            cell.classList.add("today");
+                        }
+                        cell.addEventListener("click", () => openEventModal(key, cell));
+                        day++;
+                    }
+                    row.appendChild(cell);
+                }
+                body.appendChild(row);
+                if (day > daysInMonth) break;
+            }
+        }
+
+        function openEventModal(dateKey, cell) {
+            selectedCell = cell;
+            currentEditingEvent = null;
+            const formattedDate = new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            document.getElementById("modalDate").textContent = formattedDate;
+            document.getElementById("eventDate").value = dateKey;
+            document.getElementById("eventTitle").value = "";
+            document.getElementById("startTime").value = "09:00";
+            document.getElementById("endTime").value = "10:00";
+            document.getElementById("editingEventId").value = "";
+
+            // Show Add button, hide Update button
+            document.getElementById("saveEvent").style.display = "inline-block";
+            document.getElementById("updateEvent").style.display = "none";
+
+            displayExistingEvents(dateKey);
+
+            const modal = new bootstrap.Modal(document.getElementById("eventModal"));
+            modal.show();
+        }
+
+        function displayExistingEvents(dateKey) {
+            const existingEventsContainer = document.getElementById("existingEvents");
+            const dayEvents = events[dateKey] || [];
+
+            if (dayEvents.length === 0) {
+                existingEventsContainer.innerHTML = '<div class="text-muted text-center p-2">No events scheduled for this date</div>';
+                return;
+            }
+
+            let eventsHTML = '';
+            dayEvents.forEach((event, index) => {
+                eventsHTML += `
+                    <div class="existing-event-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">${event.title}</div>
+                                <div class="small text-muted">${event.startTime} - ${event.endTime}</div>
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-sm btn-outline-primary edit-event" data-event-id="${event.id}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-single-event" data-event-id="${event.id}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning reschedule-event" data-event-id="${event.id}">
+                                    <i class="bi bi-calendar2-event"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            existingEventsContainer.innerHTML = eventsHTML;
+
+            // Add event listeners for the action buttons
+            document.querySelectorAll('.edit-event').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const eventId = e.target.closest('button').dataset.eventId;
+                    editEvent(dateKey, eventId);
+                });
+            });
+
+            document.querySelectorAll('.delete-single-event').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const eventId = e.target.closest('button').dataset.eventId;
+                    deleteSingleEvent(dateKey, eventId);
+                });
+            });
+
+            document.querySelectorAll('.reschedule-event').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const eventId = e.target.closest('button').dataset.eventId;
+                    openRescheduleModal(dateKey, eventId);
+                });
+            });
+        }
+
+        function editEvent(dateKey, eventId) {
+            const event = events[dateKey].find(e => e.id == eventId);
+            if (!event) return;
+
+            currentEditingEvent = event;
+            document.getElementById("eventTitle").value = event.title;
+            document.getElementById("startTime").value = event.startTime;
+            document.getElementById("endTime").value = event.endTime;
+            document.getElementById("editingEventId").value = event.id;
+
+            // Show Update button, hide Add button
+            document.getElementById("saveEvent").style.display = "none";
+            document.getElementById("updateEvent").style.display = "inline-block";
+        }
+
+        function deleteSingleEvent(dateKey, eventId) {
+            if (!confirm("Are you sure you want to delete this event?")) return;
+
+            events[dateKey] = events[dateKey].filter(e => e.id != eventId);
+            if (events[dateKey].length === 0) {
+                delete events[dateKey];
+            }
+
+            // Update UI
+            generateCalendar(currentDate);
+            renderUpcomingEvents();
+            displayExistingEvents(dateKey);
+
+            // Send to server - Fixed parameter name
+            fetch("/Doctor/DeleteSingleEvent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ EventId: eventId })
+            }).catch(error => console.error("Error deleting event:", error));
+        }
+
+        function openRescheduleModal(dateKey, eventId) {
+            const event = events[dateKey].find(e => e.id == eventId);
+            if (!event) return;
+
+            // Simple reschedule - just ask for new date
+            const newDate = prompt("Enter new date (YYYY-MM-DD):", dateKey);
+            if (!newDate) return;
+
+            // Validate date format
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+                alert("Please enter date in YYYY-MM-DD format");
+                return;
+            }
+
+            // Remove from old date
+            events[dateKey] = events[dateKey].filter(e => e.id != eventId);
+            if (events[dateKey].length === 0) {
+                delete events[dateKey];
+            }
+
+            // Add to new date
+            if (!events[newDate]) events[newDate] = [];
+            events[newDate].push(event);
+
+            // Update UI
+            generateCalendar(currentDate);
+            renderUpcomingEvents();
+            displayExistingEvents(dateKey);
+
+            // Send to server
+            fetch("/Doctor/RescheduleEvent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    EventId: eventId,
+                    OldDate: dateKey,
+                    NewDate: newDate
+                })
+            }).catch(error => console.error("Error rescheduling event:", error));
+        }
+
+        function renderUpcomingEvents() {
+            const upcoming = document.getElementById("upcomingEvents");
+            upcoming.innerHTML = "";
+            const allEvents = Object.entries(events).sort((a,b) => new Date(a[0]) - new Date(b[0])).slice(0, 5);
+
+            if (allEvents.length === 0) {
+                upcoming.innerHTML = `<li class="list-group-item text-muted">No events yet</li>`;
+                return;
+            }
+
+            allEvents.forEach(([date, evs]) => {
+                evs.forEach(event => {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item";
+                    li.innerHTML = `
+                        <div class="fw-bold">${event.title}</div>
+                        <div class="small text-muted">${new Date(date + 'T00:00:00').toLocaleDateString()} • ${event.startTime} - ${event.endTime}</div>
+                    `;
+                    upcoming.appendChild(li);
+                });
+            });
+        }
+
+        // Modal button events - FIXED FETCH CALLS
+        document.getElementById("saveEvent").addEventListener("click", async () => {
+            const date = document.getElementById("eventDate").value;
+            const title = document.getElementById("eventTitle").value.trim();
+            const startTime = document.getElementById("startTime").value;
+            const endTime = document.getElementById("endTime").value;
+
+            if (!title) return alert("Enter a title");
+            if (!startTime || !endTime) return alert("Enter both start and end times");
+
+            if (!events[date]) events[date] = [];
+            events[date].push({
+                id: Date.now() + Math.random(),
+                title: title,
+                startTime: startTime,
+                endTime: endTime
+            });
+
+            generateCalendar(currentDate);
+            renderUpcomingEvents();
+            displayExistingEvents(date);
+
+            try {
+                // Fixed: Proper parameter names matching the model
+                await fetch("/Doctor/AddEvent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        VisitDate: date,
+                        Title: title,
+                        StartTime: startTime,
+                        EndTime: endTime
+                    })
+                });
+            } catch (error) {
+                console.error("Error saving event:", error);
+            }
+        });
+
+        document.getElementById("updateEvent").addEventListener("click", async () => {
+            const date = document.getElementById("eventDate").value;
+            const title = document.getElementById("eventTitle").value.trim();
+            const startTime = document.getElementById("startTime").value;
+            const endTime = document.getElementById("endTime").value;
+            const eventId = document.getElementById("editingEventId").value;
+
+            if (!title || !startTime || !endTime || !eventId) return;
+
+            // Update the event
+            const eventIndex = events[date].findIndex(e => e.id == eventId);
+            if (eventIndex !== -1) {
+                events[date][eventIndex].title = title;
+                events[date][eventIndex].startTime = startTime;
+                events[date][eventIndex].endTime = endTime;
+            }
+
+            generateCalendar(currentDate);
+            renderUpcomingEvents();
+            displayExistingEvents(date);
+
+            // Reset form
+            document.getElementById("saveEvent").style.display = "inline-block";
+            document.getElementById("updateEvent").style.display = "none";
+            document.getElementById("eventTitle").value = "";
+            document.getElementById("startTime").value = "09:00";
+            document.getElementById("endTime").value = "10:00";
+
+            try {
+                // Fixed: Using ScheduleVisitId instead of EventId
+                await fetch("/Doctor/UpdateEvent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ScheduleVisitId: eventId,  // Changed to match model property
+                        Title: title,
+                        StartTime: startTime,
+                        EndTime: endTime
+                    })
+                });
+            } catch (error) {
+                console.error("Error updating event:", error);
+            }
+        });
+
+        document.getElementById("deleteEvent").addEventListener("click", async () => {
+            const date = document.getElementById("eventDate").value;
+            if (!events[date] || events[date].length === 0) return alert("No events to remove");
+
+            if (confirm(`Are you sure you want to remove all ${events[date].length} events for ${date}?`)) {
+                delete events[date];
+                generateCalendar(currentDate);
+                renderUpcomingEvents();
+                bootstrap.Modal.getInstance(document.getElementById("eventModal")).hide();
+
+                try {
+                    await fetch("/Doctor/DeleteEvent", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ VisitDate: date })
+                    });
+                } catch (error) {
+                    console.error("Error deleting event:", error);
+                }
+            }
+        });
+
+        document.getElementById("prev-month").addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth()-1);
+            generateCalendar(currentDate);
+        });
+
+        document.getElementById("next-month").addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth()+1);
+            generateCalendar(currentDate);
+        });
+
+        loadEvents();
+    </script>
+}

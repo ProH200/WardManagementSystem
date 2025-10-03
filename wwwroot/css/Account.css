@@ -1,0 +1,254 @@
+﻿:root {
+    --hospital-blue: #005b96;
+    --hospital-light-blue: #e6f2ff;
+    --hospital-dark-blue: #003d66;
+    --hospital-green: #4caf50;
+    --hospital-white: #f8f9fa;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+}
+
+.login-wrapper {
+    min-height: 100vh;
+}
+
+/* Form Section with Medical Background */
+.form-section {
+    background: url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    padding: 2rem;
+}
+
+    .form-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 91, 150, 0.5);
+    }
+
+.account-box {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+    .account-box h2 {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+.form-label {
+    color: white;
+    font-weight: 500;
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: white;
+        box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+/* Styled Select Input */
+select.form-select {
+    background: rgba(255, 255, 255, 0.2) url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='white' d='M2 5L0 0h4L2 5z'/%3E%3C/svg%3E") no-repeat right 1rem center;
+    background-size: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+    select.form-select:focus {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: white;
+        box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        outline: none;
+    }
+
+    select.form-select option {
+        color: black;
+        background-color: white;
+    }
+
+.text-danger {
+    color: #ffcccc !important;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background-color: var(--hospital-blue);
+    border-color: var(--hospital-blue);
+    padding: 0.75rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+    .btn-primary:hover {
+        background-color: var(--hospital-dark-blue);
+        border-color: var(--hospital-dark-blue);
+        transform: translateY(-2px);
+    }
+
+a {
+    color: var(--hospital-light-blue);
+    transition: all 0.3s;
+}
+
+    a:hover {
+        color: white;
+        text-decoration: none;
+    }
+
+/* Branding Section */
+.branding-section {
+    background: linear-gradient(135deg, var(--hospital-blue), var(--hospital-dark-blue));
+    padding: 2rem;
+    color: white;
+}
+
+.glow-icon {
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    color: white !important;
+}
+
+.feature-grid .feature-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 1.5rem 1rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    margin: 0.5rem;
+    text-align: center;
+}
+
+    .feature-grid .feature-card:hover {
+        transform: translateY(-5px);
+        background-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+.feature-grid .bi {
+    color: white;
+    transition: all 0.3s;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.feature-grid .feature-card:hover .bi {
+    transform: scale(1.1);
+}
+
+.feature-grid p {
+    color: white;
+    margin-bottom: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .login-wrapper .row {
+        flex-direction: column;
+    }
+
+    .form-section,
+    .branding-section {
+        width: 100%;
+        min-height: auto;
+        padding: 2rem 1rem;
+    }
+
+    .account-box {
+        max-width: 100%;
+        padding: 2rem;
+    }
+
+    .branding-section {
+        padding: 2rem 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .account-box {
+        padding: 1.5rem;
+    }
+
+    .feature-grid .col-6 {
+        padding: 0.5rem;
+    }
+
+    .feature-grid .feature-card {
+        padding: 1rem 0.5rem;
+    }
+}
+
+.modal-content.account-box {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.form-section {
+    background: url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    padding: 2rem;
+}
+
+.login-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+}
+
+.password-hint-grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    column-gap: 2rem; 
+    row-gap: 0.25rem;
+    padding-left: 0;  
+    list-style: none;
+    font-size: 13.5px;
+}
+

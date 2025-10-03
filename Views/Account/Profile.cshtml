@@ -1,0 +1,376 @@
+﻿@model Wellness_Wardens_Project.ViewModels.Account.ProfileViewModel
+
+@{
+    ViewData["Title"] = "Your Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Determine user role for dashboard redirect
+    var isAdmin = Model.Roles != null && Model.Roles.Contains("Admin");
+    var isDoctor = Model.Roles != null && Model.Roles.Contains("Doctor");
+    var isScriptManager = Model.Roles != null && Model.Roles.Contains("Script Manager");
+    var isStockManager = Model.Roles != null && Model.Roles.Contains("Stock Manager");
+    var isNurse = Model.Roles != null && (Model.Roles.Contains("Nurse") || Model.Roles.Contains("Nursing Sister"));
+    var isWardAdmin = Model.Roles != null && Model.Roles.Contains("Ward Admin");
+}
+
+<style>
+    .profile-container {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        min-height: 100vh;
+        padding: 40px 0;
+    }
+
+    .profile-card {
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+    }
+
+    .profile-avatar {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        border: 6px solid rgba(255, 255, 255, 0.4);
+        margin: 0 auto 25px;
+        background: linear-gradient(45deg, #1e3c72 0%, #2a5298 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 52px;
+        color: white;
+    }
+
+    .profile-details {
+        padding: 35px;
+    }
+
+    .detail-row {
+        padding: 15px 0;
+        border-bottom: 1px solid #e8f4f8;
+        display: flex;
+        align-items: center;
+    }
+
+    .detail-label {
+        font-weight: 700;
+        color: #2a5298;
+        width: 180px;
+        min-width: 180px;
+    }
+
+    .detail-value {
+        color: #1e3c72;
+        font-weight: 600;
+        flex: 1;
+    }
+
+    .btn-custom {
+        border-radius: 25px;
+        padding: 12px 30px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        border: none;
+        margin: 5px;
+    }
+
+    .btn-edit {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+    }
+
+        .btn-edit:hover {
+            background: linear-gradient(135deg, #2a5298 0%, #3a62a8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(42, 82, 152, 0.3);
+        }
+
+    .btn-password {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+
+        .btn-password:hover {
+            background: linear-gradient(135deg, #20c997 0%, #30d9a7 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        }
+
+    .btn-dashboard {
+        background: #6c757d;
+        color: white;
+    }
+
+        .btn-dashboard:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+        }
+
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid #e8f4f8;
+        padding: 12px 15px;
+    }
+
+        .form-control:focus {
+            border-color: #2a5298;
+            box-shadow: 0 0 0 0.2rem rgba(42, 82, 152, 0.25);
+        }
+
+    .form-select {
+        border-radius: 10px;
+        border: 2px solid #e8f4f8;
+        padding: 12px 15px;
+    }
+</style>
+
+<div class="profile-container">
+    <div class="container" style="max-width: 900px;">
+        <!-- Success/Error Messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Profile Header -->
+        <div class="profile-card mb-4">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+
+                <h3 class="mb-2">@Model.Title @Model.FirstName @Model.LastName</h3>
+                <p class="mb-0">
+                    <i class="fas fa-user-cog me-2"></i>
+                    @(Model.Roles != null && Model.Roles.Count > 0 ? string.Join(", ", Model.Roles) : "No role assigned")
+                </p>
+            </div>
+
+            <!-- Profile Details -->
+            <div class="profile-details">
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-id-card me-2"></i>Title</div>
+                    <div class="detail-value">@Model.Title</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-user me-2"></i>First Name</div>
+                    <div class="detail-value">@Model.FirstName</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-user me-2"></i>Last Name</div>
+                    <div class="detail-value">@Model.LastName</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-venus-mars me-2"></i>Gender</div>
+                    <div class="detail-value">@Model.Gender</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-envelope me-2"></i>Email</div>
+                    <div class="detail-value">@Model.Email</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fas fa-phone me-2"></i>Phone Number</div>
+                    <div class="detail-value">@Model.PhoneNumber</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mb-4">
+            <!-- Dynamic Dashboard Button -->
+            @if (isAdmin)
+            {
+                <a asp-controller="Administration" asp-action="Dashboard" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else if (isDoctor)
+            {
+                <a asp-controller="Home" asp-action="Doctors" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else if (isScriptManager)
+            {
+                <a asp-controller="Dashboard" asp-action="ScriptManager" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else if (isStockManager)
+            {
+                <a asp-controller="Dashboard" asp-action="StockManager" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else if (isNurse)
+            {
+                <a asp-controller="Patient" asp-action="Index" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else if (isWardAdmin)
+            {
+                <a asp-controller="Administration" asp-action="WardAdminDashboard" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            }
+            else
+            {
+                <!-- Fallback to Home if no specific role is found -->
+                <a asp-controller="Home" asp-action="Index" class="btn btn-dashboard btn-custom">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            }
+
+            <button class="btn btn-edit btn-custom" data-bs-toggle="collapse" data-bs-target="#editProfileSection">
+                <i class="fas fa-edit me-2"></i>Edit Profile
+            </button>
+            <button class="btn btn-password btn-custom" data-bs-toggle="collapse" data-bs-target="#changePasswordSection">
+                <i class="fas fa-key me-2"></i>Change Password
+            </button>
+        </div>
+
+        <!-- Edit Profile Section -->
+        <div id="editProfileSection" class="collapse">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-edit me-2"></i>Edit Profile Information
+                </div>
+                <div class="card-body p-4">
+                    <form asp-controller="Account" asp-action="EditProfile" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Title" class="form-label fw-bold">Title:</label>
+                                <select asp-for="Title" class="form-select">
+                                    <option value="">-- Select Title --</option>
+                                    <option value="Mr.">Mr.</option>
+                                    <option value="Miss.">Miss.</option>
+                                    <option value="Mrs.">Mrs.</option>
+                                    <option value="Dr.">Dr.</option>
+                                </select>
+                                <span asp-validation-for="Title" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label fw-bold">First Name:</label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label fw-bold">Last Name:</label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label fw-bold">Email:</label>
+                                <input asp-for="Email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label fw-bold">Phone Number:</label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Gender" class="form-label fw-bold">Gender:</label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="">-- Select Gender --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="text-end pt-3">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#editProfileSection">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password Section -->
+        <div id="changePasswordSection" class="collapse">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-lock me-2"></i>Change Password
+                </div>
+                <div class="card-body p-4">
+                    <form asp-controller="Account" asp-action="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="Email" value="@Model.Email" />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="NewPassword" class="form-label fw-bold">New Password:</label>
+                                <input type="password" name="NewPassword" class="form-control" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ConfirmPassword" class="form-label fw-bold">Confirm Password:</label>
+                                <input type="password" name="ConfirmPassword" class="form-control" required />
+                            </div>
+                        </div>
+
+                        <div class="text-end pt-3">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#changePasswordSection">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-hide alerts after 5 seconds
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+        });
+    </script>
+}

@@ -1,0 +1,298 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.Patient
+
+@{
+    bool isEdit = Model != null && Model.PatientId > 0;
+    ViewData["Title"] = isEdit ? "Edit Patient" : "Add Patient";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <!-- Left side -->
+        <div class="col-lg-7">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header text-white text-center py-4"
+                     style="background: linear-gradient(90deg, #0d6efd, #0dcaf0); border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <h3 class="mb-1">
+                        <i class="bi bi-person-plus-fill me-2"></i> 
+                        @(isEdit ? "Edit Patient" : "Add New Patient")
+                    </h3>
+                    <p class="mb-0 text-light">
+                        @(isEdit ? "Update the details of this patient" : "Fill in the details to register a new patient")
+                    </p>
+                </div>
+
+                <div class="card-body p-4 bg-light">
+                    <form asp-action="@(isEdit ? "EditPatient" : "AddPatient")" method="post">
+                        @if (isEdit)
+                        {
+                            @Html.HiddenFor(m => m.PatientId)
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FirstName" class="form-label fw-bold">First name:</label><span class="text-danger"> *</span>
+                                    <input asp-for="FirstName" class="form-control" placeholder="Enter first name" />
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LastName" class="form-label fw-bold">Last name:</label><span class="text-danger"> *</span>
+                                    <input asp-for="LastName" class="form-control" placeholder="Enter last name" />
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Gender" class="form-label fw-bold">Gender:</label><span class="text-danger"> *</span>
+                            <select asp-for="Gender" class="form-select" asp-items="@(new SelectList(ViewBag.Genders))">
+                                <option value="">-- Select Gender --</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger"></span>
+                        </div>
+                      
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date of birth:</label><span class="text-danger"> *</span>
+                        <div class="row g-2">
+                        <div class="col-4">
+                            <select class="form-select" id="birthDay" required>
+                                 <option value="">Day</option>
+                                 @for (int day = 1; day <= 31; day++)
+                                 {
+                                    <option value="@day">@day</option>
+                                 }
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <select class="form-select" id="birthMonth" required>
+                                <option value="">Month</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <select class="form-select" id="birthYear" required>
+                                <option value="">Year</option>
+                                @for (int year = DateTime.Now.Year; year >= 1900; year--)
+                                {
+                                    <option value="@year">@year</option>
+                                }
+                            </select>
+                        </div>
+                        </div>
+                            <input type="hidden" asp-for="DateOfBirth" id="combinedDate" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IdentityNumber" class="form-label fw-bold">ID number:</label><span class="text-danger"> *</span>
+                            <input asp-for="IdentityNumber" class="form-control" placeholder="Enter ID number" />
+                            <span asp-validation-for="IdentityNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="PhoneNumber" class="form-label fw-bold">Phone number:</label><span class="text-danger"> *</span>
+                                    <input asp-for="PhoneNumber" class="form-control" placeholder="Enter phone number" />
+                                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="EmergencyContact" class="form-label fw-bold">Emergency number:</label><span class="text-danger"> *</span>
+                                    <input asp-for="EmergencyContact" class="form-control" placeholder="Enter emergency contact number" />
+                                    <span asp-validation-for="EmergencyContact" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">Email adress:</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="Enter email address" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="HomeAddress" class="form-label fw-bold">Home address:</label><span class="text-danger"> *</span>
+                            <input asp-for="HomeAddress" class="form-control" placeholder="Enter home address" />
+                            <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="ChronicCondition" class="form-label fw-bold">Chronic Condition: <span class="text-muted">(Optional)</span></label>
+                                    <input asp-for="ChronicCondition" class="form-control" placeholder="Enter chronic condition (if any)" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="ChronicMedication" class="form-label fw-bold">Chronic Medication: <span class="text-muted">(Optional)</span></label>
+                                    <input asp-for="ChronicMedication" class="form-control" placeholder="Enter chronic medication (if any)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <!-- Cancel button -->
+                            <a asp-controller="Patient" asp-action="ManagePatients"
+                                class="btn btn-secondary rounded-3 shadow-sm"><i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                            <!-- Submit button -->
+                            <button type="submit" class="btn btn-primary rounded-3 shadow-sm">
+                                <i class="bi bi-plus-circle me-1"></i> @(Model?.PatientId > 0 ? "Update Patient" : "Add Patient")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+         <!-- Right side -->
+        <div class="col-lg-5 d-none d-lg-flex align-items-center justify-content-center">
+            <img src="~/images/patient-bro.png" alt="Patient Illustration" class="img-fluid"
+                 style="max-height: 500px;">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Toast function - only for this page
+        function showToast(type, message) {
+            if (!message) return;
+            
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        }
+
+        // Only show toasts for messages specific to this page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show success message from TempData
+            var successMessage = '@Html.Raw(TempData["Success"] ?? TempData["SuccessMessage"] ?? "")';
+            if (successMessage) {
+                showToast('success', successMessage);
+            }
+
+            // Show error message from TempData
+            var errorMessage = '@Html.Raw(TempData["Error"] ?? "")';
+            if (errorMessage) {
+                showToast('error', errorMessage);
+            }
+
+            // Show validation errors (only if we're on this form page)
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <text>
+                @foreach (var modelState in ViewData.ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        <text>
+                        showToast('error', '@Html.Raw(error.ErrorMessage.Replace("'", "\\'"))');
+                        </text>
+                    }
+                }
+                </text>
+            }
+
+            // Remove search functionality since it doesn't exist on this page
+            // This prevents errors on pages without searchInput
+        });
+
+        // Optional: Add form validation feedback
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const requiredFields = form.querySelectorAll('[required]');
+                let isValid = true;
+                
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.classList.add('is-invalid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    showToast('error', 'Please fill in all required fields.');
+                }
+            });
+        }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const daySelect = document.getElementById('birthDay');
+        const monthSelect = document.getElementById('birthMonth');
+        const yearSelect = document.getElementById('birthYear');
+        const combinedInput = document.getElementById('combinedDate');
+
+        function updateCombinedDate() {
+            const day = daySelect.value;
+            const month = monthSelect.value;
+            const year = yearSelect.value;
+            
+            if (day && month && year) {
+                // Format as yyyy-MM-dd for the model
+                const date = new Date(year, month - 1, day);
+                combinedInput.value = date.toISOString().split('T')[0];
+            } else {
+                combinedInput.value = '';
+            }
+        }
+
+        daySelect.addEventListener('change', updateCombinedDate);
+        monthSelect.addEventListener('change', updateCombinedDate);
+        yearSelect.addEventListener('change', updateCombinedDate);
+
+        // Pre-fill if editing
+        @if (Model?.DateOfBirth != default(DateOnly))
+        {
+            <text>
+            const existingDate = new Date('@Model.DateOfBirth.ToString("yyyy-MM-dd")');
+            daySelect.value = existingDate.getDate();
+            monthSelect.value = existingDate.getMonth() + 1;
+            yearSelect.value = existingDate.getFullYear();
+            updateCombinedDate();
+            </text>
+        }
+    });
+</script>
+}

@@ -1,0 +1,83 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.VisitNote
+
+@{
+    ViewData["Title"] = "Visit Note Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary">
+                        <i class="bi bi-journal-text me-2"></i>Visit Note
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="RecordVisits" asp-controller="DoctorVisit">Visit Notes</a></li>
+                            <li class="breadcrumb-item active">Details</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary me-md-2">
+                    <i class="bi bi-arrow-left me-1"></i> Dashboard
+                </a>
+                <a asp-action="RecordVisits" asp-controller="DoctorVisit" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Visit Note Details -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-1">Patient: <strong>@Model.Patient?.FirstName @Model.Patient?.LastName</strong></h5>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="text-muted">Visit Date: @Model.VisitDate.ToString("dd MMM yyyy HH:mm")</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- SOAP Sections -->
+                    <div class="soap-section mb-4">
+                        <h5 class="text-info border-bottom pb-2">
+                            <i class="bi bi-chat-left-text me-1"></i>Subjective
+                        </h5>
+                        <p class="mb-0">@Model.Subjective</p>
+                    </div>
+
+                    <div class="soap-section mb-4">
+                        <h5 class="text-success border-bottom pb-2">
+                            <i class="bi bi-clipboard-data me-1"></i>Objective
+                        </h5>
+                        <p class="mb-0">@Model.Objective</p>
+                    </div>
+
+                    <div class="soap-section mb-4">
+                        <h5 class="text-warning border-bottom pb-2">
+                            <i class="bi bi-clipboard-check me-1"></i>Assessment
+                        </h5>
+                        <p class="mb-0">@Model.Assessment</p>
+                    </div>
+
+                    <div class="soap-section">
+                        <h5 class="text-primary border-bottom pb-2">
+                            <i class="bi bi-calendar-check me-1"></i>Plan
+                        </h5>
+                        <p class="mb-0">@Model.Plan</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        Created by Dr. @Model.Doctor?.FirstName @Model.Doctor?.LastName on
+                        @Model.CreatedAt.ToString("dd MMM yyyy 'at' HH:mm")
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,8 +1,549 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<link href="~/css/homepage.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<div class="container-fluid px-0">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-80">
+                <div class="col-lg-6">
+                    <h1 class="hero-title">Streamline Your Ward Management</h1>
+                    <p class="hero-subtitle">A comprehensive healthcare platform designed to simplify patient care, resource management, and daily operations for medical professionals.</p>
+
+                    <div class="hero-buttons">
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg me-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Register Now
+                        </a>
+                    </div>
+
+                    <div class="hero-stats mt-5">
+                        <div class="stat-item">
+                            <div class="stat-number">100+</div>
+                            <div class="stat-label">Healthcare Professionals</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">24/7</div>
+                            <div class="stat-label">Patient Care</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">99%</div>
+                            <div class="stat-label">Efficiency Improvement</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="hero-image">
+                        <div class="medical-illustration">
+                            <div class="icon-circle large blue">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div class="icon-circle medium green">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <div class="icon-circle small teal">
+                                <i class="fas fa-pills"></i>
+                            </div>
+                            <div class="floating-element chart">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="floating-element patient">
+                                <i class="fas fa-procedures"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Role Benefits Section -->
+    <section class="benefits-section py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">Designed for Healthcare Excellence</h2>
+                <p class="section-subtitle">Tailored solutions for every role in your medical team</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Doctor Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="role-card doctor">
+                        <div class="role-icon">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <h4>For Doctors</h4>
+                        <ul class="role-benefits">
+                            <li>Access patient records instantly</li>
+                            <li>Digital prescriptions & visit tracking</li>
+                            <li>Comprehensive medical history</li>
+                        </ul>
+                        <div class="role-cta">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-primary">Start Managing</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nurse Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="role-card nurse">
+                        <div class="role-icon">
+                            <i class="fas fa-user-nurse"></i>
+                        </div>
+                        <h4>For Nurses</h4>
+                        <ul class="role-benefits">
+                            <li>Record vital signs efficiently</li>
+                            <li>Medication schedule management</li>
+                            <li>Doctor instruction tracking</li>
+                        </ul>
+                        <div class="role-cta">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-primary">Start Caring</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Manager Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="role-card stock">
+                        <div class="role-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h4>Stock Managers</h4>
+                        <ul class="role-benefits">
+                            <li>Real-time inventory tracking</li>
+                            <li>Automated reorder alerts</li>
+                            <li>Weekly stock take tools</li>
+                        </ul>
+                        <div class="role-cta">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-primary">Start Managing</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="role-card admin">
+                        <div class="role-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h4>Administrators</h4>
+                        <ul class="role-benefits">
+                            <li>Staff and ward management</li>
+                            <li>System oversight & reporting</li>
+                            <li>Resource allocation</li>
+                        </ul>
+                        <div class="role-cta">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-primary">Start Administering</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Features (Collapsible) -->
+    <section class="features-section py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">Comprehensive Ward Management</h2>
+                <p class="section-subtitle">Everything you need in one integrated platform</p>
+                <button class="btn btn-outline-primary mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#systemDetails">
+                    <i class="fas fa-info-circle me-2"></i>Learn More About Our System
+                </button>
+            </div>
+
+            <div class="collapse" id="systemDetails">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <i class="fas fa-cogs feature-icon"></i>
+                            <h5>Administration Subsystem</h5>
+                            <p>Centralized management of wards, rooms, staff, and medical resources with complete oversight capabilities.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <i class="fas fa-procedures feature-icon"></i>
+                            <h5>Patient Management</h5>
+                            <p>Streamlined admission, discharge, bed assignment, and patient tracking throughout their care journey.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <i class="fas fa-stethoscope feature-icon"></i>
+                            <h5>Patient Care Coordination</h5>
+                            <p>Vital signs recording, medication administration, and seamless nurse-doctor communication.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <i class="fas fa-pills feature-icon"></i>
+                            <h5>Script & Consumables Management</h5>
+                            <p>Prescription processing, inventory control, and automated stock management systems.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section py-5">
+        <div class="container text-center">
+            <h2 class="cta-title">Ready to Transform Your Ward Management?</h2>
+            <p class="cta-subtitle">Join hundreds of healthcare professionals already using our platform</p>
+            <div class="cta-buttons mt-4">
+                <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-rocket me-2"></i>Get Started Today
+                </a>
+                <a asp-controller="Home" asp-action="Privacy" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-shield-alt me-2"></i>Learn About Security
+                </a>
+            </div>
+        </div>
+    </section>
 </div>
+
+@section Styles {
+    <style>
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--hospital-light-blue) 0%, var(--hospital-white) 100%);
+            padding: 0; /* Change from 6rem 0 to 0 */
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .container .row.align-items-center {
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .min-vh-80 {
+            min-height: 100vh !important; /* Force full height */
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--hospital-dark-blue);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            margin-bottom: 2rem;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--hospital-blue);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Medical Illustration */
+        .medical-illustration {
+            position: relative;
+            height: 400px;
+        }
+
+
+        @@keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .icon-circle {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            animation: float 6s ease-in-out infinite;
+        }
+
+            .icon-circle.large {
+                width: 120px;
+                height: 120px;
+                font-size: 3rem;
+                background: var(--hospital-blue);
+                color: white;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .icon-circle.medium {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+                background: var(--hospital-green);
+                color: white;
+                top: 30%;
+                right: 20%;
+            }
+
+            .icon-circle.small {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+                background: var(--healing-teal);
+                color: white;
+                bottom: 20%;
+                left: 10%;
+            }
+
+        .floating-element {
+            position: absolute;
+            font-size: 2rem;
+            color: var(--hospital-blue);
+            animation: float 4s ease-in-out infinite;
+        }
+
+            .floating-element.chart {
+                top: 20%;
+                left: 10%;
+                animation-delay: 0.5s;
+            }
+
+            .floating-element.patient {
+                bottom: 30%;
+                right: 15%;
+                animation-delay: 1s;
+            }
+
+        /* Role Cards */
+        .role-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 91, 150, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            border-top: 4px solid transparent;
+        }
+
+            .role-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 20px 40px rgba(0, 91, 150, 0.15);
+            }
+
+            .role-card.doctor {
+                border-top-color: #3498db;
+            }
+
+            .role-card.nurse {
+                border-top-color: #9b59b6;
+            }
+
+            .role-card.stock {
+                border-top-color: #e67e22;
+            }
+
+            .role-card.admin {
+                border-top-color: #e74c3c;
+            }
+
+        .role-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .role-card.doctor .role-icon {
+            background: #3498db;
+        }
+
+        .role-card.nurse .role-icon {
+            background: #9b59b6;
+        }
+
+        .role-card.stock .role-icon {
+            background: #e67e22;
+        }
+
+        .role-card.admin .role-icon {
+            background: #e74c3c;
+        }
+
+        .role-card h4 {
+            color: var(--hospital-dark-blue);
+            margin-bottom: 1rem;
+        }
+
+        .role-benefits {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 2rem;
+        }
+
+            .role-benefits li {
+                padding: 0.5rem 0;
+                color: #666;
+                position: relative;
+            }
+
+                .role-benefits li:before {
+                    content: "✓";
+                    color: var(--hospital-green);
+                    font-weight: bold;
+                    margin-right: 0.5rem;
+                }
+
+        /* Sections */
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--hospital-dark-blue);
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 91, 150, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--hospital-blue);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h5 {
+            color: var(--hospital-dark-blue);
+            margin-bottom: 1rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--hospital-blue) 0%, var(--hospital-dark-blue) 100%);
+            color: white;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .medical-illustration {
+                height: 300px;
+                margin-top: 2rem;
+            }
+        }
+
+        /* Remove any container margins */
+        .container-fluid.px-0 {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Ensure no body padding is interfering */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Smooth scrolling for anchor links
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add animation to role cards on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Animate role cards
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+        });
+    </script>
+}

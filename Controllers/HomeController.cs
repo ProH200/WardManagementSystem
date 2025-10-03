@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wellness_Wardens_Project.Models;
 
@@ -18,7 +19,20 @@ namespace Wellness_Wardens_Project.Controllers
             return View();
         }
 
+        [Authorize]
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [Authorize(Roles = "Admin")]
+        public IActionResult Admin()
+        {
+            return View();
+        }
+
+        [Authorize(Roles = "Doctor")]
+        public IActionResult Doctors()
         {
             return View();
         }

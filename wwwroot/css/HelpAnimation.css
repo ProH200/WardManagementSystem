@@ -1,0 +1,47 @@
+﻿
+#doctor-note {
+    position: fixed;
+    bottom: 70px;
+    right: 20px;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border: 2px solid #0d6efd;
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    max-width: 260px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    animation: floatUpDown 4s ease-in-out infinite;
+    cursor: default;
+    user-select: none;
+}
+
+    #doctor-note svg {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+
+@keyframes floatUpDown {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+#doctor-note p {
+    margin: 0;
+    color: #0d6efd;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.2;
+    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    letter-spacing: 0.03em;
+    text-shadow: 0 0 1px rgba(0,0,0,0.1);
+}

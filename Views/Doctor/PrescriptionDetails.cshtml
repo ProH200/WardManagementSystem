@@ -1,0 +1,265 @@
+﻿@model Wellness_Wardens_Project.Models.ConsumablesSubsystem.Prescription
+
+@{
+    ViewData["Title"] = "Prescription Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .prescription-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .prescription-header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .medication-item {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+
+        .medication-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+
+    .floating-card {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .gradient-bg {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .compact-table {
+        font-size: 0.875rem;
+    }
+
+        .compact-table th {
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            padding: 0.75rem 0.5rem;
+        }
+
+        .compact-table td {
+            padding: 0.5rem;
+            vertical-align: middle;
+        }
+</style>
+
+<div class="gradient-bg py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-6">
+                <!-- Header Card -->
+                <div class="card prescription-card shadow-lg floating-card mb-4">
+                    <div class="card-body prescription-header p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="fw-bold text-dark mb-1">
+                                    <i class="bi bi-prescription2 me-2"></i>Prescription Details
+                                </h2>
+                                <p class="text-muted mb-0">#@Model.PrescriptionId • @Model.DateWritten.ToString("MMM dd, yyyy")</p>
+                            </div>
+                            <a asp-action="Prescriptions" asp-controller="DoctorPrescription" class="btn btn-light btn-sm">
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient & Status Card -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle p-2 me-3">
+                                        <i class="bi bi-person-fill text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0">@Model.Patient?.FirstName @Model.Patient?.LastName</h6>
+                                        <small class="text-muted">Patient</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <span class="badge @(Model.IsProcessed ? "bg-success" : "bg-warning") status-badge">
+                                    @(Model.IsProcessed ? "✓ Processed" : "⏳ Pending")
+                                </span>
+                                <span class="badge @(Model.IsDelivered ? "bg-info" : "bg-secondary") status-badge ms-1">
+                                    @(Model.IsDelivered ? "🚚 Delivered" : "📦 Processing")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medications Card -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0 text-danger">
+                            <i class="bi bi-capsule-pill me-2"></i>Prescribed Medications
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.PrescriptionMedications.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-borderless compact-table mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-3">Medication</th>
+                                            <th>Dosage</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var pm in Model.PrescriptionMedications)
+                                        {
+                                            <tr class="medication-item">
+                                                <td class="ps-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="bg-light rounded p-1 me-2">
+                                                            <i class="bi bi-capsule text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <strong class="d-block">@pm.Medication?.Name</strong>
+                                                            @if (pm.Medication?.IsScheduledMedication == true)
+                                                            {
+                                                                <small class="text-warning">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i>Scheduled Medication
+                                                                </small>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-muted">@(string.IsNullOrEmpty(pm.Dosage) ? "As directed" : pm.Dosage)</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (pm.Medication?.QuantityAvailable > 0)
+                                                    {
+                                                        <span class="badge bg-success status-badge">
+                                                            <i class="bi bi-check-circle me-1"></i>In Stock
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-danger status-badge">
+                                                            <i class="bi bi-x-circle me-1"></i>Out of Stock
+                                                        </span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-4 text-muted"></i>
+                                <p class="text-muted mt-3">No medications prescribed</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Footer Info -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="bi bi-info-circle me-2"></i>Status Overview
+                                </h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Processing:</span>
+                                    <span class="badge @(Model.IsProcessed ? "bg-success" : "bg-warning")">
+                                        @(Model.IsProcessed ? "Completed" : "Pending")
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Delivery:</span>
+                                    <span class="badge @(Model.IsDelivered ? "bg-info" : "bg-secondary")">
+                                        @(Model.IsDelivered ? "Delivered" : "In Progress")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="bi bi-person-badge me-2"></i>Prescribing Doctor
+                                </h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle p-2 me-3">
+                                        <i class="bi bi-person-plus-fill text-white"></i>
+                                    </div>
+                                    <div>
+                                        <strong class="d-block">Dr. @Model.Employee?.FirstName @Model.Employee?.LastName</strong>
+                                        <small class="text-muted">Written on @Model.DateWritten.ToString("MMM dd, yyyy")</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Add some interactive JavaScript -->
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth animations to medication items
+            const medItems = document.querySelectorAll('.medication-item');
+            medItems.forEach((item, index) => {
+                item.style.animationDelay = `${index * 0.1}s`;
+            });
+
+            // Add click effect to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+}

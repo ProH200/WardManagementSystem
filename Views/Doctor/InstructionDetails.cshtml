@@ -1,0 +1,137 @@
+﻿@model Wellness_Wardens_Project.Models.PatientCareSubsystem.Instruction
+
+@{
+    ViewData["Title"] = "Instruction Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary">
+                        <i class="bi bi-chat-square-text me-2"></i>Instruction Details
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Instructions" asp-controller="DoctorInstructions">Instructions</a></li>
+                            <li class="breadcrumb-item active">Details</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="Instructions" asp-controller="DoctorInstructions" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Instruction Details -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">@Model.Title</h4>
+                            <p class="mb-0 text-muted">
+                                @if (Model.Patient != null)
+                                {
+                                    <span>For: <strong>@Model.Patient.FirstName @Model.Patient.LastName</strong></span>
+                                }
+                                else
+                                {
+                                    <span>General Instruction</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            @{
+                                var priorityClass = Model.Priority switch
+                                {
+                                    "Critical" => "bg-danger",
+                                    "High" => "bg-warning text-dark",
+                                    "Low" => "bg-secondary",
+                                    _ => "bg-primary"
+                                };
+                            }
+                            <span class="badge @priorityClass fs-6">@Model.Priority</span>
+                            <span class="badge bg-info">@Model.InstructionType</span>
+                            @if (Model.IsCompleted)
+                            {
+                                <span class="badge bg-success fs-6">Completed</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Instruction Content -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">Instructions</h5>
+                        <div class="border rounded p-3 bg-light">
+                            @Html.Raw(Model.Content.Replace("\n", "<br>"))
+                        </div>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Instruction Details</h6>
+                            <ul class="list-unstyled">
+                                <li>
+                                    <i class="bi bi-person-badge me-2 text-primary"></i>
+                                    <strong>Doctor:</strong> Dr. @Model.Doctor?.FirstName @Model.Doctor?.LastName
+                                </li>
+                                <li>
+                                    <i class="bi bi-calendar me-2 text-primary"></i>
+                                    <strong>Created:</strong> @Model.CreatedDate.ToString("dd MMM yyyy HH:mm")
+                                </li>
+                                @if (Model.ExpiryDate.HasValue)
+                                {
+                                    <li>
+                                        <i class="bi bi-clock me-2 text-primary"></i>
+                                        <strong>Expires:</strong> @Model.ExpiryDate.Value.ToString("dd MMM yyyy HH:mm")
+                                        @if (Model.ExpiryDate < DateTime.Now)
+                                        {
+                                            <span class="badge bg-danger ms-1">Expired</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Completion Status</h6>
+                            <ul class="list-unstyled">
+                                <li>
+                                    <i class="bi bi-check-circle me-2 @(Model.IsCompleted ? "text-success" : "text-warning")"></i>
+                                    <strong>Status:</strong> @(Model.IsCompleted ? "Completed" : "Pending")
+                                </li>
+                                @if (Model.IsCompleted)
+                                {
+                                    <li>
+                                        <i class="bi bi-person-check me-2 text-success"></i>
+                                        <strong>Completed By:</strong> @Model.CompletedBy?.FirstName @Model.CompletedBy?.LastName
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-calendar-check me-2 text-success"></i>
+                                        <strong>Completed On:</strong> @Model.CompletedDate?.ToString("dd MMM yyyy HH:mm")
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    @if (User.IsInRole("Nurse") && !Model.IsCompleted)
+                    {
+                        <form asp-action="MarkAsCompleted" asp-controller="DoctorInstructions" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.InstructionId" />
+                            <button type="submit" class="btn btn-success"
+                                    onclick="return confirm('Mark this instruction as completed?')">
+                                <i class="bi bi-check-lg me-1"></i>Mark as Completed
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

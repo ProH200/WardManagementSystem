@@ -1,0 +1,168 @@
+﻿@model DashboardViewModel
+@using Wellness_Wardens_Project.Models.AdministrationSubsystem
+@using Wellness_Wardens_Project.ViewModels.AdminSubsystem
+
+@{
+    ViewData["Title"] = "Administration Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link href="~/css/admin.css" rel="stylesheet" />
+
+<div class="container mt-4">
+    <!-- Dashboard Header -->
+    <div class="card shadow-lg border-0 rounded-3">
+        <div class="card-header text-white text-center py-4"
+             style="background: linear-gradient(90deg, #0d6efd, #0dcaf0); border-top-left-radius: 12px; border-top-right-radius: 12px;">
+            <h2 class="mb-1"><i class="bi bi-hospital-fill me-2"></i> Administration Dashboard</h2>
+            <p class="mb-0 text-light">Central hub for managing the Ward Management System</p>
+        </div>
+
+        <div class="card-body bg-light">
+            <!-- Quick Stats -->
+            <div class="row text-center mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm border-0 h-100 rounded-3">
+                        <div class="card-body">
+                            <i class="bi bi-people-fill text-primary display-6"></i>
+                            <h6 class="mt-2">Employees</h6>
+                            <h4 class="fw-bold">@Model.TotalEmployees</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm border-0 h-100 rounded-3">
+                        <div class="card-body">
+                            <i class="bi bi-building text-success display-6"></i>
+                            <h6 class="mt-2">Wards</h6>
+                            <h4 class="fw-bold">@Model.TotalWards</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm border-0 h-100 rounded-3">
+                        <div class="card-body">
+                            <i class="bi bi-door-open text-primary display-6"></i>
+                            <h6 class="mt-2">Rooms</h6>
+                            <h4 class="fw-bold">@Model.TotalRooms</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Modules -->
+            <div class="row g-4 mt-2">
+                <!-- Employees -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people-fill display-4 text-primary mb-3"></i>
+                            <h5 class="card-title">Employees</h5>
+                            <p class="text-muted">Create and Manage hospital staff.</p>
+                            <a asp-action="ManageEmployee" asp-controller="Employee" class="btn btn-outline-primary w-100">
+                                Manage Employees
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wards -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-building display-4 text-success mb-3"></i>
+                            <h5 class="card-title">Wards</h5>
+                            <p class="text-muted">Create and manage hospital wards.</p>
+                            <a asp-action="ManageWards" asp-controller="Wards" class="btn btn-outline-success w-100">
+                                Manage Wards
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rooms -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-door-open-fill display-4 text-warning mb-3"></i>
+                            <h5 class="card-title">Rooms</h5>
+                            <p class="text-muted">Assign and maintain rooms in each ward.</p>
+                            <a asp-action="ManageRooms" asp-controller="Wards" class="btn btn-outline-warning w-100">
+                                Manage Rooms
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beds -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-hospital-bed display-4 text-danger mb-3"></i>
+                            <h5 class="card-title">Beds</h5>
+                            <p class="text-muted">Track available and occupied beds in each room.</p>
+                            <a asp-action="ManageBeds" asp-controller="Wards" class="btn btn-outline-danger w-100">
+                                Manage Beds
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consumables -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-box-seam display-4 text-secondary mb-3"></i>
+                            <h5 class="card-title">Consumables</h5>
+                            <p class="text-muted">Manage medical supplies and consumables.</p>
+                            <a asp-action="ManageConsumables" asp-controller="Cons_Med" class="btn btn-outline-secondary w-100">
+                                Manage Consumables
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medication -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-capsule-pill display-4 text-info mb-3"></i>
+                            <h5 class="card-title">Medication</h5>
+                            <p class="text-muted">Track and maintain medication stock.</p>
+                            <a asp-action="ManageMedication" asp-controller="Cons_Med" class="btn btn-outline-info w-100">
+                                Manage Medication
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Allergies -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-exclamation-triangle-fill display-4 text-danger mb-3"></i>
+                            <h5 class="card-title">Allergies</h5>
+                            <p class="text-muted">Maintain a list of allergies to ensure patient safety.</p>
+                            <a asp-action="ManageAllergy" asp-controller="Allergy" class="btn btn-outline-danger w-100">
+                                Manage Allergies
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Conditions -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-heart-pulse-fill display-4 text-pink mb-3"></i>
+                            <h5 class="card-title">Medical Conditions</h5>
+                            <p class="text-muted">Manage medical condition records for accurate care.</p>
+                            <a asp-action="ManageConditions" asp-controller="MedicalConditions" class="btn btn-outline-dark w-100">
+                                Manage Medical Conditions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

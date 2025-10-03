@@ -1,0 +1,65 @@
+﻿@model Wellness_Wardens_Project.ViewModels.AdminSubsystem.AllergyViewModel
+
+@{
+    ViewData["Title"] = "Add New Allergy";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg rounded-3 border-0">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i> Add New Allergy</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddAllergy" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Name" class="form-label fw-bold">Allergy Name *</label>
+                                <input asp-for="Name" class="form-control" placeholder="Enter allergy name (e.g., Penicillin, Peanuts, Latex)" />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Description" class="form-label fw-bold">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="4"
+                                          placeholder="Enter allergy description, symptoms, or additional information (optional)"></textarea>
+                                <span asp-validation-for="Description" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i> Create Allergy
+                            </button>
+                            <a asp-action="ManageAllergy" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Auto-focus the name field
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameField = document.getElementById('Name');
+            if (nameField) {
+                nameField.focus();
+            }
+        });
+    </script>
+}

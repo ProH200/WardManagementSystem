@@ -1,0 +1,171 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.PatientManagementSubsystem.VisitNote>
+
+@{
+    ViewData["Title"] = "Visit Notes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa; /* subtle clean background */
+    }
+
+    .visit-table-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+
+        .visit-table-card table {
+            margin-bottom: 0;
+        }
+
+        .visit-table-card th, .visit-table-card td {
+            vertical-align: middle !important;
+        }
+
+        .visit-table-card th {
+            background-color: #0d6efd; /* Bootstrap primary */
+            color: white;
+            font-weight: 600;
+            border: none !important;
+        }
+
+        .visit-table-card tbody tr:hover {
+            background-color: #e7f1ff;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+    .patient-name {
+        font-weight: 600;
+    }
+
+    .search-box {
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+        width: 100%;
+    }
+
+    .action-btn {
+        border-radius: 12px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+    }
+</style>
+
+<div class="container mt-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold text-primary">
+                <i class="bi bi-journal-text me-2"></i>Visit Notes
+            </h2>
+            <p class="text-muted mb-0">Manage and review patient visit notes.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+            <a asp-action="CreateVisitNote" asp-controller="DoctorVisit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>New Visit Note
+            </a>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <input type="text" class="search-box" placeholder="Search visit notes..." id="searchInput">
+
+    <div class="visit-table-card">
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-journal-x display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">No Visit Notes Yet</h5>
+                <p class="text-muted">Start by creating your first visit note.</p>
+                <a asp-action="CreateVisitNote" asp-controller="DoctorVisit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Create First Note
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Visit Date</th>
+                            <th>Assessment</th>
+                            <th>Created</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitNotesGrid">
+                        @foreach (var note in Model)
+                        {
+                            <tr>
+                                <td class="patient-name">@note.Patient?.FirstName @note.Patient?.LastName</td>
+                                <td>@note.VisitDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @if (note.Assessment.Length > 50)
+                                    {
+                                        @note.Assessment.Substring(0, 50)
+                            
+                                        <text>...</text>
+                                    }
+                                    else
+                                    {
+                                        @note.Assessment
+                                    }
+                                </td>
+                                <td>@note.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td class="text-center">
+                                    <a asp-action="VisitNoteDetails" asp-controller="DoctorVisit"
+                                       asp-route-id="@note.VisitNoteId"
+                                       class="btn btn-sm btn-outline-primary action-btn">
+                                        <i class="bi bi-eye me-1"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Search functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const rows = document.querySelectorAll('#visitNotesGrid tr');
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase();
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+}

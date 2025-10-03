@@ -1,0 +1,223 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.PatientAdmission
+
+@{
+    ViewData["Title"] = "Patient Folder - " + Model.Patient.FirstName + " " + Model.Patient.LastName;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary">
+                <i class="bi bi-folder-fill me-2"></i>Patient Folder
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">My Patients</a></li>
+                    <li class="breadcrumb-item active">@Model.Patient.FirstName @Model.Patient.LastName</li>
+                </ol>
+            </nav>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to List
+        </a>
+    </div>
+
+    <!-- Patient Information -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Patient Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Name:</strong> @Model.Patient.FirstName @Model.Patient.LastName</p>
+                    <p><strong>ID Number:</strong> @Model.Patient.IdentityNumber</p>
+                    <p><strong>Date of Birth:</strong> @Model.Patient.DateOfBirth.ToString("dd MMM yyyy")</p>
+                    <p><strong>Gender:</strong> @Model.Patient.Gender</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Phone:</strong> @Model.Patient.PhoneNumber</p>
+                    <p><strong>Email:</strong> @Model.Patient.Email</p>
+                    <p><strong>Emergency Contact:</strong> @Model.Patient.EmergencyContact</p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <p><strong>Address:</strong> @Model.Patient.HomeAddress</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Medical Information Row -->
+    <div class="row mb-4">
+        <!-- Allergies -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Allergies</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Patient.Allergies != null && Model.Patient.Allergies.Any(a => !a.IsDeleted))
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var allergy in Model.Patient.Allergies.Where(a => !a.IsDeleted))
+                            {
+                                <li class="list-group-item px-0">
+                                    <strong>@allergy.Name</strong>
+                                    @if (!string.IsNullOrEmpty(allergy.Description))
+                                    {
+                                        <br />
+                            
+                                        <small class="text-muted">@allergy.Description</small>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No allergies recorded</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Medical Conditions -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>Medical Conditions</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Patient.MedicalConditions != null && Model.Patient.MedicalConditions.Any(mc => !mc.IsDeleted))
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var condition in Model.Patient.MedicalConditions.Where(mc => !mc.IsDeleted))
+                            {
+                                <li class="list-group-item px-0">
+                                    <strong>@condition.Name</strong>
+                                    @if (!string.IsNullOrEmpty(condition.Description))
+                                    {
+                                        <br />
+                            
+                                        <small class="text-muted">@condition.Description</small>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No medical conditions recorded</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical History -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Medical History</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Patient.MedicalHistories != null && Model.Patient.MedicalHistories.Any())
+            {
+                <div class="timeline">
+                    @foreach (var history in Model.Patient.MedicalHistories.OrderByDescending(m => m.DateAdded))
+                    {
+                        <div class="timeline-item mb-3">
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1">@history.Notes</p>
+                                    </div>
+                                    <small class="text-muted ms-3">@history.DateAdded.ToString("dd MMM yyyy HH:mm")</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No medical history recorded</p>
+            }
+        </div>
+    </div>
+
+    <!-- Admission Information -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-hospital me-2"></i>Admission Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Admission Date:</strong> @Model.AdmissionDate</p>
+                    <p><strong>Reason for Admission:</strong> @Model.Reason</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Ward:</strong> @(Model.Bed?.Room?.Ward?.Name ?? "Not assigned")</p>
+                    <p><strong>Room:</strong> @(Model.Bed?.Room?.RoomNumber ?? "Not assigned")</p>
+                    <p><strong>Bed:</strong> @(Model.Bed?.BedNumber ?? "Not assigned")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chronic Information -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-file-medical me-2"></i>Chronic Health Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Chronic Conditions:</strong></p>
+                    <p>@(string.IsNullOrEmpty(Model.Patient.ChronicCondition) ? "None recorded" : Model.Patient.ChronicCondition)</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Chronic Medications:</strong></p>
+                    <p>@(string.IsNullOrEmpty(Model.Patient.ChronicMedication) ? "None recorded" : Model.Patient.ChronicMedication)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 20px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 10px;
+    }
+
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #0dcaf0;
+        }
+
+        .timeline-item:not(:last-child):after {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 17px;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+</style>

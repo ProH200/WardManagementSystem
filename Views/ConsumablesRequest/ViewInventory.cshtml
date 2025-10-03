@@ -1,0 +1,229 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.ViewModels.ConsumableViewModel>
+@{
+    ViewData["Title"] = "Consumables Inventory";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-header bg-primary text-white p-4 rounded-3">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-6 fw-bold">
+                            <i class="fas fa-boxes me-2"></i>Consumables Inventory
+                        </h1>
+                        <p class="lead mb-0">Total: @ViewBag.TotalConsumables items | Total Quantity: @ViewBag.TotalQuantity units</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <i class="fas fa-warehouse fa-5x text-white opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">In Stock</div>
+                            <div class="h5 mb-0 font-weight-bold">@ViewBag.InStockCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white shadow">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Low Stock</div>
+                            <div class="h5 mb-0 font-weight-bold">@ViewBag.LowStockCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Out of Stock</div>
+                            <div class="h5 mb-0 font-weight-bold">@ViewBag.OutOfStockCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Total Quantity</div>
+                            <div class="h5 mb-0 font-weight-bold">@ViewBag.TotalQuantity</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mb-3">
+        <a asp-controller="Dashboard" asp-action="StockManager" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+    <!-- Consumables Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-box me-2"></i>Current Inventory
+                    </h5>
+                    <span class="badge bg-light text-dark">@ViewBag.TotalConsumables items</span>
+                </div>
+                <div class="card-body">
+                    <!-- Search Box -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input class="form-control" id="searchInput" placeholder="Search consumables by name or ward..." />
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-filter="all">All</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-filter="out-of-stock">Out of Stock</button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" data-filter="low-stock">Low Stock</button>
+                                <button type="button" class="btn btn-outline-success btn-sm" data-filter="in-stock">In Stock</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Quantity Available</th>
+                                        <th>Ward</th>
+                                        <th>Stock Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consumablesTable">
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr class="consumable-row" data-status="@item.StockStatus.ToLower().Replace(" ", "-")">
+                                            <td>
+                                                <strong>@item.Name</strong>
+                                                @if (item.IsCritical)
+                                                {
+                                                    <span class="badge bg-danger ms-1" title="Critical Stock Level">!</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary fs-6">@item.QuantityAvailable</span>
+                                            </td>
+                                            <td>@item.WardName</td>
+                                            <td>
+                                                <span class="badge bg-@item.StatusColor">@item.StockStatus</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No consumables found</h4>
+                            <p class="text-muted">There are currently no consumables in the inventory.</p>
+                            <a href="@Url.Action("Create")" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus me-2"></i>Create First Request
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const tableRows = document.querySelectorAll('.consumable-row');
+            const filterButtons = document.querySelectorAll('[data-filter]');
+
+            // Search functionality
+            searchInput.addEventListener('keyup', function() {
+                const query = this.value.toLowerCase();
+                tableRows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const match = text.includes(query);
+                    row.style.display = match ? '' : 'none';
+                });
+            });
+
+            // Filter functionality
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const filter = this.getAttribute('data-filter');
+
+                    // Update active button
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    tableRows.forEach(row => {
+                        if (filter === 'all') {
+                            row.style.display = '';
+                        } else {
+                            const status = row.getAttribute('data-status');
+                            row.style.display = status.includes(filter) ? '' : 'none';
+                        }
+                    });
+                });
+            });
+
+            // Auto-dismiss alerts
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+        });
+    </script>
+
+    <style>
+        .btn-group .btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+    </style>
+}

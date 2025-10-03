@@ -1,0 +1,153 @@
+﻿@model Wellness_Wardens_Project.Models.ConsumablesSubsystem.Prescription
+
+@{
+    ViewData["Title"] = "Create Prescription";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary">
+                        <i class="bi bi-prescription me-2"></i>Create Prescription
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Prescriptions" asp-controller="DoctorPrescription">Prescriptions</a></li>
+                            <li class="breadcrumb-item active">Create Prescription</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="Prescriptions" asp-controller="DoctorPrescription" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Prescription Form -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form asp-action="CreatePrescription" asp-controller="DoctorPrescription" method="post" id="prescriptionForm">
+                        @Html.AntiForgeryToken()
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="PatientId" class="form-label fw-bold">Patient *</label>
+                                    <select asp-for="PatientId" class="form-select" required>
+                                        <option value="">-- Select Patient --</option>
+                                        @if (ViewBag.Patients != null)
+                                        {
+                                            @foreach (var patient in ViewBag.Patients)
+                                            {
+                                                <option value="@patient.PatientId">@patient.FirstName @patient.LastName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="PatientId" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="DateWritten" class="form-label fw-bold">Date Written *</label>
+                                    <input asp-for="DateWritten" class="form-control"
+                                           type="text"
+                                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                           placeholder="YYYY-MM-DD"
+                                           required />
+                                    <small class="form-text text-muted">Format: YYYY-MM-DD</small>
+                                    <span asp-validation-for="DateWritten" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Medications Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="fw-bold text-danger mb-3">
+                                    <i class="bi bi-capsule me-1"></i>Medications
+                                </h5>
+
+                                <div id="medicationsContainer">
+                                    <!-- Medication rows will be added here dynamically -->
+                                </div>
+
+                                <button type="button" id="addMedication" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Medication
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Prescriptions" asp-controller="DoctorPrescription" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Create Prescription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        let medicationCounter = 0;
+
+        // Add medication row
+        document.getElementById('addMedication').addEventListener('click', function () {
+            const container = document.getElementById('medicationsContainer');
+            const index = medicationCounter++;
+
+            const medicationRow = `
+                <div class="medication-row border-bottom pb-3 mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Medication *</label>
+                            <select name="selectedMedications[${index}]" class="form-select" required>
+                                <option value="">-- Select Medication --</option>
+                                @if (ViewBag.Medications != null)
+                                {
+                                        @foreach (var med in ViewBag.Medications)
+                                        {
+                                                <option value="@med.MedicationId">@med.Name</option>
+                                        }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Dosage</label>
+                            <input type="text" name="dosages[${index}]" class="form-control" placeholder="e.g., 500mg twice daily">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-medication">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', medicationRow);
+        });
+
+        // Remove medication row
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-medication') || e.target.closest('.remove-medication')) {
+                e.target.closest('.medication-row').remove();
+            }
+        });
+
+        // Add one medication row by default when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('addMedication').click();
+        });
+    </script>
+}

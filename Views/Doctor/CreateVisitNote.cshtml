@@ -1,0 +1,122 @@
+﻿@model Wellness_Wardens_Project.Models.PatientManagementSubsystem.VisitNote
+
+@{
+    ViewData["Title"] = "Create Visit Note";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary">
+                        <i class="bi bi-journal-plus me-2"></i>Create Visit Note
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="RecordVisits" asp-controller="DoctorVisit">Visit Notes</a></li>
+                            <li class="breadcrumb-item active">Create Note</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="RecordVisits" asp-controller="DoctorVisit" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- SOAP Form -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form asp-action="CreateVisitNote" asp-controller="DoctorVisit" method="post">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="PatientId" class="form-label fw-bold">Patient</label>
+                                    <select asp-for="PatientId" class="form-select" required>
+                                        <option value="">-- Select Patient --</option>
+                                        @foreach (var patient in ViewBag.Patients)
+                                        {
+                                            <option value="@patient.PatientId">@patient.FirstName @patient.LastName</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="PatientId" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="VisitDate" class="form-label fw-bold">Visit Date</label>
+                                    <input asp-for="VisitDate" class="form-control" type="datetime-local" required />
+                                    <span asp-validation-for="VisitDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SOAP Sections -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group mb-4">
+                                    <label asp-for="Subjective" class="form-label fw-bold text-info">
+                                        <i class="bi bi-chat-left-text me-1"></i>Subjective (S)
+                                    </label>
+                                    <small class="form-text text-muted d-block mb-2">Patient's complaints, symptoms, and history</small>
+                                    <textarea asp-for="Subjective" class="form-control" rows="4"
+                                              placeholder="Describe the patient's complaints, symptoms, and medical history..."
+                                              required></textarea>
+                                    <span asp-validation-for="Subjective" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label asp-for="Objective" class="form-label fw-bold text-success">
+                                        <i class="bi bi-clipboard-data me-1"></i>Objective (O)
+                                    </label>
+                                    <small class="form-text text-muted d-block mb-2">Observations, vital signs, test results</small>
+                                    <textarea asp-for="Objective" class="form-control" rows="4"
+                                              placeholder="Record observations, vital signs, physical exam findings, test results..."
+                                              required></textarea>
+                                    <span asp-validation-for="Objective" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label asp-for="Assessment" class="form-label fw-bold text-warning">
+                                        <i class="bi bi-clipboard-check me-1"></i>Assessment (A)
+                                    </label>
+                                    <small class="form-text text-muted d-block mb-2">Diagnosis, analysis, and assessment</small>
+                                    <textarea asp-for="Assessment" class="form-control" rows="4"
+                                              placeholder="Provide diagnosis, analysis, and overall assessment..."
+                                              required></textarea>
+                                    <span asp-validation-for="Assessment" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label asp-for="Plan" class="form-label fw-bold text-primary">
+                                        <i class="bi bi-calendar-check me-1"></i>Plan (P)
+                                    </label>
+                                    <small class="form-text text-muted d-block mb-2">Treatment plan, medications, follow-up</small>
+                                    <textarea asp-for="Plan" class="form-control" rows="4"
+                                              placeholder="Outline treatment plan, medications, therapies, follow-up appointments..."
+                                              required></textarea>
+                                    <span asp-validation-for="Plan" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="RecordVisits" asp-controller="DoctorVisit" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Save Visit Note
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

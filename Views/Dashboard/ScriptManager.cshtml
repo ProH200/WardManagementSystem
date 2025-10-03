@@ -1,0 +1,909 @@
+﻿@model Wellness_Wardens_Project.ViewModels.ScriptManagerDashboardViewModel
+@{
+    ViewData["Title"] = "Script Manager Dashboard";
+    Layout = "_Layout";
+}
+
+<!-- Header Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="dashboard-header bg-primary text-white p-4 rounded-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-6 fw-bold">Welcome, @ViewData["WelcomeName"]!</h1>
+                    <p class="lead mb-0">Manage prescriptions</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-prescription-bottle-alt fa-5x text-white opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Pending Prescriptions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.PendingCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Sent to Pharmacy
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ProcessedCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-truck-loading fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="@Url.Action("Pending", "Prescriptions")" class="btn btn-primary btn-lg w-100 py-3">
+                                <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                Process Pending Prescriptions
+                               
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="@Url.Action("Index", "Prescriptions")" class="btn btn-info btn-lg w-100 py-3">
+                                <i class="fas fa-list fa-2x mb-2"></i><br>
+                                View All<br>
+                                <small>Prescriptions</small>
+                            </a>
+                        </div>
+                        @* <div class="col-md-3 mb-3">
+                            <button class="btn btn-success btn-lg w-100 py-3" onclick="generateReport()">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                Generate <br>
+                                <small> PDF Reports</small>
+                            </button>
+                        </div> *@
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-warning btn-lg w-100 py-3" onclick="showStatistics()">
+                                <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
+                                View<br>
+                                <small>Statistics</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Pending Prescriptions Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">
+                        ⏳ Pending Prescriptions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.PendingPrescriptions.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var prescription in Model.PendingPrescriptions)
+                            {
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Rerefence: @($"{prescription.DateWritten:MMdd}-{prescription.DoctorName.Split(' ')[0][0]}{prescription.DoctorName.Split(' ').Last()[0]}-{prescription.PrescriptionId % 1000:D3}")</h6>
+                                </div>
+                                    <p class="mb-1">Doctor: @prescription.DoctorName</p>
+                                    <span class="badge bg-@prescription.StatusColor">@prescription.Status</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <p class="text-muted">No pending prescriptions! 🎉</p>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Pending", "Prescriptions")" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-eye me-1"></i>View All Pending
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        Sent to Pharmacy
+                        <span class="badge bg-light text-dark float-end">@Model.ProcessedCount</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentProcessed.Any())
+                    {
+                        <div class="timeline">
+                            @foreach (var prescription in Model.RecentProcessed)
+                            {
+                                <div class="timeline-item mb-3">
+                                    <div class="timeline-marker bg-@prescription.StatusColor"></div>
+                                    <div class="timeline-content p-3 bg-light rounded">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">Reference: @($"{prescription.DateWritten:MMdd}-{prescription.DoctorName.Split(' ')[0][0]}{prescription.DoctorName.Split(' ').Last()[0]}-{prescription.PrescriptionId % 1000:D3}")</h6>
+                                    </div>
+                                        <p class="mb-1 text-sm">Doctor: @prescription.DoctorName</p>
+                                        <small class="text-muted">@prescription.DateWritten.ToString("MMM dd, yyyy hh:mm tt")</small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No recent activity</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <!-- Statistics Side Panel -->
+        <div id="statsPanel" class="stats-panel">
+            <div class="stats-panel-header">
+                <h5 class="mb-0">📊 Prescription Statistics</h5>
+                <button class="btn-close btn-close-white" onclick="hideStatistics()"></button>
+            </div>
+            <div class="stats-panel-body">
+                <!-- Quick Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <div class="stat-card text-center p-3 bg-warning text-white rounded">
+                            <h4 class="mb-0">@Model.PendingCount</h4>
+                            <small>Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card text-center p-3 bg-info text-white rounded">
+                            <h4 class="mb-0">@Model.ProcessedCount</h4>
+                            <small>In Pharmacy</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="chart-container">
+                    <canvas id="statsChart" height="250"></canvas>
+                </div>
+
+                <!-- Statistics Details -->
+                <div class="stats-details mt-4">
+                    <h6 class="mb-3">📈 Detailed Breakdown</h6>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span class="text-warning">● Pending Prescriptions:</span>
+                        <strong>@Model.PendingCount</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span class="text-info">● Sent to Pharmacy:</span>
+                        <strong>@Model.ProcessedCount</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 bg-light rounded p-2 mt-2">
+                        <span class="text-success"><strong>Total Active Prescriptions:</strong></span>
+                        <strong class="text-success">@(Model.PendingCount + Model.ProcessedCount)</strong>
+                    </div>
+                </div>
+
+                <!-- Last Updated -->
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Last updated: <span id="lastUpdated">Just now</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="statsOverlay" class="stats-overlay"></div>
+
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+            }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 4px solid #36b9cc !important;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline-item {
+            position: relative;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -25px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .timeline-content {
+            margin-left: 10px;
+        }
+
+        .btn-lg {
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-lg:hover {
+                transform: scale(1.05);
+            }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+            }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 4px solid #36b9cc !important;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline-item {
+            position: relative;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -25px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .timeline-content {
+            margin-left: 10px;
+        }
+
+        .btn-lg {
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-lg:hover {
+                transform: scale(1.05);
+            }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+        /* Statistics Panel Styles */
+        .stats-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+            z-index: 1050;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .stats-panel.show {
+                right: 0;
+            }
+
+        .stats-panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+            .stats-panel-header h5 {
+                font-weight: 600;
+                font-size: 1.25rem;
+            }
+
+        .stats-panel-body {
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+
+        .chart-container {
+            position: relative;
+            margin: 1.5rem 0;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .stats-details {
+            background: #f8f9fa;
+            padding: 1.25rem;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+            .stats-details h6 {
+                color: #495057;
+                font-weight: 600;
+            }
+
+        /* Overlay for when panel is open */
+        .stats-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+            .stats-overlay.show {
+                opacity: 1;
+                visibility: visible;
+            }
+
+        /* Responsive design */
+        @@media (max-width: 768px) {
+            .stats-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .stat-card {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Animation for stat cards */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        /* Pulse animation for new prescription badge */
+        @@keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+            }
+        }
+
+        .new-prescription-badge {
+            animation: pulse 2s infinite;
+            z-index: 100;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Store original counts when page loads
+        let originalPendingCount = @Model.PendingCount;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard loaded. Pending count:', originalPendingCount);
+
+            // Show badge immediately if there are pending prescriptions
+            if (originalPendingCount > 0) {
+                showPrescriptionBadge(originalPendingCount);
+            }
+
+            startAutoRefresh();
+        });
+
+                // Auto-refresh dashboard data
+        function updateDashboardData() {
+            console.log('Updating dashboard data...');
+
+            fetch('/Prescriptions/GetDashboardStats')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Dashboard stats received:', data);
+
+                    // Update all counters
+                    document.querySelector('[class*="border-left-primary"] .h5').textContent = data.pendingCount;
+                    document.querySelector('[class*="border-left-warning"] .h5').textContent = data.processedCount;
+
+                    // Update quick action badge
+                    const quickActionBadge = document.querySelector('a[href*="Pending"] small');
+                    if (quickActionBadge) {
+                        quickActionBadge.textContent = `(${data.pendingCount} waiting)`;
+                    }
+
+                    // Update prescription badge
+                    updatePrescriptionBadge(data.pendingCount);
+
+                    // Update statistics panel if it's open
+                    updateStatisticsPanel(data);
+                })
+                .catch(error => {
+                    console.error('Dashboard update failed:', error);
+                });
+        }
+
+        // Update statistics panel with new data
+        function updateStatisticsPanel(data) {
+            const panel = document.getElementById('statsPanel');
+            if (panel.classList.contains('show')) {
+                // Update last updated time
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+                // Reinitialize chart with new data
+                if (window.statsChartInstance) {
+                    window.statsChartInstance.data.datasets[0].data = [data.pendingCount, data.processedCount];
+                    window.statsChartInstance.update();
+                }
+            }
+        }
+
+        // Update prescription badge based on current count
+        function updatePrescriptionBadge(currentCount) {
+            console.log('Updating badge. Current count:', currentCount);
+
+            if (currentCount > 0) {
+                showPrescriptionBadge(currentCount);
+            } else {
+                removePrescriptionBadge();
+            }
+        }
+
+        function showPrescriptionBadge(count) {
+            // Remove existing badge if any
+            removePrescriptionBadge();
+
+            console.log('Showing badge for', count, 'pending prescriptions');
+
+            // Create badge ONLY for Process Pending button
+            const buttonBadge = document.createElement('span');
+            buttonBadge.className = 'prescription-badge badge bg-danger position-absolute';
+            buttonBadge.textContent = count;
+            buttonBadge.title = 'Prescriptions waiting for action';
+            buttonBadge.style.cssText = 'font-size: 0.7rem; padding: 0.35em 0.55em; top: -8px; right: -8px; z-index: 100; animation: pulse 2s infinite;';
+
+            // Add to Process Pending button container
+            const pendingButtonContainer = document.querySelector('a[href*="Pending"]').parentElement;
+            if (pendingButtonContainer) {
+                pendingButtonContainer.classList.add('position-relative');
+                pendingButtonContainer.appendChild(buttonBadge);
+            }
+        }
+
+        function removePrescriptionBadge() {
+            const badges = document.querySelectorAll('.prescription-badge');
+            badges.forEach(badge => badge.remove());
+        }
+
+        // Auto-refresh dashboard every 30 seconds (silent)
+        function startAutoRefresh() {
+            // Update immediately on load
+            updateDashboardData();
+
+            // Then update every 30 seconds silently
+            setInterval(() => {
+                updateDashboardData();
+                // No visual "Updated" notification
+            }, 30000);
+        }
+
+        // Enhanced report generation function - DROPDOWN VERSION
+        function generateReport() {
+            Swal.fire({
+                title: 'Generate Report',
+                input: 'select',
+                inputOptions: {
+                    'pending': 'Pending Prescriptions',
+                    'processed': 'Processed & Delivered',
+                    'all': 'All Prescriptions'
+                },
+                inputPlaceholder: 'Select report type',
+                showCancelButton: true,
+                confirmButtonText: 'Generate PDF',
+                cancelButtonText: 'Cancel',
+                width: 350,
+                padding: '1rem',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please select a report type';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    switch (result.value) {
+                        case 'pending':
+                            generatePendingReport();
+                            break;
+                        case 'processed':
+                            generateProcessedReport();
+                            break;
+                        case 'all':
+                            generateAllReport();
+                            break;
+                    }
+                }
+            });
+        }
+
+        // Generate pending prescriptions report
+        function generatePendingReport() {
+            showReportProgress('Pending Prescriptions Report');
+
+            fetch('/Prescriptions/GeneratePendingReport')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.blob();
+                })
+                .then(blob => {
+                    downloadPdfFile(blob, 'pending_prescriptions_report.pdf');
+                    Swal.fire({
+                        title: 'Report Generated!',
+                        text: 'Pending prescriptions PDF report has been downloaded',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                })
+                .catch(error => {
+                    console.error('Report generation error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to generate report. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }
+
+        // Generate processed & delivered report
+        function generateProcessedReport() {
+            showReportProgress('Processed & Delivered Report');
+
+            fetch('/Prescriptions/GenerateProcessedReport')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.blob();
+                })
+                .then(blob => {
+                    downloadPdfFile(blob, 'processed_prescriptions_report.pdf');
+                    Swal.fire({
+                        title: 'Report Generated!',
+                        text: 'Processed prescriptions PDF report has been downloaded',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                })
+                .catch(error => {
+                    console.error('Report generation error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to generate report. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }
+
+        // Generate all prescriptions report
+        function generateAllReport() {
+            showReportProgress('All Prescriptions Report');
+
+            fetch('/Prescriptions/GenerateAllReport')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.blob();
+                })
+                .then(blob => {
+                    downloadPdfFile(blob, 'all_prescriptions_report.pdf');
+                    Swal.fire({
+                        title: 'Report Generated!',
+                        text: 'All prescriptions PDF report has been downloaded',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                })
+                .catch(error => {
+                    console.error('Report generation error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to generate report. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }
+
+        // Show report generation progress
+        function showReportProgress(reportType) {
+            Swal.fire({
+                title: 'Generating Report...',
+                html: `Creating <strong>${reportType}</strong><br><small>Please wait</small>`,
+                icon: 'info',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        // Download PDF file
+        function downloadPdfFile(blob, filename) {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+                // Show statistics panel
+        function showStatistics() {
+            const panel = document.getElementById('statsPanel');
+            const overlay = document.getElementById('statsOverlay');
+
+            panel.classList.add('show');
+            overlay.classList.add('show');
+
+            // Update last updated time
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+            // Initialize or update chart
+            initializeStatisticsChart();
+        }
+
+        // Hide statistics panel
+        function hideStatistics() {
+            const panel = document.getElementById('statsPanel');
+            const overlay = document.getElementById('statsOverlay');
+
+            panel.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        // Initialize statistics chart
+        function initializeStatisticsChart() {
+            const ctx = document.getElementById('statsChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (window.statsChartInstance) {
+                window.statsChartInstance.destroy();
+            }
+
+            window.statsChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending Prescriptions', 'Sent to Pharmacy'],
+                    datasets: [{
+                        data: [@Model.PendingCount, @Model.ProcessedCount],
+                        backgroundColor: [
+                            '#ffc107', // Warning color for pending
+                            '#17a2b8'  // Info color for processed
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                color: '#495057'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%',
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true,
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        // Close panel when clicking overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('statsOverlay');
+            if (overlay) {
+                overlay.onclick = hideStatistics;
+            }
+
+            // Close panel with Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    hideStatistics();
+                }
+            });
+        });
+    </script>
+}
+

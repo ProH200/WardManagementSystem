@@ -1,0 +1,97 @@
+﻿@{
+    ViewData["Title"] = "FAQ";
+}
+
+<h2>Frequently Asked Questions</h2>
+
+<div class="faq-container">
+    <div class="faq-item">
+        <button class="faq-question">1. How do I reset my password?</button>
+        <div class="faq-answer">
+            Click “Forgot Password” on the login page, enter your email, and follow the link sent to you.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-question">2. How do I update my contact info?</button>
+        <div class="faq-answer">
+            Navigate to "My Profile" from the sidebar and click "Edit".
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-question">3. What if I’m assigned to the wrong ward?</button>
+        <div class="faq-answer">
+            Contact your department supervisor or HR to get it corrected.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-question">4. Can I request leave through the system?</button>
+        <div class="faq-answer">
+            Yes, under the “Leave Management” section if enabled for your role.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-question">5. How do I report a system issue?</button>
+        <div class="faq-answer">
+            Visit the <a href="/Help/Support">Support</a> page and submit a ticket or contact IT directly.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-question">6. Why can’t I see patient data?</button>
+        <div class="faq-answer">
+            Access to patient data depends on your role. If you need access, request it through your supervisor.
+        </div>
+    </div>
+</div>
+
+<style>
+    .faq-container {
+        max-width: 700px;
+        margin: 20px auto;
+    }
+
+    .faq-question {
+        width: 100%;
+        background-color: #f0f8ff;
+        border: none;
+        padding: 15px;
+        text-align: left;
+        font-size: 16px;
+        cursor: pointer;
+        outline: none;
+        border-bottom: 1px solid #ddd;
+        transition: background-color 0.3s;
+    }
+
+        .faq-question:hover {
+            background-color: #e6f2ff;
+        }
+
+    .faq-answer {
+        display: none;
+        padding: 15px;
+        background-color: #fafafa;
+        border-bottom: 1px solid #ddd;
+        font-size: 15px;
+    }
+
+    .faq-question.active + .faq-answer {
+        display: block;
+    }
+</style>
+
+<script>
+    const faqQuestions = document.querySelectorAll('.faq-question');
+
+    faqQuestions.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            const answer = btn.nextElementSibling;
+            answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+        });
+    });
+</script>

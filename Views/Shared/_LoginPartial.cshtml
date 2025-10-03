@@ -1,0 +1,21 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@using Wellness_Wardens_Project.Models
+@using Wellness_Wardens_Project.Models.AdministrationSubsystem
+@inject SignInManager<Employee> signInManager;
+@* @using Wellness_Wardens_Project.ViewModels *@
+@* @model RegisterViewModel; *@
+
+<ul class="navbar-nav ms-auto align-items-center">
+    @if (signInManager.IsSignedIn(User))
+    {
+    <li class="nav-item">
+ 	    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+ 	    @Html.AntiForgeryToken()
+ 		</form>
+ 	</li>
+ 	}
+ 	else
+ 	{
+      
+ 	}
+</ul>

@@ -1,0 +1,303 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.PatientManagementSubsystem.PatientAdmission>
+
+@{
+    ViewData["Title"] = "Currently Admitted Patients";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #CAD5E2;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #212529;
+    }
+
+    .admission-card {
+        background-color: #D3DCE6;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        padding: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .admission-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+    .btn-custom {
+        border-radius: 50px;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h2 class="fw-bold text-primary mb-4">
+            <i class="bi bi-person-lines-fill me-2"></i> Currently Admitted Patients
+        </h2>
+        <a asp-action="WardAdminDashboard" asp-controller="Administration"
+           class="btn btn-outline-secondary shadow-sm rounded-pill px-4">
+            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+        </a>
+    </div>
+
+    <!-- Search bar -->
+    <div class="input-group mb-4 shadow" style="background-color:#CAD5E2;">
+        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+        <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
+               placeholder="Search patients by name, ward, room, or bed..." />
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div id="admissionsGrid" class="row g-4">
+            @foreach (var admission in Model)
+            {
+                <div class="col-md-6 col-lg-4 admission-card-wrapper">
+                    <div class="admission-card">
+                        <h5>@($"{admission.Patient.FirstName} {admission.Patient.LastName}")</h5>
+                        <p class="mb-1"><strong>Admission Date:</strong> @admission.AdmissionDate.Value.ToString("yyyy-MM-dd")</p>
+                        <p class="mb-1"><strong>Ward / Room / Bed:</strong> @($"{admission.Bed?.Room?.Ward?.Name ?? "-"} / {admission.Bed?.Room?.RoomNumber ?? "-"} / {admission.Bed?.BedNumber ?? "-"}")</p>
+                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                            <a asp-controller="PatientMovements"
+                               asp-action="Movements"
+                               asp-route-admissionId="@admission.AdmissionId"
+                               class="btn btn-dark btn-sm btn-custom">
+                                <i class="bi bi-arrow-left-right me-1"></i> Movements
+                            </a>
+                            <button class="btn btn-success btn-sm btn-custom shadow-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#movementModal-@admission.AdmissionId">
+                                <i class="bi bi-plus-circle me-2"></i> Add Movement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Movement Modal (server-side populated) -->
+                <div class="modal fade" id="movementModal-@admission.AdmissionId" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-dark text-white">
+                                <h5 class="modal-title">Add Movement</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form asp-action="SaveMovement" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="AdmissionId" value="@admission.AdmissionId" />
+
+                                    <div class="mb-3">
+                                        <label>Patient Name</label>
+                                        <input type="text" class="form-control" value="@($"{admission.Patient.FirstName} {admission.Patient.LastName}")" readonly />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Current Location</label>
+                                        <input type="text" class="form-control" value="@($"{admission.Bed?.Room?.Ward?.Name ?? "-"} / {admission.Bed?.Room?.RoomNumber ?? "-"} / {admission.Bed?.BedNumber ?? "-"}")" readonly />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Ward *</label>
+                                        <select name="WardId" class="form-control" required>
+                                            <option value="">-- Select Ward --</option>
+                                            @foreach (var ward in ViewBag.Wards as IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Ward>)
+                                            {
+                                                if (ward.WardId != admission.Bed?.Room?.Ward?.WardId)
+                                                {
+                                                    <option value="@ward.WardId">@ward.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Room *</label>
+                                        <select name="RoomId" class="form-control" required>
+                                            <option value="">-- Select Room --</option>
+                                            @foreach (var ward in ViewBag.Wards as IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Ward>)
+                                            {
+                                                foreach (var room in ward.Rooms)
+                                                {
+                                                    <option data-ward="@ward.WardId" value="@room.RoomId">@room.RoomNumber (@ward.Name)</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Bed *</label>
+                                        <select name="BedId" class="form-control" required>
+                                            <option value="">-- Select Bed --</option>
+                                            @foreach (var ward in ViewBag.Wards as IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Ward>)
+                                            {
+                                                foreach (var room in ward.Rooms)
+                                                {
+                                                    foreach (var bed in room.Beds)
+                                                    {
+                                                        <option data-room="@room.RoomId" value="@bed.BedId">@bed.BedNumber (@room.RoomNumber / @ward.Name)</option>
+                                                    }
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Movement Date *</label>
+                                        <input type="date" name="Date" class="form-control"
+                                               value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Reason</label>
+                                        <textarea name="Reason" class="form-control" rows="3"></textarea>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-check-circle me-1"></i> Save Movement
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info shadow-sm text-center">
+            <i class="bi bi-info-circle me-2"></i> No patients are currently admitted.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <!-- Include SweetAlert2 for toast notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Live search
+        const searchInput = document.getElementById('searchInput');
+        const admissionCards = document.querySelectorAll('.admission-card-wrapper');
+
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            admissionCards.forEach(cardWrapper => {
+                const text = cardWrapper.textContent.toLowerCase();
+                cardWrapper.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply filtering to each modal individually
+            document.querySelectorAll('.modal').forEach(modal => {
+                const wardSelect = modal.querySelector('select[name="WardId"]');
+                const roomSelect = modal.querySelector('select[name="RoomId"]');
+                const bedSelect = modal.querySelector('select[name="BedId"]');
+
+                if (wardSelect && roomSelect && bedSelect) {
+                    function filterRooms() {
+                        const wardId = wardSelect.value;
+                        const roomOptions = roomSelect.querySelectorAll('option');
+
+                        roomOptions.forEach(opt => {
+                            if (!opt.value) return; // keep default option
+                            opt.style.display = opt.dataset.ward === wardId ? '' : 'none';
+                        });
+
+                        // Reset room and bed selections when ward changes
+                        roomSelect.value = '';
+                        bedSelect.value = '';
+                        filterBeds();
+                    }
+
+                    function filterBeds() {
+                        const roomId = roomSelect.value;
+                        const bedOptions = bedSelect.querySelectorAll('option');
+
+                        bedOptions.forEach(opt => {
+                            if (!opt.value) return; // keep default option
+                            opt.style.display = opt.dataset.room === roomId ? '' : 'none';
+                        });
+
+                        // Reset bed selection when room changes
+                        if (!roomId) {
+                            bedSelect.value = '';
+                        }
+                    }
+
+                    // Add event listeners for this specific modal
+                    wardSelect.addEventListener('change', filterRooms);
+                    roomSelect.addEventListener('change', filterBeds);
+
+                    // Initialize filtering
+                    filterRooms();
+                    filterBeds();
+                }
+            });
+        });
+    </script>
+
+    <!-- Toast Notifications -->
+    <script>
+        function showToast(type, message) {
+            if (!message) return;
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            })
+
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        }
+
+        // Show success message from TempData
+        var successMessage = '@Html.Raw(TempData["Success"] ?? "")';
+        if (successMessage) {
+            showToast('success', successMessage);
+        }
+
+        // Show error message from TempData
+        var errorMessage = '@Html.Raw(TempData["Error"] ?? "")';
+        if (errorMessage) {
+            showToast('error', errorMessage);
+        }
+
+        // Show search warnings
+        const searchInput = document.getElementById('searchInput');
+        const patientCards = document.querySelectorAll('.admission-card-wrapper');
+
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            let matchFound = false;
+
+            patientCards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                const isMatch = text.includes(query);
+                card.style.display = isMatch ? '' : 'none';
+                if (isMatch) matchFound = true;
+            });
+
+            if (!matchFound && query.trim() !== "") {
+                showToast('warning', 'No patients found matching your search.');
+            }
+        });
+    </script>
+}

@@ -1,0 +1,215 @@
+﻿@model IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Medication>
+
+@{
+    ViewData["Title"] = "Manage Medication";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-capsule-pill me-2"></i> Medication</h2>
+        <div>
+            <a asp-controller="Administration" asp-action="Dashboard" class="btn btn-outline-primary me-2">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+            <!-- Add Medication Modal Trigger -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMedicationModal">
+                <i class="bi bi-plus-circle me-1"></i> Add Medication
+            </button>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <input class="form-control mb-3" id="searchInput" placeholder="Search medication..." />
+
+    <!-- Medication Table -->
+    <div class="table-responsive">
+        <table id="medicationTable" class="table table-hover align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Quantity Available</th>
+                    <th>Scheduled?</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var med in Model)
+                    {
+                        <tr>
+                            <td>@med.Name</td>
+                            <td>@med.QuantityAvailable</td>
+                            <td>@(med.IsScheduledMedication ? "Yes" : "No")</td>
+                            <td>
+                                <!-- Edit Button -->
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editModal-@med.MedicationId">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+
+                                <!-- Delete Button -->
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-@med.MedicationId">
+                                    <i class="bi bi-trash3-fill"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Edit Modal -->
+                        <div class="modal fade" id="editModal-@med.MedicationId" tabindex="-1"
+                             aria-labelledby="editModalLabel-@med.MedicationId" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form asp-action="EditMedication" method="post">
+                                        @Html.AntiForgeryToken()
+                                        @Html.Hidden("MedicationId", med.MedicationId)
+
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title">
+                                                <i class="bi bi-pencil-square me-2"></i> Edit Medication
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Name</label>
+                                                <input name="Name" class="form-control" value="@med.Name" required />
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Quantity Available</label>
+                                                <input name="QuantityAvailable" type="number" class="form-control" value="@med.QuantityAvailable" required />
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input name="IsScheduledMedication" type="checkbox" class="form-check-input" id="isScheduled" value="true" />
+                                                <label class="form-check-label" for="isScheduled">Scheduled Medication</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteModal-@med.MedicationId" tabindex="-1"
+                             aria-labelledby="deleteModalLabel-@med.MedicationId" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form asp-action="SoftDeleteMedication" method="post">
+                                        @Html.AntiForgeryToken()
+                                        @Html.Hidden("id", med.MedicationId)
+
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">
+                                                <i class="bi bi-exclamation-triangle-fill me-2"></i> Delete Medication
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <p class="fw-bold">Are you sure you want to delete this medication?</p>
+                                            <ul class="list-group">
+                                                <li class="list-group-item"><strong>Name:</strong> @med.Name</li>
+                                                <li class="list-group-item"><strong>Quantity:</strong> @med.QuantityAvailable</li>
+                                                <li class="list-group-item"><strong>Scheduled:</strong> @(med.IsScheduledMedication ? "Yes" : "No")</li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center">No medication found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Medication Modal -->
+<div class="modal fade" id="addMedicationModal" tabindex="-1" aria-labelledby="addMedicationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="AddMedication" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addMedicationModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i> Add Medication
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input name="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity Available</label>
+                        <input name="QuantityAvailable" type="number" class="form-control" required />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input name="IsScheduledMedication" type="checkbox" class="form-check-input" id="isScheduled" value="true" />
+                        <label class="form-check-label" for="isScheduled">Scheduled Medication</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function showToast(type, message) {
+            if (!message) return;
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+
+        // Success message
+        var successMessage = @Html.Raw(Json.Serialize(TempData["SuccessMessage"] ?? ""));
+        if (successMessage) showToast('success', successMessage);
+
+        // Error message
+        var errorMessage = @Html.Raw(Json.Serialize(TempData["ErrorMessage"] ?? ""));
+        if (errorMessage) showToast('error', errorMessage);
+    </script>
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const tableRows = document.querySelectorAll('#medicationTable tbody tr');
+
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            tableRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const match = Array.from(cells).some(td => td.textContent.toLowerCase().includes(query));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+    </script>
+}

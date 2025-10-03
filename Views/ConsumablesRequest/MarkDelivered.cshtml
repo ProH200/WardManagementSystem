@@ -1,0 +1,85 @@
+﻿@model Wellness_Wardens_Project.Models.ConsumablesSubsystem.ConsumablesRequest
+@{
+    ViewData["Title"] = "Mark as Delivered";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Confirm Delivery
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Delivery Confirmation -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Confirm that this item has been delivered to the ward.</strong>
+                    </div>
+
+                    <!-- Request Details -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title">Request Details</h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Item Name:</dt>
+                                <dd class="col-sm-8"><strong>@Model.ConsumableName</strong></dd>
+
+                                <dt class="col-sm-4">Quantity:</dt>
+                                <dd class="col-sm-8"><span class="badge bg-primary">@Model.QuantityRequested</span></dd>
+
+                                <dt class="col-sm-4">Requested Date:</dt>
+                                <dd class="col-sm-8">@Model.RequestedDate.ToString("MMM dd, yyyy")</dd>
+
+                                <dt class="col-sm-4">Current Status:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-warning">⏳ Pending Delivery</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Form -->
+                    <form asp-action="MarkDeliveredConfirmed" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.RequestId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Date</label>
+                            <input type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                   readonly disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Notes (Optional)</label>
+                            <textarea class="form-control" placeholder="Add any delivery notes or comments..."
+                                      rows="3" id="deliveryNotes"></textarea>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Action cannot be undone.</strong> Once marked as delivered, this request will be completed.
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <a href="@Url.Action("Index")" class="btn btn-secondary w-100">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-check me-2"></i>Confirm Delivery
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
