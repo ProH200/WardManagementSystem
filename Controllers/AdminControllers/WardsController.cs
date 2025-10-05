@@ -345,7 +345,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         }
 
 
-        //POST : Soft Delete
+        // POST : Soft Delete
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SoftDeleteBed(int id)
@@ -354,6 +354,13 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
             if (bed == null)
                 return NotFound();
 
+            // Prevent deleting occupied beds
+            if (bed.Status == "Occupied")
+            {
+                TempData["ErrorMessage"] = $"Bed '{bed.BedNumber}' is occupied and cannot be deleted.";
+                return RedirectToAction("ManageBeds");
+            }
+
             bed.IsDeleted = true;
             _context.Beds.Update(bed);
             await _context.SaveChangesAsync();
@@ -361,6 +368,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
             TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' deleted successfully.";
             return RedirectToAction("ManageBeds");
         }
+
     }
 }
 

@@ -320,7 +320,8 @@
         </main>
     </div>
 
-    <!-- Help Widget -->
+
+    <!-- The question mark for assistance -->
     <div class="help-widget">
         <button id="helpToggle" class="help-button" title="Help">?</button>
         <div id="helpMenu" class="help-menu hidden">
@@ -353,36 +354,35 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <script>
+        const helpToggle = document.getElementById('helpToggle');
+        const helpMenu = document.getElementById('helpMenu');
+
+        helpToggle.addEventListener('click', () => {
+          helpMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!helpToggle.contains(e.target) && !helpMenu.contains(e.target)) {
+            helpMenu.classList.add('hidden');
+          }
+        });
+    </script>
+
     <!-- Toast Notification Script -->
     <script>
-        // document.addEventListener("DOMContentLoaded", function () {
-        //     var toastMessage = '@TempData["ToastMessage"]';
-        //     var toastType = '@TempData["ToastType"]';
+        document.addEventListener("DOMContentLoaded", function () {
+            var toastMessage = '@TempData["ToastMessage"]';
+            var toastType = '@TempData["ToastType"]';
 
-        //     if (toastMessage && toastMessage !== "") {
-        //         Swal.fire({
-        //             toast: true,
-        //             position: 'top-end',
-        //             showConfirmButton: false,
-        //             timer: 3000,
-        //             icon: toastType || 'info',
-        //             title: toastMessage
-        //         });
-        //     }
-
-            // Help Widget functionality
-            const helpToggle = document.getElementById('helpToggle');
-            const helpMenu = document.getElementById('helpMenu');
-
-            if (helpToggle && helpMenu) {
-                helpToggle.addEventListener('click', () => {
-                    helpMenu.classList.toggle('hidden');
-                });
-
-                document.addEventListener('click', (e) => {
-                    if (!helpToggle.contains(e.target) && !helpMenu.contains(e.target)) {
-                        helpMenu.classList.add('hidden');
-                    }
+            if (toastMessage && toastMessage !== "") {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    icon: toastType || 'info',
+                    title: toastMessage
                 });
             }
 

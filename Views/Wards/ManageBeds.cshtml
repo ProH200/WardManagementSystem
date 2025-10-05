@@ -44,24 +44,61 @@
                     </div>
                     <p class="card-text mb-1">
                         <strong>Status:</strong>
-                        <span class="badge @(isOccupied ? "bg-warning" :
-                                                      (bed.Status == "Available" ? "bg-success" : "bg-danger"))">
-                        @(isOccupied ? "Occupied" : bed.Status)
+                        <span class="badge @(bed.Status == "Available" ? "bg-success" : "bg-warning")">
+                            @bed.Status
                         </span>
                     </p>
 
                     <div class="mt-3 d-flex justify-content-between">
-                        <a asp-action="EditBed" asp-route-id="@bed.BedId" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil-square me-1"></i> Edit
-                        </a>
-                        <form asp-action="SoftDeleteBed" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@bed.BedId" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                        @if (bed.Status == "Occupied")
+                        {
+                            <!-- Occupied: trigger SweetAlert error -->
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="showOccupiedError('@bed.BedNumber')">
                                 <i class="bi bi-trash3-fill me-1"></i> Delete
                             </button>
-                        </form>
+                        }
+                        else
+                        {
+                            <!-- Available/Other: trigger modal -->
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteBedModal-@bed.BedId">
+                                <i class="bi bi-trash3-fill me-1"></i> Delete
+                            </button>
+                        }
                     </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteBedModal-@bed.BedId" tabindex="-1" aria-labelledby="deleteBedModalLabel-@bed.BedId" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form asp-action="SoftDeleteBed" method="post">
+                        @Html.AntiForgeryToken()
+                        @Html.Hidden("id", bed.BedId)
+
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title" id="deleteBedModalLabel-@bed.BedId">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> Delete Bed
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <p class="fw-bold">Are you sure you want to delete this bed?</p>
+                            <ul class="list-group">
+                                <li class="list-group-item"><strong>Bed:</strong> @bed.BedNumber</li>
+                                <li class="list-group-item"><strong>Room:</strong> @(bed.Room?.RoomNumber ?? "N/A")</li>
+                                <li class="list-group-item"><strong>Status:</strong> @bed.Status</li>
+                            </ul>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -121,6 +158,18 @@
                         timer: 3000
                     });
                 </text>
+        }
+    </script>
+    <script>
+        function showOccupiedError(bedNumber) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: `Bed '${bedNumber}' is occupied and cannot be deleted.`,
+                showConfirmButton: false,
+                timer: 3000
+            });
         }
     </script>
 }

@@ -9,7 +9,10 @@ namespace Wellness_Wardens_Project.Data
 {
     public class ApplicationDbContext : IdentityDbContext<Employee>
     {
+
+
         public ApplicationDbContext(DbContextOptions options) : base(options) { }
+
 
         // Admin subsystem
         public DbSet<Allergy> Allergies { get; set; }

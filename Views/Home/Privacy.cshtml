@@ -1,6 +1,143 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
+    Layout = "_Layout";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="privacy-content">
+    <div class="container">
+        <h1 class="mb-4"><i class="fas fa-shield-alt me-2"></i>@ViewData["Title"]</h1>
+
+        <div class="card mb-4">
+            <div class="card-header bg-hospital-blue text-white">
+                <h2><i class="fas fa-info-circle me-2"></i>Data Collection</h2>
+            </div>
+            <div class="card-body">
+                <p>Wellness Wardens Hospital collects the following information to provide quality healthcare services:</p>
+                <ul class="fa-ul">
+                    <li><span class="fa-li"><i class="fas fa-user-circle"></i></span>Personal identification details</li>
+                    <li><span class="fa-li"><i class="fas fa-heartbeat"></i></span>Medical history and treatment records</li>
+                    <li><span class="fa-li"><i class="fas fa-prescription-bottle-alt"></i></span>Medication and prescription data</li>
+                    <li><span class="fa-li"><i class="fas fa-procedures"></i></span>Admission and discharge information</li>
+                    <li><span class="fa-li"><i class="fas fa-user-md"></i></span>Healthcare provider interactions</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-hospital-blue text-white">
+                <h2><i class="fas fa-lock me-2"></i>Data Protection</h2>
+            </div>
+            <div class="card-body">
+                <p>We implement robust security measures including:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="fa-ul">
+                            <li><span class="fa-li"><i class="fas fa-user-shield"></i></span>Role-based access controls</li>
+                            <li><span class="fa-li"><i class="fas fa-key"></i></span>End-to-end encryption</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="fa-ul">
+                            <li><span class="fa-li"><i class="fas fa-history"></i></span>Comprehensive audit logging</li>
+                            <li><span class="fa-li"><i class="fas fa-server"></i></span>Secure data storage</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-hospital-blue text-white">
+                <h2><i class="fas fa-share-alt me-2"></i>Information Sharing</h2>
+            </div>
+            <div class="card-body">
+                <p>Patient information is only shared with:</p>
+                <ul class="fa-ul">
+                    <li><span class="fa-li"><i class="fas fa-user-md"></i></span>Authorized healthcare providers</li>
+                    <li><span class="fa-li"><i class="fas fa-clinic-medical"></i></span>Hospital pharmacy services</li>
+                    <li><span class="fa-li"><i class="fas fa-balance-scale"></i></span>When legally required</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Note:</strong> We never sell patient data to third parties.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-hospital-blue text-white">
+                <h2><i class="fas fa-user-check me-2"></i>Your Rights</h2>
+            </div>
+            <div class="card-body">
+                <p>Patients have the right to:</p>
+                <ul class="fa-ul">
+                    <li><span class="fa-li"><i class="fas fa-file-medical"></i></span>Access their medical records</li>
+                    <li><span class="fa-li"><i class="fas fa-edit"></i></span>Request corrections to inaccurate information</li>
+                    <li><span class="fa-li"><i class="fas fa-question-circle"></i></span>Inquire about how their data is used</li>
+                    <li><span class="fa-li"><i class="fas fa-file-export"></i></span>Request record exports</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-5">
+            <!-- Changed mb-4 to mb-5 for extra bottom margin -->
+            <div class="card-header bg-hospital-blue text-white">
+                <h2><i class="fas fa-headset me-2"></i>Contact Us</h2>
+            </div>
+            <div class="card-body">
+                <p>For privacy concerns, please contact our Privacy Officer:</p>
+                <address class="fa-ul">
+                    <li class="mb-2"><span class="fa-li"><i class="fas fa-envelope"></i></span> <strong>Email:</strong> privacy@wellnesswardens.hospital</li>
+                    <li class="mb-2"><span class="fa-li"><i class="fas fa-phone"></i></span> <strong>Phone:</strong> (012) 345-6789</li>
+                    <li><span class="fa-li"><i class="fas fa-map-marker-alt"></i></span> <strong>Address:</strong> 123 Medical Drive, Health City</li>
+                </address>
+                <p class="text-muted mt-3"><i class="far fa-calendar-alt me-2"></i>Last updated: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Privacy Policy Specific Styles */
+    .privacy-content {
+        min-height: calc(100vh - 250px); /* Adjust based on your header/footer height */
+        padding-bottom: 2rem;
+    }
+
+    .bg-hospital-blue {
+        background-color: #005b96;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        margin-bottom: 1.5rem;
+    }
+
+    .fa-ul {
+        margin-left: 1.5em;
+    }
+
+    .fa-li {
+        left: -2em;
+        width: 2em;
+        color: #005b96;
+    }
+
+    /* Footer Fixes */
+    footer {
+        background-color: #005b96;
+        color: white;
+        padding: 1rem 0;
+    }
+
+        footer a {
+            color: #00a3ad;
+            text-decoration: none;
+        }
+
+            footer a:hover {
+                color: #008b94;
+                text-decoration: underline;
+            }
+</style>
