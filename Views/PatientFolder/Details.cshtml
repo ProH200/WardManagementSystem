@@ -189,6 +189,22 @@
     </div>
 </div>
 
+<div class="d-flex justify-content-end mt-4 gap-2">
+    <!--Export to Pdf-->
+    <a asp-controller="Reports"
+       asp-action="GeneratePatientFolderWord"
+       asp-route-admissionId="@Model.AdmissionId"
+       class="btn btn-success">
+        <i class="bi bi-file-word me-1"></i>Export to Word
+    </a>
+    <!--Export to Word format-->
+    <a asp-controller="Reports"
+       asp-action="GeneratePatientFolderPdf"
+       asp-route-admissionId="@Model.AdmissionId"
+       class="btn btn-danger">
+        <i class="bi bi-file-pdf me-1"></i>Export to PDF
+    </a>
+</div>
 <style>
     .timeline {
         position: relative;
