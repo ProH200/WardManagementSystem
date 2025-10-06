@@ -12,8 +12,8 @@ using Wellness_Wardens_Project.Data;
 namespace Wellness_Wardens_Project.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251002165331_CreateTables")]
-    partial class CreateTables
+    [Migration("20251006112730_RecreateIdentityTables")]
+    partial class RecreateIdentityTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -634,7 +634,6 @@ namespace Wellness_Wardens_Project.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Instructions")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
@@ -863,18 +862,15 @@ namespace Wellness_Wardens_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PatientId"));
 
                     b.Property<string>("ChronicCondition")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ChronicMedication")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly>("DateOfBirth")
                         .HasColumnType("date");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmergencyContact")
@@ -913,7 +909,6 @@ namespace Wellness_Wardens_Project.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("MedicalHistory")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")

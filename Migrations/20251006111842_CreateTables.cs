@@ -38,7 +38,7 @@ namespace Wellness_Wardens_Project.Migrations
                     Gender = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EmergencyContact = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     HomeAddress = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ChronicCondition = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ChronicMedication = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -58,7 +58,7 @@ namespace Wellness_Wardens_Project.Migrations
                     WardId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -184,7 +184,7 @@ namespace Wellness_Wardens_Project.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Role = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Specialization = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Specialization = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Gender = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -245,7 +245,7 @@ namespace Wellness_Wardens_Project.Migrations
                     AllergyId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     PatientId = table.Column<int>(type: "int", nullable: true)
@@ -430,7 +430,7 @@ namespace Wellness_Wardens_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     QuantityAvailable = table.Column<int>(type: "int", nullable: false),
-                    ScheduleLevel = table.Column<int>(type: "int", nullable: true),
+                    ScheduleLevel = table.Column<int>(type: "int", nullable: false),
                     IsScheduledMedication = table.Column<bool>(type: "bit", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true)
@@ -453,7 +453,7 @@ namespace Wellness_Wardens_Project.Migrations
                     PrescriptionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DateWritten = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Instructions = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Instructions = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsProcessed = table.Column<bool>(type: "bit", nullable: false),
                     IsDelivered = table.Column<bool>(type: "bit", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -514,7 +514,7 @@ namespace Wellness_Wardens_Project.Migrations
                     Subjective = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Objective = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Assessment = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Plan = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Plan = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)

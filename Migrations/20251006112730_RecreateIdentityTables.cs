@@ -5,7 +5,7 @@
 namespace Wellness_Wardens_Project.Migrations
 {
     /// <inheritdoc />
-    public partial class Server : Migration
+    public partial class RecreateIdentityTables : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

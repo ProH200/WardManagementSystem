@@ -12,8 +12,8 @@ using Wellness_Wardens_Project.Data;
 namespace Wellness_Wardens_Project.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251003091633_NewMigrationSOIT")]
-    partial class NewMigrationSOIT
+    [Migration("20251006111842_CreateTables")]
+    partial class CreateTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
