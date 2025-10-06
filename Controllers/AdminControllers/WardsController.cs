@@ -37,36 +37,31 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
             return View();
         }
 
-        // POST - Ward/AddWard
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddWard(Ward ward)
         {
-            if (!ModelState.IsValid)
+            // Check for duplicate ward name first
+            bool exists = await _context.Wards
+                .AnyAsync(w => w.Name == ward.Name && !w.IsDeleted);
+
+            if (exists)
             {
-                // Check for duplicate ward name
-                bool exists = await _context.Wards
-                    .AnyAsync(w => w.Name == ward.Name && !w.IsDeleted);
-
-                if (exists)
-                {
-                    ModelState.AddModelError("Name", "A ward with this name already exists.");
-                    return View(ward);
-                }
-
-                // Add new ward
-                _context.Wards.Add(ward);
-                await _context.SaveChangesAsync();
-
-                // Store success message for toast
-                TempData["SuccessMessage"] = $"Ward '{ward.Name}' added successfully.";
-
-                return RedirectToAction(nameof(ManageWards));
+                TempData["ErrorMessage"] = ("Name", "A ward with this name already exists.");
             }
 
-            return View(ward);
-        }
+            if (!ModelState.IsValid)
+            {
+                return View(ward);
+            }
 
+            // Add new ward
+            _context.Wards.Add(ward);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Ward '{ward.Name}' added successfully.";
+            return RedirectToAction(nameof(ManageWards));
+        }
 
         //GET - Update Ward
         [HttpGet]
@@ -92,7 +87,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
 
                 if (exists)
                 {
-                    ModelState.AddModelError("Name", "Another ward with this name already exists.");
+                    TempData["ErrorMessage"] = ("Name", "Another ward with this name already exists.");
                     return View(ward);
                 }
 
@@ -157,29 +152,30 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddRoom(Room room)
         {
-            if (!ModelState.IsValid)
+            // Check for duplicate room in the same ward
+            bool exists = await _context.Rooms
+                .AnyAsync(r => r.RoomNumber == room.RoomNumber
+                               && r.WardId == room.WardId
+                               && !r.IsDeleted);
+
+            if (exists)
             {
-                // Check duplicate
-                bool exists = await _context.Rooms
-                    .AnyAsync(r => r.RoomNumber == room.RoomNumber && r.WardId == room.WardId && !r.IsDeleted);
-
-                if (exists)
-                {
-                    ModelState.AddModelError("RoomNumber", "This room already exists in the selected ward.");
-                    ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
-                    return View(room);
-                }
-
-                _context.Rooms.Add(room);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Room '{room.RoomNumber}' added successfully.";
-                return RedirectToAction(nameof(ManageRooms));
-
+                TempData["ErrorMessage"] = ("RoomNumber", "This room already exists in the selected ward.");
             }
 
-            ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
-            return View(room);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
+                return View(room);
+            }
+
+            _context.Rooms.Add(room);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Room '{room.RoomNumber}' added successfully.";
+            return RedirectToAction(nameof(ManageRooms));
         }
+
 
         // GET: Edit Room
         [HttpGet]
@@ -215,9 +211,9 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
 
                 if (exists)
                 {
-                    ModelState.AddModelError("RoomNumber", "Another room with this number already exists in the ward.");
+                    TempData["ErrorMessage"] = ("RoomNumber", "Another room with this number already exists in the ward.");
                     ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
-                    return View(room);
+                    return View();
                 }
 
                 // Only update editable fields
@@ -287,18 +283,28 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddBed(Bed bed)
         {
+            // Check for duplicate bed number in the room
+            bool exists = await _context.Beds
+                .AnyAsync(b => b.BedNumber == bed.BedNumber
+                               && b.RoomId == bed.RoomId
+                               && !b.IsDeleted);
+
+            if (exists)
+            {
+                TempData["ErrorMessage"] = ("BedNumber", "This bed already exists in the selected room.");
+            }
+
             if (!ModelState.IsValid)
             {
-                // Ensure Bed starts unassigned
-                bed.Status = "Available";
-
-                _context.Beds.Add(bed);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' added successfully.";
-                return RedirectToAction("ManageRooms", "Wards");
+                return View();
             }
-            return View(bed);
+
+            bed.Status = "Available";
+            _context.Beds.Add(bed);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' added successfully.";
+            return RedirectToAction("ManageBeds");
         }
 
 

@@ -270,10 +270,17 @@ namespace Wellness_Wardens_Project.Controllers
         //loggs the user out
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(string? returnUrl = null)
         {
             await signInManager.SignOutAsync();
-            return RedirectToAction("Index", "Home");
+
+            if (!string.IsNullOrEmpty(returnUrl))
+            {
+                // Redirect to Login page with returnUrl query
+                return RedirectToAction("Login", "Account", new { ReturnUrl = returnUrl });
+            }
+
+            return RedirectToAction("Login", "Account");
         }
 
 

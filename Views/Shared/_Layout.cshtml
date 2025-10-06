@@ -399,38 +399,40 @@
                 // Build the URL they tried to access
                 const attemptedUrl = `/${controller}/${action}`;
 
-                Swal.fire({
-                    title: 'Access Restricted',
-                    html: `You don't have access to the <strong>${subsystemName}</strong> subsystem.<br><br>
-                          To access this area, you'll need to login with appropriate credentials.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Login with Different Account',
-                    cancelButtonText: 'Stay Logged In',
-                    confirmButtonColor: '#d9534f',
-                    cancelButtonColor: '#6c757d'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Create a form to submit the logout with returnUrl
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '/Account/Logout';
+        Swal.fire({
+            title: 'Access Restricted',
+            html: `You don't have access to the <strong>${subsystemName}</strong> subsystem.<br><br>
+                  To access this area, you'll need to login with appropriate credentials.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Login with Different Account',
+            cancelButtonText: 'Stay Logged In',
+            confirmButtonColor: '#d9534f',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form to submit the logout with returnUrl
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/Account/Logout';
 
-                        const returnUrlInput = document.createElement('input');
-                        returnUrlInput.type = 'hidden';
-                        returnUrlInput.name = 'returnUrl';
-                        returnUrlInput.value = attemptedUrl;
+                const returnUrlInput = document.createElement('input');
+                returnUrlInput.type = 'hidden';
+                returnUrlInput.name = 'returnUrl';
+                returnUrlInput.value = attemptedUrl;
 
-                        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]');
-                        if (antiForgeryToken) {
-                            form.appendChild(antiForgeryToken.cloneNode(true));
-                        }
+                // Anti-forgery token
+                const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (antiForgeryToken) {
+                    form.appendChild(antiForgeryToken.cloneNode(true));
+                }
 
-                        form.appendChild(returnUrlInput);
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                });
+                form.appendChild(returnUrlInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+
             });
         });
         });
