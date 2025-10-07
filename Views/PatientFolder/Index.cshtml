@@ -5,41 +5,107 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-5">
-    <h2 class="fw-bold text-primary mb-4">
+<style>
+    body {
+        background: linear-gradient(120deg, #f0f4f8 0%, #e0e7ff 100%);
+        min-height: 100vh;
+    }
+
+    .search-container {
+        position: relative;
+        margin-bottom: 1.5rem;
+        max-width: 500px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .search-input {
+        padding-left: 35px;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 20px;
+        border: 1px solid #dee2e6;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+        .search-input:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+        }
+
+    .patient-card {
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+
+        .patient-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+    .hidden {
+        display: none;
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="fw-bold text-primary mb-3">
         <i class="bi bi-folder-fill me-2"></i>My Patient Folders
     </h2>
-    <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary me-md-2">
-        <i class="bi bi-arrow-left me-1"></i> Dashboard
-    </a>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+
+        @if (Model.Any())
+        {
+            <span class="text-muted small">Total: <strong>@Model.Count()</strong> patients</span>
+        }
+    </div>
+
+    <!-- Compact Live Search Box -->
+    <div class="search-container">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="patientSearch" class="form-control search-input"
+               placeholder="Search patients by name, ID, or DOB...">
+    </div>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info text-center py-5">
-            <i class="bi bi-info-circle display-4 d-block mb-3"></i>
-            <h4>No Patients Assigned</h4>
+        <div class="alert alert-info text-center py-4">
+            <i class="bi bi-info-circle display-4 d-block mb-2"></i>
+            <h5>No Patients Assigned</h5>
             <p class="mb-0">You don't have any patients assigned to you yet.</p>
         </div>
     }
-
     else
     {
-        <p class="text-muted mb-4">You have <strong>@Model.Count()</strong> assigned patients.</p>
-
-        <div class="row g-3">
+        <div class="row g-3" id="patientGrid">
             @foreach (var patient in Model)
             {
-                <div class="col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
+                <div class="col-md-4 patient-item"
+                     data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
+                     data-id="@patient.IdentityNumber"
+                     data-dob="@patient.DateOfBirth.ToString("dd MMM yyyy").ToLower()">
+                    <div class="card shadow-sm border-0 h-100 patient-card">
                         <div class="card-body text-center">
-                            <i class="bi bi-person-fill display-4 text-success mb-3"></i>
-                            <h5>@patient.FirstName @patient.LastName</h5>
-                            <p class="text-muted small mb-1">ID: @patient.IdentityNumber</p>
-                            <p class="text-muted small">DOB: @patient.DateOfBirth.ToString("dd MMM yyyy")</p>
+                            <i class="bi bi-person-fill text-success mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="patient-name">@patient.FirstName @patient.LastName</h6>
+                            <p class="text-muted small mb-1 patient-id">ID: @patient.IdentityNumber</p>
+                            <p class="text-muted small patient-dob">DOB: @patient.DateOfBirth.ToString("dd MMM yyyy")</p>
 
                             <a asp-action="Details" asp-controller="PatientFolder"
                                asp-route-id="@patient.PatientId"
-                               class="btn btn-outline-primary w-100">
+                               class="btn btn-outline-primary btn-sm w-100">
                                 Open Folder
                             </a>
                         </div>
@@ -47,6 +113,55 @@
                 </div>
             }
         </div>
-    }
 
+        <div id="noResults" class="alert alert-warning text-center py-3 hidden">
+            <i class="bi bi-search me-2"></i>
+            <span>No patients match your search criteria.</span>
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('patientSearch');
+            const patientItems = document.querySelectorAll('.patient-item');
+            const noResults = document.getElementById('noResults');
+            const patientGrid = document.getElementById('patientGrid');
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                patientItems.forEach(item => {
+                    const name = item.getAttribute('data-name');
+                    const id = item.getAttribute('data-id');
+                    const dob = item.getAttribute('data-dob');
+
+                    const matches = name.includes(searchTerm) ||
+                                   id.includes(searchTerm) ||
+                                   dob.includes(searchTerm);
+
+                    if (matches || searchTerm === '') {
+                        item.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+
+                // Show/hide no results message
+                if (visibleCount === 0 && searchTerm !== '') {
+                    noResults.classList.remove('hidden');
+                    patientGrid.classList.add('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    patientGrid.classList.remove('hidden');
+                }
+            });
+
+            // Clear search on page refresh
+            searchInput.value = '';
+        });
+    </script>
+}

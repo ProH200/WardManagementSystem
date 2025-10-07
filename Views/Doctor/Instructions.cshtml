@@ -16,23 +16,40 @@
     }
 
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
             <h2 class="fw-bold text-primary">
-                <i class="bi bi-chat-dots-fill me-2"></i>     Instructions
+                <i class="bi bi-chat-dots-fill me-2"></i>Instructions
             </h2>
             <p class="text-muted mb-0">Manage instructions and shift notes for the nursing team.</p>
         </div>
         @if (User.IsInRole("Doctor"))
         {
-            <a asp-action="Doctors" asp-controller="Home" class="btn btn-outline-secondary me-md-2">
-                <i class="bi bi-arrow-left me-1"></i> Dashboard
-            </a>
-            <a asp-action="CreateInstruction" asp-controller="DoctorInstructions" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i>New Instruction
-            </a>
+            <div class="d-flex gap-2">
+                <a asp-action="Doctors" asp-controller="Home" class="btn btn-primary">
+                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                </a>
+                <a asp-action="CreateInstruction" asp-controller="DoctorInstructions" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle me-1"></i>New Instruction
+                </a>
+            </div>
         }
     </div>
+
+    <!-- Live Search -->
+    @if (Model.Any())
+    {
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" id="instructionSearch" class="form-control" placeholder="Search by title, patient, type, or priority...">
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Instructions List -->
     <div class="card shadow-sm border-0">
@@ -66,10 +83,15 @@
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="instructionsTableBody">
                             @foreach (var instruction in Model)
                             {
-                                <tr>
+                                <tr class="instruction-row"
+                                    data-title="@instruction.Title.ToLower()"
+                                    data-patient="@(instruction.Patient != null ? $"{instruction.Patient.FirstName} {instruction.Patient.LastName}".ToLower() : "general")"
+                                    data-type="@instruction.InstructionType.ToLower()"
+                                    data-priority="@instruction.Priority.ToLower()"
+                                    data-status="@(instruction.IsCompleted ? "completed" : "pending")">
                                     <td>
                                         <strong>@instruction.Title</strong>
                                         @if (instruction.ExpiryDate.HasValue && instruction.ExpiryDate < DateTime.Now)
@@ -136,6 +158,12 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div id="noResults" class="text-center py-4 d-none">
+                    <i class="bi bi-search display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">No Instructions Found</h5>
+                    <p class="text-muted">No instructions match your search criteria.</p>
+                </div>
             }
         </div>
     </div>
@@ -164,3 +192,59 @@
     </script>
 }
 
+@section Scripts {
+    <style>
+        body {
+            background: linear-gradient(120deg, #f0f4f8 0%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
+    </style>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Live Search Functionality
+            const searchInput = document.getElementById('instructionSearch');
+            const instructionRows = document.querySelectorAll('.instruction-row');
+            const noResults = document.getElementById('noResults');
+            const tableBody = document.getElementById('instructionsTableBody');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    let visibleCount = 0;
+
+                    instructionRows.forEach(row => {
+                        const title = row.getAttribute('data-title');
+                        const patient = row.getAttribute('data-patient');
+                        const type = row.getAttribute('data-type');
+                        const priority = row.getAttribute('data-priority');
+                        const status = row.getAttribute('data-status');
+
+                        const matches = title.includes(searchTerm) ||
+                                       patient.includes(searchTerm) ||
+                                       type.includes(searchTerm) ||
+                                       priority.includes(searchTerm) ||
+                                       status.includes(searchTerm);
+
+                        if (matches || searchTerm === '') {
+                            row.classList.remove('d-none');
+                            visibleCount++;
+                        } else {
+                            row.classList.add('d-none');
+                        }
+                    });
+
+                    // Show/hide no results message
+                    if (visibleCount === 0 && searchTerm !== '') {
+                        noResults.classList.remove('d-none');
+                        tableBody.classList.add('d-none');
+                    } else {
+                        noResults.classList.add('d-none');
+                        tableBody.classList.remove('d-none');
+                    }
+                });
+            }
+        });
+    </script>
+}
