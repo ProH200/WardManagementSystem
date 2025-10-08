@@ -35,9 +35,9 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="Title" class="form-label fw-bold">Visit Title</label>
+                                    <label for="Title" class="form-label fw-bold">Patint Name</label>
                                     <input type="text" class="form-control" id="Title" name="Title"
-                                           asp-for="Title" placeholder="e.g., Patient Consultation, Ward Round" required>
+                                           asp-for="Title" placeholder="Enter name for a reminder ..." required>
                                     <span asp-validation-for="Title" class="text-danger small"></span>
                                 </div>
                             </div>
@@ -112,6 +112,11 @@
 
 @section Styles {
     <style>
+        body {
+            background: linear-gradient(120deg, #f0f4f8 0%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
+
         .floating {
             animation: floating 3s ease-in-out infinite;
         }
