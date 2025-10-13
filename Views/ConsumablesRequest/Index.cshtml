@@ -81,7 +81,6 @@
                     <span class="badge bg-light text-dark">@Model.Count() total</span>
                 </div>
                 <div class="card-body">
-                    <!-- Alert Messages -->
                     @if (TempData["SuccessMessage"] != null)
                     {
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -126,7 +125,7 @@
                                             <td><strong>@request.ConsumableName</strong></td>
                                             <td><span class="badge bg-secondary">@request.QuantityRequested</span></td>
                                             <td>@request.WardName</td>
-                                            <td>@request.RequestedDate.ToString("MMM dd, yyyy")</td> <!-- Requested Date column -->
+                                            <td>@request.RequestedDate.ToString("MMM dd, yyyy")</td>
                                             <td>@request.RequestedBy</td>
                                             <td>
                                                 @if (request.IsDelivered)

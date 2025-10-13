@@ -169,7 +169,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
                 Status = cr.IsDelivered ? "Delivered" : "Pending"
             }).ToList();
 
-            // Calculate statistics - USE SEPARATE COUNT QUERIES
+            // Calculate statistics
             var lowStockCount = await _context.Consumables
                 .CountAsync(c => c.QuantityAvailable < 20 && !c.IsDeleted);
 
@@ -182,7 +182,6 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             var totalConsumables = await _context.Consumables
                 .CountAsync(c => !c.IsDeleted);
 
-            // FIX: Use separate count query for pending requests
             var pendingRequestsCount = await _context.ConsumablesRequests
                 .CountAsync(cr => !cr.IsDelivered && !cr.IsDeleted);
 
