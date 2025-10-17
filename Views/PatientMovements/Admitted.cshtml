@@ -119,7 +119,7 @@
                                             {
                                                 foreach (var room in ward.Rooms)
                                                 {
-                                                    <option data-ward="@ward.WardId" value="@room.RoomId">@room.RoomNumber (@ward.Name)</option>
+                                                    <option data-ward="@ward.WardId" value="@room.RoomId">@room.RoomNumber</option>
                                                 }
                                             }
                                         </select>
@@ -135,7 +135,7 @@
                                                 {
                                                     foreach (var bed in room.Beds)
                                                     {
-                                                        <option data-room="@room.RoomId" value="@bed.BedId">@bed.BedNumber (@room.RoomNumber / @ward.Name)</option>
+                                                        <option data-room="@room.RoomId" value="@bed.BedId">@bed.BedNumber</option>
                                                     }
                                                 }
                                             }

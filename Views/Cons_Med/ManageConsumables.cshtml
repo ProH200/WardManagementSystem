@@ -104,33 +104,57 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <form asp-action="AddConsumable" asp-controller="Cons_Med" method="post" novalidate>
+                <form id="addConsumableForm" asp-action="AddConsumable" asp-controller="Cons_Med" method="post" class="needs-validation" novalidate>
                     @Html.AntiForgeryToken()
 
-                    <div class="mb-3">
+                    <!-- Name Field -->
+                    <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Name:</label>
-                        <input type="text" name="Name" id="newConsumableName" class="form-control" placeholder="Enter consumable name" />
+                        <input type="text" name="Name" id="newConsumableName" class="form-control"
+                               placeholder="Enter consumable name"
+                               pattern="^[A-Za-z0-9\s\-&.,()]+$"
+                               minlength="2"
+                               maxlength="100"
+                               required />
+                        <div class="invalid-feedback">
+                            Please enter a valid consumable name.
+                        </div>
                     </div>
 
-                    <div class="mb-3">
+                    <!-- Quantity Field -->
+                    <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Quantity:</label>
-                        <input type="number" name="QuantityAvailable" id="newConsumableQuantity" class="form-control" min="0" value="0" />
+                        <input type="number" name="QuantityAvailable" id="newConsumableQuantity" class="form-control"
+                               min="0"
+                               max="1000000"
+                               step="1"
+                               required />
+                        <div class="invalid-feedback">
+                            Please enter a valid quantity.
+                        </div>
                     </div>
 
-                    <div class="mb-3">
+                    <!-- Ward Field -->
+                    <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Ward:</label>
-                        <select name="WardId" class="form-select" id="newConsumableWard">
+                        <select name="WardId" class="form-select" id="newConsumableWard" required>
                             <option value="">-- Select Ward --</option>
                             @foreach (var ward in ViewBag.Wards)
                             {
                                 <option value="@ward.WardId">@ward.Name</option>
                             }
                         </select>
+                        <div class="invalid-feedback">
+                            Please select a ward.
+                        </div>
                     </div>
 
                     <div class="text-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </button>
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check2-circle me-1"></i>Add Consumable
+                            <i class="bi bi-check2-circle me-1"></i> Add Consumable
                         </button>
                     </div>
                 </form>
@@ -260,5 +284,137 @@
                 }
         }
     </script>
+    <script>
+                // Add Consumable Modal Validation
+        (function () {
+            'use strict';
 
+            // Initialize when modal is shown
+            const addConsumableModal = document.getElementById('addConsumableModal');
+            if (addConsumableModal) {
+                addConsumableModal.addEventListener('show.bs.modal', function () {
+                    // Add real-time validation for all fields
+                    const nameInput = document.getElementById('newConsumableName');
+                    const quantityInput = document.getElementById('newConsumableQuantity');
+                    const wardSelect = document.getElementById('newConsumableWard');
+
+                    if (nameInput) {
+                        nameInput.addEventListener('input', validateConsumableName);
+                        nameInput.addEventListener('blur', validateConsumableName);
+                    }
+
+                    if (quantityInput) {
+                        quantityInput.addEventListener('input', validateQuantity);
+                        quantityInput.addEventListener('blur', validateQuantity);
+                    }
+
+                    if (wardSelect) {
+                        wardSelect.addEventListener('change', validateWard);
+                        wardSelect.addEventListener('blur', validateWard);
+                    }
+                });
+
+                // Clear validation when modal is hidden
+                addConsumableModal.addEventListener('hidden.bs.modal', function () {
+                    const form = document.getElementById('addConsumableForm');
+                    if (form) {
+                        form.classList.remove('was-validated');
+                        form.reset();
+                    }
+
+                    // Remove event listeners and clear validation states
+                    const inputs = form.querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        input.removeEventListener('input', validateField);
+                        input.removeEventListener('blur', validateField);
+                        input.classList.remove('is-valid', 'is-invalid');
+                    });
+                });
+            }
+
+            // Consumable Name validation
+            function validateConsumableName() {
+                const input = this;
+                const value = input.value.trim();
+                const pattern = /^[A-Za-z0-9\s\-&.,()]+$/;
+
+                if (value.length < 2) {
+                    input.setCustomValidity('Consumable name must be at least 2 characters long.');
+                } else if (value.length > 100) {
+                    input.setCustomValidity('Consumable name cannot exceed 100 characters.');
+                } else if (!pattern.test(value)) {
+                    input.setCustomValidity('Consumable name can only contain letters, numbers, spaces, hyphens, &, ., ,, ().');
+                } else {
+                    input.setCustomValidity('');
+                }
+                updateValidationState(input);
+            }
+
+            // Quantity validation
+            function validateQuantity() {
+                const input = this;
+                const value = parseInt(input.value);
+
+                if (isNaN(value) || value < 0) {
+                    input.setCustomValidity('Quantity must be a number greater than or equal to 0.');
+                } else if (value > 1000000) {
+                    input.setCustomValidity('Quantity cannot exceed 1,000,000.');
+                } else {
+                    input.setCustomValidity('');
+                }
+                updateValidationState(input);
+            }
+
+            // Ward validation
+            function validateWard() {
+                const input = this;
+                const value = input.value;
+
+                if (value === "" || value === null) {
+                    input.setCustomValidity('Please select a ward.');
+                } else {
+                    input.setCustomValidity('');
+                }
+                updateValidationState(input);
+            }
+
+            // Update visual validation state
+            function updateValidationState(input) {
+                const isValid = input.checkValidity();
+
+                if (input.type === 'select-one' && input.value === "") {
+                    input.classList.remove('is-valid', 'is-invalid');
+                } else if (input.value === "" && !input.required) {
+                    input.classList.remove('is-valid', 'is-invalid');
+                } else if (isValid) {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                } else {
+                    input.classList.remove('is-valid');
+                    input.classList.add('is-invalid');
+                }
+            }
+
+            // Add form submission validation
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        // Trigger validation for all fields on submit
+                        const nameInput = document.getElementById('newConsumableName');
+                        const quantityInput = document.getElementById('newConsumableQuantity');
+                        const wardSelect = document.getElementById('newConsumableWard');
+
+                        if (nameInput) validateConsumableName.call(nameInput);
+                        if (quantityInput) validateQuantity.call(quantityInput);
+                        if (wardSelect) validateWard.call(wardSelect);
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
 }

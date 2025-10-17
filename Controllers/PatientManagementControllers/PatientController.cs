@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wellness_Wardens_Project.Data;
 using Wellness_Wardens_Project.Models.AdministrationSubsystem;
+using Wellness_Wardens_Project.Models.PatientCareSubsystem;
 using Wellness_Wardens_Project.Models.PatientManagementSubsystem;
 using Wellness_Wardens_Project.ViewModels;
 using Wellness_Wardens_Project.ViewModels.PatientManagementSubsystem;
@@ -80,7 +81,22 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddPatient(Patient patient)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Allergies");
+            ModelState.Remove("Discharges");
+            ModelState.Remove("Treatments");
+            ModelState.Remove("VitalSigns");
+            ModelState.Remove("DoctorVisits");
+            ModelState.Remove("Prescriptions");
+            ModelState.Remove("MedicalConditions");
+            ModelState.Remove("PatientAdmissions");
+
+            Console.WriteLine($"ModelState is valid: {ModelState.IsValid}");
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                Console.WriteLine($"Validation error: {error.ErrorMessage}");
+            }
+
+            if (ModelState.IsValid)
             {
                 // ✅ Check if patient already exists (using IdentityNumber as unique identifier)
                 var existingPatient = await _context.Patients
@@ -126,6 +142,16 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPatient(Patient patient)
         {
+            ModelState.Remove("Allergies");
+            ModelState.Remove("Discharges");
+            ModelState.Remove("Treatments");
+            ModelState.Remove("VitalSigns");
+            ModelState.Remove("DoctorVisits");
+            ModelState.Remove("Prescriptions");
+            ModelState.Remove("MedicalConditions");
+            ModelState.Remove("PatientAdmissions");
+
+
             if (!ModelState.IsValid)
             {
                 ViewBag.Genders = new List<string> { "Male", "Female", "Other" };

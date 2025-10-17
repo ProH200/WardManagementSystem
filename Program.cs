@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Wellness_Wardens_Project.Data;
 using Wellness_Wardens_Project.Models.AdministrationSubsystem;
+using Wellness_Wardens_Project.Models.PatientManagementSubsystem;
 using Wellness_Wardens_Project.Services;
 
 namespace Wellness_Wardens_Project
@@ -29,9 +30,6 @@ namespace Wellness_Wardens_Project
 
             var app = builder.Build();
 
-            //Seed database
-            await SeedServices.SeedDatabase(app.Services);
-
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
@@ -50,6 +48,9 @@ namespace Wellness_Wardens_Project
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            //Seed database
+            await SeedServices.SeedDatabase(app.Services);
 
             app.Run();
         }

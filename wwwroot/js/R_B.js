@@ -1,24 +1,24 @@
 ﻿// Ensure "R" prefix and validate
-document.addEventListener('DOMContentLoaded', function () {
-    const roomInput = document.getElementById("newRoomNumber");
-    const form = roomInput.closest("form");
-    const errorMessage = document.getElementById("addRoomError");
-
-    roomInput.addEventListener("input", function () {
-        if (!this.value.startsWith("R")) {
-            this.value = "R" + this.value.replace(/^R*/, "");
-        }
-    });
-
-    form.addEventListener("submit", function (e) {
-        if (roomInput.value.trim() === "R") {
-            e.preventDefault();
-            errorMessage.classList.remove("d-none");
+(function () {
+    'use strict';
+    const form = document.getElementById('addRoomForm');
+    form.addEventListener('submit', function (event) {
+        const suffix = document.getElementById('RoomNumberSuffix');
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
         } else {
-            errorMessage.classList.add("d-none");
+            // Create hidden full value like "R01"
+            const fullRoomNumber = "R" + suffix.value;
+            const hiddenInput = document.createElement("input");
+            hiddenInput.type = "hidden";
+            hiddenInput.name = "RoomNumber";
+            hiddenInput.value = fullRoomNumber;
+            form.appendChild(hiddenInput);
         }
-    });
-});
+        form.classList.add('was-validated');
+    }, false);
+})();
 
 // Edit Room validation
 document.addEventListener('DOMContentLoaded', function () {

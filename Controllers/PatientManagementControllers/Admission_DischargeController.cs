@@ -31,14 +31,16 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [Authorize(Roles = "Ward Admin, Admin")]
         public IActionResult Admissions()
         {
-            // Base query: all admissions
+            TempData["ReturnPage"] = "Admissions";
+            
+            // Base query: all active admissions (not discharged)
             var admissionsQuery = _context.PatientAdmissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed)
                     .ThenInclude(b => b.Room)
                         .ThenInclude(r => r.Ward)
                 .Include(a => a.AssignedEmployee)
-                .Where(a => !a.IsDeleted);
+                .Where(a => !a.IsDeleted && !a.Discharges.Any()); // Added discharge filter
 
             List<PatientAdmission> admissions;
 
@@ -49,7 +51,7 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                     .Where(p => !p.IsDeleted)
                     .ToList();
 
-                // Left join patients with admissions
+                // Left join patients with active admissions only
                 admissions = allPatients
                     .GroupJoin(admissionsQuery,
                                p => p.PatientId,
@@ -63,19 +65,17 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                                    AssignedEmployee = null,
                                    Discharges = null
                                })
+                    .Where(a => a.Discharges == null) // Ensure we don't include discharged patients
                     .ToList();
-
             }
             else
             {
-                // Ward Admin sees only existing admissions
+                // Ward Admin sees only existing active admissions
                 admissions = admissionsQuery.ToList();
             }
 
             return View(admissions);
         }
-
-
 
         [HttpGet]
         [Authorize(Roles = "Ward Admin, Admin")]
@@ -246,7 +246,13 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [Authorize(Roles = "Ward Admin")]
         public async Task<IActionResult> AdmitPatient(PatientAdmissionViewModel model)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Beds");
+            ModelState.Remove("Rooms");
+            ModelState.Remove("Wards");
+            ModelState.Remove("PatientName");
+            ModelState.Remove("AssignedEmployeeId");
+            
+            if (ModelState.IsValid)
             {
 
                 var admin = await userManager.GetUserAsync(User);
@@ -388,7 +394,19 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [Authorize(Roles = "Ward Admin")]
         public async Task<IActionResult> EditAdmission(PatientAdmissionViewModel model)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Beds");
+            ModelState.Remove("Rooms");
+            ModelState.Remove("Wards");
+            ModelState.Remove("PatientName");
+
+            var isValid = ModelState.IsValid;
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+
+            Console.WriteLine($"ModelState is valid: {isValid}");
+            Console.WriteLine($"Errors: {string.Join(", ", errors)}");
+
+
+            if (ModelState.IsValid)
             {
                 var admission = await _context.PatientAdmissions.Include(a => a.Bed)
                 .FirstOrDefaultAsync(a => a.AdmissionId == model.AdmissionId);
@@ -429,6 +447,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         // GET: /PatientManagement/Discharges
         public async Task<IActionResult> Discharges()
         {
+            TempData["ReturnPage"] = "Discharges";
+
             var dischargedPatients = await _context.PatientAdmissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed)

@@ -25,7 +25,7 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 .Include(a => a.Bed)
                     .ThenInclude(b => b.Room)
                         .ThenInclude(r => r.Ward)
-                .Where(a => a.AdmissionDate != null && !a.IsDeleted)
+                .Where(a => a.AdmissionDate != null && !a.IsDeleted && !a.Discharges.Any())
                 .ToListAsync();
 
             var wards = await _context.Wards

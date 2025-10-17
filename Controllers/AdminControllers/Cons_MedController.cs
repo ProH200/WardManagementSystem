@@ -60,7 +60,11 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddConsumable(Consumable consumable)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Ward");
+            ModelState.Remove("Employee");
+            ModelState.Remove("ConsumablesRequest");
+
+            if (ModelState.IsValid)
             {
                 var user = await _userManager.GetUserAsync(User);
 
@@ -80,7 +84,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 return RedirectToAction("ManageConsumables");
             }
 
-            return View(consumable);
+            return RedirectToAction("ManageConsumables", consumable);
         }
 
         // GET: Edit Consumable
@@ -108,7 +112,11 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditConsumable(Consumable consumable)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Ward");
+            ModelState.Remove("Employee");
+            ModelState.Remove("ConsumablesRequest");
+
+            if (ModelState.IsValid)
             {
                 var employee = await _userManager.GetUserAsync(User);
 
@@ -182,7 +190,9 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMedication(Medication medication)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Employee");
+
+            if (ModelState.IsValid)
             {
                 var employee = await _userManager.GetUserAsync(User);
 
@@ -200,7 +210,8 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 return RedirectToAction("ManageMedication");
             }
 
-            return View(medication);
+            TempData["ErrorMessage"] = "Failed to add medication. Please check the form.";
+            return RedirectToAction("ManageMedication");
         }
 
         // GET: Edit Medication
@@ -219,7 +230,9 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMedication(Medication medication)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Employee");
+
+            if (ModelState.IsValid)
             {
                 var employee = await _userManager.GetUserAsync(User);
                 if (employee == null)

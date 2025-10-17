@@ -209,7 +209,7 @@
                 </button>
 
                 <!-- Center hospital name -->
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand" id="homeLink" href="#">
                     <i class="fas fa-heartbeat me-2"></i>Wellness Wardens Hospital
                 </a>
 
@@ -282,11 +282,25 @@
                     <li class="nav-item">
                         @if (hasAccess)
                         {
-                            <a class="nav-link @(isActive ? "active" : "")"
-                               asp-controller="@subsystem.Controller"
-                               asp-action="@subsystem.Action">
-                                <i class="fas @subsystem.Icon me-2"></i>@subsystem.Name
-                            </a>
+                            if (subsystem.Controller == "Home" && subsystem.Action == "Index" && SignInManager.IsSignedIn(User))
+                            {
+                                <!-- Home link with logout warning for logged-in users -->
+                                <a class="nav-link @(isActive ? "active" : "") home-logout-link"
+                                   href="#"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#homeLogoutModal">
+                                    <i class="fas @subsystem.Icon me-2"></i>@subsystem.Name
+                                </a>
+                            }
+                            else
+                            {
+                                <!-- Regular subsystem link -->
+                                <a class="nav-link @(isActive ? "active" : "")"
+                                   asp-controller="@subsystem.Controller"
+                                   asp-action="@subsystem.Action">
+                                    <i class="fas @subsystem.Icon me-2"></i>@subsystem.Name
+                                </a>
+                            }
                         }
                         else
                         {
@@ -320,6 +334,44 @@
         </main>
     </div>
 
+    <!-- Home Logout Warning Modal -->
+    <div class="modal fade" id="homeLogoutModal" tabindex="-1" aria-labelledby="homeLogoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="homeLogoutModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Logout Required
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-sign-out-alt text-warning" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-warning mb-3">Going to Home Page</h5>
+                    <p class="mb-3">
+                        You are currently logged in as <strong>@currentUser?.Title @currentUser?.LastName</strong>.
+                        To access the home page, you need to log out first.
+                    </p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You will be redirected to the home page after logging out.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <input type="hidden" name="logoutType" value="home" />
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout & Go to Home
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- The question mark for assistance -->
     <div class="help-widget">
@@ -367,6 +419,27 @@
             helpMenu.classList.add('hidden');
           }
         });
+
+        // Home link click handler for navbar brand
+        document.getElementById('homeLink').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            @if (SignInManager.IsSignedIn(User))
+            {
+                    <text>
+                    // Show the logout warning modal for logged-in users
+                    const homeModal = new bootstrap.Modal(document.getElementById('homeLogoutModal'));
+                    homeModal.show();
+                    </text>
+            }
+            else
+            {
+                    <text>
+                    // Redirect directly to home for non-logged-in users
+                    window.location.href = '/Home/Index';
+                    </text>
+            }
+        });
     </script>
 
     <!-- Toast Notification Script -->
@@ -386,57 +459,56 @@
                 });
             }
 
-            // Restricted subsystem click handler - FIXED VERSION
+            // Restricted subsystem click handler
+            document.querySelectorAll('.subsystem-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
 
-        document.querySelectorAll('.subsystem-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
+                    const subsystemName = this.getAttribute('data-name');
+                    const controller = this.getAttribute('data-controller');
+                    const action = this.getAttribute('data-action');
 
-                const subsystemName = this.getAttribute('data-name');
-                const controller = this.getAttribute('data-controller');
-                const action = this.getAttribute('data-action');
+                    // Build the URL they tried to access
+                    const attemptedUrl = `/${controller}/${action}`;
 
-                // Build the URL they tried to access
-                const attemptedUrl = `/${controller}/${action}`;
+                    Swal.fire({
+                        title: 'Access Restricted',
+                        html: `You don't have access to the <strong>${subsystemName}</strong> subsystem.<br><br>
+                              To access this area, you'll need to login with appropriate credentials.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Login with Different Account',
+                        cancelButtonText: 'Stay Logged In',
+                        confirmButtonColor: '#d9534f',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Create a form to submit the logout with returnUrl
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '/Account/Logout';
 
-        Swal.fire({
-            title: 'Access Restricted',
-            html: `You don't have access to the <strong>${subsystemName}</strong> subsystem.<br><br>
-                  To access this area, you'll need to login with appropriate credentials.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Login with Different Account',
-            cancelButtonText: 'Stay Logged In',
-            confirmButtonColor: '#d9534f',
-            cancelButtonColor: '#6c757d'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create a form to submit the logout with returnUrl
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/Account/Logout';
+                            const returnUrlInput = document.createElement('input');
+                            returnUrlInput.type = 'hidden';
+                            returnUrlInput.name = 'returnUrl';
+                            returnUrlInput.value = attemptedUrl;
 
-                const returnUrlInput = document.createElement('input');
-                returnUrlInput.type = 'hidden';
-                returnUrlInput.name = 'returnUrl';
-                returnUrlInput.value = attemptedUrl;
+                            // Anti-forgery token
+                            const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]');
+                            if (antiForgeryToken) {
+                                form.appendChild(antiForgeryToken.cloneNode(true));
+                            }
 
-                // Anti-forgery token
-                const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]');
-                if (antiForgeryToken) {
-                    form.appendChild(antiForgeryToken.cloneNode(true));
-                }
-
-                form.appendChild(returnUrlInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-
+                            form.appendChild(returnUrlInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                });
             });
         });
-        });
     </script>
+
     <!-- Toast Script in Layout -->
     <script>
         function showToast(type, message) {

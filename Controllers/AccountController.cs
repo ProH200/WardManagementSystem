@@ -267,16 +267,20 @@ namespace Wellness_Wardens_Project.Controllers
 
 
 
-        //loggs the user out
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout(string? returnUrl = null)
+        public async Task<IActionResult> Logout(string? returnUrl = null, string? logoutType = null)
         {
             await signInManager.SignOutAsync();
 
+            if (logoutType == "home")
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            // For regular logouts, maintain current behavior
             if (!string.IsNullOrEmpty(returnUrl))
             {
-                // Redirect to Login page with returnUrl query
                 return RedirectToAction("Login", "Account", new { ReturnUrl = returnUrl });
             }
 
@@ -315,7 +319,7 @@ namespace Wellness_Wardens_Project.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditProfile(ProfileViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
                 // Collect all validation errors
                 var errors = ModelState.Values

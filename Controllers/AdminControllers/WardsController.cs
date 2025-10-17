@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using Wellness_Wardens_Project.Data;
 using Wellness_Wardens_Project.Models.AdministrationSubsystem;
+using Wellness_Wardens_Project.Models.ConsumablesSubsystem;
+using Wellness_Wardens_Project.ViewModels.AdminSubsystem;
 
 namespace Wellness_Wardens_Project.Controllers.AdminControllers
 {
@@ -41,28 +43,52 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddWard(Ward ward)
         {
-            // Check for duplicate ward name first
-            bool exists = await _context.Wards
-                .AnyAsync(w => w.Name == ward.Name && !w.IsDeleted);
-
-            if (exists)
+            try
             {
-                TempData["ErrorMessage"] = ("Name", "A ward with this name already exists.");
-            }
+                ModelState.Remove("Rooms");
+                ModelState.Remove("Consumables");
+                ModelState.Remove("ConsumableRequests");
 
-            if (!ModelState.IsValid)
+                bool exists = await _context.Wards
+                    .AnyAsync(w => w.Name.ToLower() == ward.Name.Trim().ToLower() && !w.IsDeleted);
+
+                if (exists)
+                {
+                    TempData["ErrorMessage"] = $"A ward with the name '{ward.Name}' already exists.";
+                    return RedirectToAction(nameof(ManageWards));
+                }
+
+                if (ModelState.IsValid)
+                {
+                    ward.Name = ward.Name.Trim();
+                    ward.Description = string.IsNullOrWhiteSpace(ward.Description) ? null : ward.Description.Trim();
+                    ward.IsDeleted = false;
+
+                    _context.Wards.Add(ward);
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = $"Ward '{ward.Name}' added successfully.";
+                    return RedirectToAction(nameof(ManageWards));
+                }
+
+                var errorMessages = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage);
+
+                TempData["ErrorMessage"] = $"Please fix validation errors: {string.Join(", ", errorMessages)}";
+                return RedirectToAction(nameof(ManageWards));
+            }
+            catch (DbUpdateException dbEx)
             {
-                return View(ward);
+                TempData["ErrorMessage"] = "Database error: Please check if the Description column allows NULL values.";
+                return RedirectToAction(nameof(ManageWards));
             }
-
-            // Add new ward
-            _context.Wards.Add(ward);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = $"Ward '{ward.Name}' added successfully.";
-            return RedirectToAction(nameof(ManageWards));
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"An unexpected error occurred: {ex.Message}";
+                return RedirectToAction(nameof(ManageWards));
+            }
         }
-
         //GET - Update Ward
         [HttpGet]
         public async Task<IActionResult> EditWard(int id)
@@ -80,7 +106,10 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditWard(Ward ward)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Consumables");
+            ModelState.Remove("ConsumableRequests");
+
+            if (ModelState.IsValid)
             {
                 bool exists = await _context.Wards
                     .AnyAsync(w => w.Name == ward.Name && w.WardId != ward.WardId && !w.IsDeleted);
@@ -98,7 +127,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 return RedirectToAction(nameof(ManageWards));
             }
 
-            return View(ward);
+            return RedirectToAction("ManageWards", ward);
         }
 
 
@@ -125,10 +154,10 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         public async Task<IActionResult> ManageRooms()
         {
             var rooms = await _context.Rooms
-                        .Where(r => !r.IsDeleted)
-                        .Include(r => r.Ward)
-                        .Include(r => r.Beds)
-                        .ToListAsync();
+                .Where(r => !r.IsDeleted)
+                .Include(r => r.Ward)
+                .Include(r => r.Beds.Where(b => !b.IsDeleted))
+                .ToListAsync();
 
             var wards = _context.Wards.ToList();
             ViewBag.Wards = wards;
@@ -152,6 +181,8 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddRoom(Room room)
         {
+            ModelState.Remove("Ward");
+
             // Check for duplicate room in the same ward
             bool exists = await _context.Rooms
                 .AnyAsync(r => r.RoomNumber == room.RoomNumber
@@ -160,20 +191,21 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
 
             if (exists)
             {
-                TempData["ErrorMessage"] = ("RoomNumber", "This room already exists in the selected ward.");
+                TempData["ErrorMessage"] = ("This room already exists in the selected ward.");
             }
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
-                return View(room);
+                _context.Rooms.Add(room);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Room '{room.RoomNumber}' added successfully.";
+                return RedirectToAction(nameof(ManageRooms));
             }
 
-            _context.Rooms.Add(room);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = $"Room '{room.RoomNumber}' added successfully.";
-            return RedirectToAction(nameof(ManageRooms));
+            TempData["ErrorMessage"] = ("Error adding the room.");
+            ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
+            return RedirectToAction("ManageRooms"); 
         }
 
 
@@ -194,7 +226,9 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditRoom(Room room)
         {
-            if (!ModelState.IsValid)
+            ModelState.Remove("Ward");
+
+            if (ModelState.IsValid)
             {
                 var existingRoom = await _context.Rooms
                  .FirstOrDefaultAsync(r => r.RoomId == room.RoomId);
@@ -226,7 +260,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 return RedirectToAction(nameof(ManageRooms));
             }
             ViewBag.Wards = await _context.Wards.Where(w => !w.IsDeleted).ToListAsync();
-            return View(room);
+            return RedirectToAction("ManageRooms", room);
 
             
         }
@@ -278,77 +312,85 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
             return View(bed);
         }
 
-        // POST: Bed/AddBed
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddBed(Bed bed)
         {
-            // Check for duplicate bed number in the room
-            bool exists = await _context.Beds
-                .AnyAsync(b => b.BedNumber == bed.BedNumber
-                               && b.RoomId == bed.RoomId
-                               && !b.IsDeleted);
+            ModelState.Remove("PatientAdmissions");
+            ModelState.Remove("PatientMovements");
+            ModelState.Remove("Room");
 
-            if (exists)
+            if (ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = ("BedNumber", "This bed already exists in the selected room.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View();
-            }
-
-            bed.Status = "Available";
-            _context.Beds.Add(bed);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' added successfully.";
-            return RedirectToAction("ManageBeds");
-        }
-
-
-        //POST - Edit Bed
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditBed(int id, Bed updatedBed)
-        {
-            if (id != updatedBed.BedId)
-                return NotFound();
-
-            if (!ModelState.IsValid)
-            {
-                var bed = await _context.Beds.FindAsync(id);
-                if (bed == null || bed.IsDeleted)
-                    return NotFound();
-
-                // Duplicate check (excluding itself)
-                var exists = await _context.Beds
-                    .AnyAsync(b => b.BedNumber == updatedBed.BedNumber
-                                   && b.RoomId == updatedBed.RoomId
-                                   && b.BedId != id
+                bool exists = await _context.Beds
+                    .AnyAsync(b => b.BedNumber == bed.BedNumber
+                                   && b.RoomId == bed.RoomId
                                    && !b.IsDeleted);
 
                 if (exists)
                 {
-                    ModelState.AddModelError("BedNumber", "This bed number already exists in the selected room.");
-                    return View(updatedBed);
+                    TempData["ErrorMessage"] = $"Bed '{bed.BedNumber}' already exists in this room.";
+                    return RedirectToAction("ManageRooms");
                 }
 
-                //Update only allowed fields
-                bed.BedNumber = updatedBed.BedNumber;
-                bed.RoomId = updatedBed.RoomId;
+                bed.Status = "Available";
+                bed.IsDeleted = false;
 
-                _context.Beds.Update(bed);
+                _context.Beds.Add(bed);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' updated successfully.";
-                return RedirectToAction(nameof(ManageBeds));
+                TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' added successfully.";
+                return RedirectToAction("ManageRooms");
             }
-            
-            return View(updatedBed);
+            else
+            {
+                TempData["ErrorMessage"] = "Please fix validation errors.";
+            }
 
+            return RedirectToAction("ManageRooms");
         }
+
+        ////POST - Edit Bed
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> EditBed(int id, Bed updatedBed)
+        //{
+        //    if (id != updatedBed.BedId)
+        //        return NotFound();
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        var bed = await _context.Beds.FindAsync(id);
+        //        if (bed == null || bed.IsDeleted)
+        //            return NotFound();
+
+        //        // Duplicate check (excluding itself)
+        //        var exists = await _context.Beds
+        //            .AnyAsync(b => b.BedNumber == updatedBed.BedNumber
+        //                           && b.RoomId == updatedBed.RoomId
+        //                           && b.BedId != id
+        //                           && !b.IsDeleted);
+
+        //        if (exists)
+        //        {
+        //            ModelState.AddModelError("BedNumber", "This bed number already exists in the selected room.");
+        //            return View(updatedBed);
+        //        }
+
+        //        //Update only allowed fields
+        //        bed.BedNumber = updatedBed.BedNumber;
+        //        bed.RoomId = updatedBed.RoomId;
+
+        //        _context.Beds.Update(bed);
+        //        await _context.SaveChangesAsync();
+
+        //        TempData["SuccessMessage"] = $"Bed '{bed.BedNumber}' updated successfully.";
+        //        return RedirectToAction(nameof(ManageBeds));
+        //    }
+
+        //    return View(updatedBed);
+
+        //}
 
 
         // POST : Soft Delete

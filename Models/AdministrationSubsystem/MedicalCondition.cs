@@ -13,7 +13,7 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
         [StringLength(100)]
         public string Name { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public bool IsDeleted { get; set; } = false;
 

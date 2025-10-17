@@ -39,7 +39,9 @@ public class MedicalConditionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddCondition(MedicalCondition medicalCondition)
     {
-        if (!ModelState.IsValid)
+        ModelState.Remove("Patient");
+
+        if (ModelState.IsValid)
         {
             // Check for duplicate condition name
             bool exists = await _context.MedicalConditions
@@ -84,7 +86,8 @@ public class MedicalConditionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditCondition(MedicalCondition medicalCondition)
     {
-        if (!ModelState.IsValid)
+        ModelState.Remove("Patient");
+       
         {
             bool exists = await _context.MedicalConditions
                 .AnyAsync(mc => mc.Name == medicalCondition.Name &&
@@ -107,7 +110,8 @@ public class MedicalConditionsController : Controller
             return RedirectToAction(nameof(ManageConditions));
         }
 
-        return View(medicalCondition);
+        TempData["ErrorMessage"] = $"Failed to Update '{medicalCondition.Name}'";
+        return RedirectToAction(nameof(ManageConditions));
     }
 
     // POST - Delete Medical Condition (Soft Delete)

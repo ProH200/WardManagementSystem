@@ -4,7 +4,6 @@
     ViewData["Title"] = "Your Profile";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // Determine user role for dashboard redirect
     var isAdmin = Model.Roles != null && Model.Roles.Contains("Admin");
     var isDoctor = Model.Roles != null && Model.Roles.Contains("Doctor");
     var isScriptManager = Model.Roles != null && Model.Roles.Contains("Script Manager");
@@ -131,11 +130,17 @@
         border: 2px solid #e8f4f8;
         padding: 12px 15px;
     }
+
+    /* Warning Modal Styles */
+    .warning-icon {
+        font-size: 4rem;
+        color: #ffc107;
+        margin-bottom: 1rem;
+    }
 </style>
 
 <div class="profile-container">
     <div class="container" style="max-width: 900px;">
-        <!-- Success/Error Messages -->
         @if (TempData["SuccessMessage"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -196,7 +201,6 @@
 
         <!-- Action Buttons -->
         <div class="text-center mb-4">
-            <!-- Dynamic Dashboard Button -->
             @if (isAdmin)
             {
                 <a asp-controller="Administration" asp-action="Dashboard" class="btn btn-dashboard btn-custom">
@@ -235,7 +239,6 @@
             }
             else
             {
-                <!-- Fallback to Home if no specific role is found -->
                 <a asp-controller="Home" asp-action="Index" class="btn btn-dashboard btn-custom">
                     <i class="fas fa-arrow-left me-2"></i>Back to Home
                 </a>
@@ -244,7 +247,7 @@
             <button class="btn btn-edit btn-custom" data-bs-toggle="collapse" data-bs-target="#editProfileSection">
                 <i class="fas fa-edit me-2"></i>Edit Profile
             </button>
-            <button class="btn btn-password btn-custom" data-bs-toggle="collapse" data-bs-target="#changePasswordSection">
+            <button class="btn btn-password btn-custom" id="changePasswordBtn" data-bs-toggle="modal" data-bs-target="#passwordWarningModal">
                 <i class="fas fa-key me-2"></i>Change Password
             </button>
         </div>
@@ -334,19 +337,27 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="Email" value="@Model.Email" />
 
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important:</strong> After changing your password, you will be automatically logged out and required to log in again with your new password.
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="NewPassword" class="form-label fw-bold">New Password:</label>
-                                <input type="password" name="NewPassword" class="form-control" required />
+                                <input type="password" name="NewPassword" class="form-control" required
+                                       placeholder="Enter new password" />
+                                <div class="form-text">Password must be at least 6 characters long.</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="ConfirmPassword" class="form-label fw-bold">Confirm Password:</label>
-                                <input type="password" name="ConfirmPassword" class="form-control" required />
+                                <input type="password" name="ConfirmPassword" class="form-control" required
+                                       placeholder="Confirm new password" />
                             </div>
                         </div>
 
                         <div class="text-end pt-3">
-                            <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#changePasswordSection">
+                            <button type="button" class="btn btn-secondary me-2" id="cancelPasswordBtn">
                                 Cancel
                             </button>
                             <button type="submit" class="btn btn-success">
@@ -360,10 +371,45 @@
     </div>
 </div>
 
+<!-- Password Change Warning Modal -->
+<div class="modal fade" id="passwordWarningModal" tabindex="-1" aria-labelledby="passwordWarningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="passwordWarningModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Password Change Warning
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="warning-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h5 class="text-warning mb-3">Important Security Notice</h5>
+                <p class="mb-3">
+                    You are about to change your password. Please note that for security reasons,
+                    <strong>you will be automatically logged out</strong> and required to log in again with your new password.
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> Make sure you remember your new password before proceeding.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" id="proceedPasswordChange">
+                    <i class="fas fa-check me-2"></i>I Understand, Continue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-hide alerts after 5 seconds
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {
@@ -371,6 +417,50 @@
                     bsAlert.close();
                 });
             }, 5000);
+
+            const passwordWarningModal = document.getElementById('passwordWarningModal');
+            const changePasswordSection = document.getElementById('changePasswordSection');
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+            const proceedPasswordChange = document.getElementById('proceedPasswordChange');
+            const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+
+            proceedPasswordChange.addEventListener('click', function() {
+                const modal = bootstrap.Modal.getInstance(passwordWarningModal);
+                modal.hide();
+
+                const bsCollapse = new bootstrap.Collapse(changePasswordSection, {
+                    toggle: true
+                });
+
+                setTimeout(() => {
+                    changePasswordSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 300);
+            });
+
+            cancelPasswordBtn.addEventListener('click', function() {
+                const bsCollapse = new bootstrap.Collapse(changePasswordSection, {
+                    toggle: false
+                });
+            });
+
+            changePasswordSection.addEventListener('show.bs.collapse', function () {
+                const editProfileSection = document.getElementById('editProfileSection');
+                const editBsCollapse = bootstrap.Collapse.getInstance(editProfileSection);
+                if (editBsCollapse && editProfileSection.classList.contains('show')) {
+                    editBsCollapse.hide();
+                }
+            });
+
+            const editProfileSection = document.getElementById('editProfileSection');
+            editProfileSection.addEventListener('show.bs.collapse', function () {
+                const passwordBsCollapse = bootstrap.Collapse.getInstance(changePasswordSection);
+                if (passwordBsCollapse && changePasswordSection.classList.contains('show')) {
+                    passwordBsCollapse.hide();
+                }
+            });
         });
     </script>
 }

@@ -21,7 +21,7 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
         [Required(ErrorMessage = "This field is required.")]
         [StringLength(50)]
         public string Role { get; set; } = string.Empty;
-        public string Specialization { get; set; } = string.Empty;
+        public string? Specialization { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "This field is required.")]
         public string Title {  get; set; } = string.Empty;

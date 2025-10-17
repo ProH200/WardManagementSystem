@@ -19,7 +19,8 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
         public bool IsDeleted { get; set; } = false;
 
         [ForeignKey("Ward")]
-        public int? WardId { get; set; }
+        [Required(ErrorMessage = "Please select a ward.")]
+        public int WardId { get; set; }
 
         public virtual Ward Ward { get; set; }
 
