@@ -26,7 +26,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             _context = context;
         }
 
-        // GET: List all prescriptions (READ-ONLY VIEW)
+        // GET: List all prescriptions
         public async Task<IActionResult> Index()
         {
             var prescriptions = await _context.Prescriptions
@@ -40,7 +40,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             return View(prescriptions);
         }
 
-        // GET: Pending prescriptions (not processed yet) - MAIN WORKFLOW
+        // GET: Pending prescriptions
         public async Task<IActionResult> Pending()
         {
             var prescriptions = await _context.Prescriptions
@@ -54,7 +54,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             return View(prescriptions);
         }
 
-        // GET: Prescription details (READ-ONLY)
+        // GET: Prescription details
         public async Task<IActionResult> Details(int id)
         {
             var prescription = await _context.Prescriptions
@@ -71,7 +71,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             return View(prescription);
         }
 
-        // POST: Send to Pharmacy (PROCESSING STEP 1)
+        // POST: Send to Pharmacy
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendToPharmacy(int id)
@@ -90,7 +90,7 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             return RedirectToAction(nameof(Pending));
         }
 
-        // POST: Mark as Delivered (PROCESSING STEP 2)
+        // POST: Mark as Delivered
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAsDelivered(int id)
@@ -175,156 +175,212 @@ namespace Wellness_Wardens_Project.Controllers.ConsumablesController
             return Json(new { pendingCount });
         }
 
-       
 
-// GET: Generate Pending Prescriptions Report
-public async Task<IActionResult> GeneratePendingReport()
-    {
-        var prescriptions = await _context.Prescriptions
-            .Include(p => p.Employee)
-            .Include(p => p.PrescriptionMedications)
-                .ThenInclude(pm => pm.Medication)
-            .Where(p => !p.IsProcessed && !p.IsDeleted)
-            .OrderByDescending(p => p.DateWritten)
-            .ToListAsync();
 
-        return GeneratePdfReport(prescriptions, "Pending Prescriptions Report");
-    }
-
-    // GET: Generate Processed & Delivered Report
-    public async Task<IActionResult> GenerateProcessedReport()
-    {
-        var prescriptions = await _context.Prescriptions
-            .Include(p => p.Employee)
-            .Include(p => p.PrescriptionMedications)
-                .ThenInclude(pm => pm.Medication)
-            .Where(p => p.IsProcessed && !p.IsDeleted)
-            .OrderByDescending(p => p.DateWritten)
-            .ToListAsync();
-
-        return GeneratePdfReport(prescriptions, "Processed & Delivered Prescriptions Report");
-    }
-
-    // GET: Generate All Prescriptions Report
-    public async Task<IActionResult> GenerateAllReport()
-    {
-        var prescriptions = await _context.Prescriptions
-            .Include(p => p.Employee)
-            .Include(p => p.PrescriptionMedications)
-                .ThenInclude(pm => pm.Medication)
-            .Where(p => !p.IsDeleted)
-            .OrderByDescending(p => p.DateWritten)
-            .ToListAsync();
-
-        return GeneratePdfReport(prescriptions, "All Prescriptions Report");
-    }
-
-    // Helper method to generate PDF using QuestPDF
-    private IActionResult GeneratePdfReport(List<Prescription> prescriptions, string title)
-    {
-        var document = Document.Create(container =>
+        // GET: Generate Pending Prescriptions Report
+        public async Task<IActionResult> GeneratePendingReport()
         {
-            container.Page(page =>
+            var prescriptions = await _context.Prescriptions
+                .Include(p => p.Employee)
+                .Include(p => p.PrescriptionMedications)
+                    .ThenInclude(pm => pm.Medication)
+                .Where(p => !p.IsProcessed && !p.IsDeleted)
+                .OrderByDescending(p => p.DateWritten)
+                .ToListAsync();
+
+            return GeneratePdfReport(prescriptions, "Pending Prescriptions Report");
+        }
+
+        // GET: Generate Processed & Delivered Report
+        public async Task<IActionResult> GenerateProcessedReport()
+        {
+            var prescriptions = await _context.Prescriptions
+                .Include(p => p.Employee)
+                .Include(p => p.PrescriptionMedications)
+                    .ThenInclude(pm => pm.Medication)
+                .Where(p => p.IsProcessed && !p.IsDeleted)
+                .OrderByDescending(p => p.DateWritten)
+                .ToListAsync();
+
+            return GeneratePdfReport(prescriptions, "Processed & Delivered Prescriptions Report");
+        }
+
+        // GET: Generate All Prescriptions Report
+        public async Task<IActionResult> GenerateAllReport()
+        {
+            try
             {
-                page.Size(PageSizes.A4);
-                page.Margin(2, Unit.Centimetre);
-                page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(12));
+                var prescriptions = await _context.Prescriptions
+                    .Include(p => p.Employee)
+                    .Include(p => p.PrescriptionMedications)
+                        .ThenInclude(pm => pm.Medication)
+                    .Where(p => !p.IsDeleted)
+                    .OrderByDescending(p => p.DateWritten)
+                    .ToListAsync();
 
-                page.Header()
-                    .AlignCenter()
-                    .Text(title)
-                    .SemiBold().FontSize(20).FontColor(Colors.Blue.Darken3);
+                return GeneratePdfReport(prescriptions, "All Prescriptions Report");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GenerateAllReport: {ex}");
+                Console.WriteLine($"Inner Exception: {ex.InnerException}");
 
-                page.Content()
-                    .PaddingVertical(1, Unit.Centimetre)
-                    .Column(column =>
+                return StatusCode(500, $"Server Error: {ex.Message}\nInner Exception: {ex.InnerException?.Message}\nStack Trace: {ex.StackTrace}");
+            }
+        }
+
+        // Helper method to generate PDF using QuestPDF
+        private IActionResult GeneratePdfReport(List<Prescription> prescriptions, string title)
+        {
+            try
+            {
+                Console.WriteLine($"Starting PDF generation for {prescriptions.Count} prescriptions");
+
+                var document = Document.Create(container =>
+                {
+                    container.Page(page =>
                     {
-                        column.Spacing(10);
+                        page.Size(PageSizes.A4);
+                        page.Margin(2, Unit.Centimetre);
+                        page.PageColor(Colors.White);
+                        page.DefaultTextStyle(x => x.FontSize(12));
 
-                        // Report summary
-                        column.Item().Background(Colors.Grey.Lighten3).Padding(10).Column(summaryColumn =>
-                        {
-                            summaryColumn.Item().Text($"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm}");
-                            summaryColumn.Item().Text($"Total prescriptions: {prescriptions.Count}");
-                        });
+                        page.Header()
+                            .AlignCenter()
+                            .Text(title)
+                            .SemiBold().FontSize(20).FontColor(Colors.Blue.Darken3);
 
-                        // Prescriptions table
-                        if (prescriptions.Any())
-                        {
-                            column.Item().Table(table =>
+                        page.Content()
+                            .PaddingVertical(1, Unit.Centimetre)
+                            .Column(column =>
                             {
-                                table.ColumnsDefinition(columns =>
+                                column.Spacing(10);
+
+                                // Report summary
+                                column.Item().Background(Colors.Grey.Lighten3).Padding(10).Column(summaryColumn =>
                                 {
-                                    columns.RelativeColumn(2); // Reference
-                                    columns.RelativeColumn(1.5f); // Date
-                                    columns.RelativeColumn(2); // Doctor
-                                    columns.RelativeColumn(1.5f); // Status
-                                    columns.RelativeColumn(3); // Medications
+                                    summaryColumn.Item().Text($"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm}");
+                                    summaryColumn.Item().Text($"Total prescriptions: {prescriptions.Count}");
                                 });
 
-                                // Table header
-                                table.Header(header =>
+                                // Prescriptions table
+                                if (prescriptions.Any())
                                 {
-                                    header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Reference").SemiBold();
-                                    header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Date").SemiBold();
-                                    header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Doctor").SemiBold();
-                                    header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Status").SemiBold();
-                                    header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Medications").SemiBold();
-                                });
+                                    column.Item().Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(2); // Reference
+                                            columns.RelativeColumn(1.5f); // Date
+                                            columns.RelativeColumn(2); // Doctor
+                                            columns.RelativeColumn(1.5f); // Status
+                                            columns.RelativeColumn(3); // Medications
+                                        });
 
-                                // Table content
-                                foreach (var prescription in prescriptions)
-                                {
-                                    var reference = $"{prescription.DateWritten:MMdd}-{prescription.Employee.FirstName[0]}{prescription.Employee.LastName[0]}-{prescription.PrescriptionId % 1000:D3}";
-                                    var status = prescription.IsDelivered ? "Delivered" : prescription.IsProcessed ? "In Pharmacy" : "Pending";
-                                    var medications = prescription.PrescriptionMedications.Any()
-                                        ? string.Join(", ", prescription.PrescriptionMedications.Select(pm => pm.Medication.Name))
-                                        : "None";
+                                        table.Header(header =>
+                                        {
+                                            header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Reference").SemiBold();
+                                            header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Date").SemiBold();
+                                            header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Doctor").SemiBold();
+                                            header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Status").SemiBold();
+                                            header.Cell().Background(Colors.Blue.Lighten3).Padding(5).Text("Medications").SemiBold();
+                                        });
 
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(reference);
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(prescription.DateWritten.ToString("MMM dd, yyyy"));
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"{prescription.Employee.FirstName} {prescription.Employee.LastName}");
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(status);
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(medications);
+                                        foreach (var prescription in prescriptions)
+                                        {
+                                            string reference;
+                                            try
+                                            {
+                                                var employeeInitials = prescription.Employee != null
+                                                    ? $"{(prescription.Employee.FirstName ?? "")[0]}{(prescription.Employee.LastName ?? "")[0]}"
+                                                    : "NN";
+                                                reference = $"{prescription.DateWritten:MMdd}-{employeeInitials}-{prescription.PrescriptionId % 1000:D3}";
+                                            }
+                                            catch (Exception refEx)
+                                            {
+                                                reference = $"Error-{prescription.PrescriptionId}";
+                                                Console.WriteLine($"Error generating reference for prescription {prescription.PrescriptionId}: {refEx.Message}");
+                                            }
+
+                                            var status = prescription.IsDelivered ? "Delivered" :
+                                                        prescription.IsProcessed ? "In Pharmacy" : "Pending";
+
+                                            var medications = "None";
+                                            try
+                                            {
+                                                if (prescription.PrescriptionMedications != null && prescription.PrescriptionMedications.Any())
+                                                {
+                                                    var medicationNames = prescription.PrescriptionMedications
+                                                        .Where(pm => pm?.Medication != null)
+                                                        .Select(pm => pm.Medication.Name ?? "Unknown Medication")
+                                                        .ToList();
+
+                                                    medications = medicationNames.Any()
+                                                        ? string.Join(", ", medicationNames)
+                                                        : "None";
+                                                }
+                                            }
+                                            catch (Exception medEx)
+                                            {
+                                                medications = "Error loading medications";
+                                                Console.WriteLine($"Error loading medications for prescription {prescription.PrescriptionId}: {medEx.Message}");
+                                            }
+
+                                            var doctorName = prescription.Employee != null
+                                                ? $"{prescription.Employee.FirstName} {prescription.Employee.LastName}"
+                                                : "Unknown Doctor";
+
+                                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(reference);
+                                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(prescription.DateWritten.ToString("MMM dd, yyyy"));
+                                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(doctorName);
+                                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(status);
+                                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(medications);
+                                        }
+                                    });
                                 }
+                                else
+                                {
+                                    column.Item().Background(Colors.Orange.Lighten5).Padding(20).AlignCenter().Text("No prescriptions found").Italic();
+                                }
+
+                                // Footer
+                                column.Item().AlignRight().Text(txt =>
+                                {
+                                    txt.Span("Page ").FontSize(10);
+                                    txt.CurrentPageNumber().FontSize(10);
+                                    txt.Span(" of ").FontSize(10);
+                                    txt.TotalPages().FontSize(10);
+                                });
                             });
-                        }
-                        else
-                        {
-                            column.Item().Background(Colors.Orange.Lighten5).Padding(20).AlignCenter().Text("No prescriptions found").Italic();
-                        }
 
-                        // Footer
-                        column.Item().AlignRight().Text(txt =>
-                        {
-                            txt.Span("Page ").FontSize(10);
-                            txt.CurrentPageNumber().FontSize(10);
-                            txt.Span(" of ").FontSize(10);
-                            txt.TotalPages().FontSize(10);
-                        });
+                        page.Footer()
+                            .AlignCenter()
+                            .Text(x =>
+                            {
+                                x.Span("Wellness Wardens - ").FontSize(10);
+                                x.CurrentPageNumber().FontSize(10);
+                                x.Span(" / ").FontSize(10);
+                                x.TotalPages().FontSize(10);
+                            });
                     });
+                });
 
-                page.Footer()
-                    .AlignCenter()
-                    .Text(x =>
-                    {
-                        x.Span("Wellness Wardens - ").FontSize(10);
-                        x.CurrentPageNumber().FontSize(10);
-                        x.Span(" / ").FontSize(10);
-                        x.TotalPages().FontSize(10);
-                    });
-            });
-        });
+                Console.WriteLine("Document created, generating PDF bytes...");
+                var pdfBytes = document.GeneratePdf();
+                Console.WriteLine($"PDF generated successfully: {pdfBytes.Length} bytes");
 
-        // Generate PDF as byte array
-        var pdfBytes = document.GeneratePdf();
+                // Return PDF file
+                var filename = $"{title.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+                return File(pdfBytes, "application/pdf", filename);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GeneratePdfReport: {ex}");
+                Console.WriteLine($"Inner Exception: {ex.InnerException}");
+                return StatusCode(500, $"PDF Generation Error: {ex.Message}\nInner Exception: {ex.InnerException?.Message}");
+            }
+        }
 
-        // Return PDF file
-        var filename = $"{title.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
-        return File(pdfBytes, "application/pdf", filename);
+
     }
-
-
-}
 }

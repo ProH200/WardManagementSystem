@@ -294,14 +294,12 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             console.log("Dashboard loaded");
             initializeStockChart();
         });
 
        
-        // Generate the actual report file
         function generateReportFile(reportType) {
             Swal.fire({
                 title: 'Generating Report...',
@@ -311,7 +309,6 @@
                 allowOutsideClick: false
             });
 
-            // CORRECT URL - Use ReportsController
             fetch(`/Reports/GenerateStockReport?reportType=${reportType}`)
                 .then(response => {
                     if (response.ok) {
@@ -320,16 +317,13 @@
                     throw new Error('Report generation failed');
                 })
                 .then(blob => {
-                    // Create download link
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
 
-                    // Set filename based on report type
                     const filename = getReportFilename(reportType);
                     a.download = filename;
 
-                    // Trigger download
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -384,7 +378,6 @@
             const reportButton = document.querySelector('button[onclick="generateStockReport()"]');
             if (reportButton) {
                 console.log("✅ Report button found");
-                // Add direct click listener as backup
                 reportButton.addEventListener('click', function(e) {
                     generateStockReport();
                 });

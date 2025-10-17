@@ -24,20 +24,20 @@ namespace Wellness_Wardens_Project.Controllers
             _userManager = userManager;
         }
 
-        // GET: /ConsumablesRequest/ViewInventory
+        // GET:ViewInventory
         public async Task<IActionResult> ViewInventory()
         {
             var consumables = await _context.Consumables
-                .Include(c => c.Ward) // Ensure Ward is included
+                .Include(c => c.Ward)
                 .Where(c => !c.IsDeleted)
-                .OrderBy(c => c.Ward != null ? c.Ward.Name : "Unknown") // Safe ordering
+                .OrderBy(c => c.Ward != null ? c.Ward.Name : "Unknown")
                 .ThenBy(c => c.Name)
                 .Select(c => new ConsumableViewModel
                 {
                     ConsumableId = c.ConsumableId,
                     Name = c.Name,
                     QuantityAvailable = c.QuantityAvailable,
-                    WardName = c.Ward != null ? c.Ward.Name : "Unknown Ward", // Safe access
+                    WardName = c.Ward != null ? c.Ward.Name : "Unknown Ward",
                     StockStatus = c.QuantityAvailable == 0 ? "Out of Stock" :
                                  c.QuantityAvailable < 5 ? "Critical" :
                                  c.QuantityAvailable < 20 ? "Low Stock" : "In Stock",
@@ -59,11 +59,11 @@ namespace Wellness_Wardens_Project.Controllers
             return View(consumables);
         }
 
-        // GET: /ConsumablesRequest/WeeklyStockTake
+        // GET:WeeklyStockTake
         public async Task<IActionResult> WeeklyStockTake()
         {
             var consumables = await _context.Consumables
-                .Include(c => c.Ward) // Ensure Ward is included
+                .Include(c => c.Ward) 
                 .Where(c => !c.IsDeleted)
                 .OrderBy(c => c.Ward != null ? c.Ward.Name : "Unknown")
                 .ThenBy(c => c.Name)
@@ -72,7 +72,7 @@ namespace Wellness_Wardens_Project.Controllers
                     ConsumableId = c.ConsumableId,
                     Name = c.Name,
                     QuantityAvailable = c.QuantityAvailable,
-                    WardName = c.Ward != null ? c.Ward.Name : "Unknown Ward", // Safe access
+                    WardName = c.Ward != null ? c.Ward.Name : "Unknown Ward",
                     StockStatus = c.QuantityAvailable == 0 ? "Out of Stock" :
                                  c.QuantityAvailable < 5 ? "Critical" :
                                  c.QuantityAvailable < 20 ? "Low Stock" : "In Stock",
@@ -98,12 +98,12 @@ namespace Wellness_Wardens_Project.Controllers
             return View(consumables);
         }
 
-        // GET: ConsumablesRequest/Create
+        // GET:Create
         public async Task<IActionResult> Create(int? consumableId = null)
         {
             var viewModel = await CreateConsumableRequestViewModel();
 
-            // If consumable is pre-selected (from low stock suggestion), auto-fill the form
+            // If consumable is pre-selected auto-fill the form
             if (consumableId.HasValue)
             {
                 var consumable = await _context.Consumables
@@ -123,7 +123,7 @@ namespace Wellness_Wardens_Project.Controllers
             return View(viewModel);
         }
 
-        // POST: ConsumablesRequest/Create
+        // POST:Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateConsumableRequestViewModel viewModel)
@@ -132,7 +132,7 @@ namespace Wellness_Wardens_Project.Controllers
             {
                 try
                 {
-                    // Get the selected consumable to verify it exists and get its name
+
                     var selectedConsumable = await _context.Consumables
                         .Include(c => c.Ward)
                         .FirstOrDefaultAsync(c => c.ConsumableId == viewModel.SelectedConsumableId && !c.IsDeleted);
@@ -144,7 +144,6 @@ namespace Wellness_Wardens_Project.Controllers
                         return View(viewModel);
                     }
 
-                    // Get current user
                     var user = await _userManager.GetUserAsync(User);
                     if (user == null)
                     {
@@ -152,15 +151,15 @@ namespace Wellness_Wardens_Project.Controllers
                         return RedirectToAction(nameof(Index));
                     }
 
-                    // Create the request - ward is automatically set from the consumable
+                    // Create the request
                     var request = new ConsumablesRequest
                     {
                         ConsumableName = selectedConsumable.Name,
                         QuantityRequested = viewModel.QuantityRequested,
-                        RequestedDate = DateTime.Now, // Auto-set to current date
+                        RequestedDate = DateTime.Now,
                         IsDelivered = false,
                         IsDeleted = false,
-                        WardId = selectedConsumable.WardId, // Auto-set from consumable's ward
+                        WardId = selectedConsumable.WardId,
                         EmployeeId = user.Id
                     };
 
@@ -195,11 +194,10 @@ namespace Wellness_Wardens_Project.Controllers
                 return RedirectToAction(nameof(Create));
             }
 
-            // Redirect to Create with the consumable ID as parameter
             return RedirectToAction(nameof(Create), new { consumableId = consumableId });
         }
 
-        // GET: Get Ward for selected consumable (for AJAX)
+        // GET: Get Ward for selected consumable
         public async Task<JsonResult> GetWardForConsumable(int consumableId)
         {
             var consumable = await _context.Consumables
@@ -267,7 +265,6 @@ namespace Wellness_Wardens_Project.Controllers
                 request.IsDelivered = true;
                 _context.Update(request);
 
-                // Find the EXACT consumable in the EXACT ward with matching name
                 var consumable = await _context.Consumables
                     .Include(c => c.Ward)
                     .FirstOrDefaultAsync(c => !c.IsDeleted &&
@@ -277,7 +274,7 @@ namespace Wellness_Wardens_Project.Controllers
                 if (consumable != null)
                 {
                     var oldQuantity = consumable.QuantityAvailable;
-                    var wasLowStock = oldQuantity < 20; // Check if it was previously low stock
+                    var wasLowStock = oldQuantity < 20; 
 
                     consumable.QuantityAvailable += request.QuantityRequested;
                     consumable.EmployeeId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -286,7 +283,7 @@ namespace Wellness_Wardens_Project.Controllers
 
                     TempData["SuccessMessage"] = $"Request delivered! {consumable.Name} stock updated from {oldQuantity} → {consumable.QuantityAvailable} in {consumable.Ward?.Name}.";
 
-                    // Add info message if item is no longer low stock
+                   
                     if (wasLowStock && consumable.QuantityAvailable >= 20)
                     {
                         TempData["InfoMessage"] = $"{consumable.Name} is no longer considered low stock.";
@@ -321,7 +318,7 @@ namespace Wellness_Wardens_Project.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: ConsumablesRequest Index
+        // GET: Index
         public async Task<IActionResult> Index()
         {
             var requests = await _context.ConsumablesRequests
@@ -403,7 +400,7 @@ namespace Wellness_Wardens_Project.Controllers
                     QuantityAvailable = c.QuantityAvailable,
                     WardName = c.Ward.Name,
                     WardId = c.WardId ?? 0,
-                    SuggestedQuantity = Math.Max(20 - c.QuantityAvailable, 5) // Suggest at least 5 more
+                    SuggestedQuantity = Math.Max(20 - c.QuantityAvailable, 5) 
                 })
                 .ToListAsync();
         }

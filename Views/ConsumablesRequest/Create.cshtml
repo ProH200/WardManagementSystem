@@ -97,10 +97,6 @@
     </div>
 </div>
 
-<!-- Include SweetAlert2 CSS & JS -->
-<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-
 @section Scripts {
     <!-- Include SweetAlert2 CSS & JS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -118,13 +114,10 @@
             const requestForm = document.getElementById('requestForm');
             const submitButton = document.getElementById('submitButton');
 
-            // Show SweetAlert notifications for TempData messages
             showTempDataAlerts();
 
-            // Initialize form based on pre-selected values
             initializeForm();
 
-            // Event listeners
             consumableSelect.addEventListener('change', handleConsumableChange);
             requestForm.addEventListener('submit', handleFormSubmit);
 
@@ -187,7 +180,6 @@
             }
 
             function initializeForm() {
-                // If the form is pre-filled (from UseSuggestion), trigger the change event
                 if (consumableSelect.value) {
                     handleConsumableChange();
                 }
@@ -214,7 +206,6 @@
             }
 
             function loadConsumableDetails(consumableId) {
-                // Show loading state
                 wardText.textContent = 'Loading ward information...';
                 wardText.className = 'text-info';
 
@@ -249,7 +240,6 @@
                 quantitySuggestion.textContent = `Suggested quantity to reach minimum stock (currently ${data.currentQuantity} available)`;
                 quantitySuggestion.className = 'form-text text-info';
 
-                // Enable submit button if it was disabled
                 submitButton.disabled = false;
             }
 
@@ -352,7 +342,6 @@
                 const selectedOption = consumableSelect.options[consumableSelect.selectedIndex];
                 if (!selectedOption) return 'Selected item';
 
-                // Extract just the consumable name (remove ward and quantity info)
                 const fullText = selectedOption.text;
                 return fullText.split(' (')[0] || 'Selected item';
             }

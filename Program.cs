@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using Wellness_Wardens_Project.Data;
 using Wellness_Wardens_Project.Models.AdministrationSubsystem;
 using Wellness_Wardens_Project.Models.PatientManagementSubsystem;
@@ -37,8 +38,10 @@ namespace Wellness_Wardens_Project
                 app.UseHsts();
             }
 
+            QuestPDF.Settings.License = LicenseType.Community;
+
             app.UseHttpsRedirection();
-            app.UseStaticFiles(); // Important for serving CSS/JS
+            app.UseStaticFiles(); 
 
             app.UseRouting();
 
