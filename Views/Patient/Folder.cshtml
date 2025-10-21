@@ -6,8 +6,19 @@
     ViewData["Title"] = "Patient Folder - " + Model.Patient.FirstName + " " + Model.Patient.LastName;
 }
 
-<!-- Quick Stats Dashboard -->
-<div class="row mb-4">
+
+<!-- Quick Stats Dashboard with Smaller Back Button -->
+<div class="row mb-4 align-items-center">
+    <!--  Back Button -->
+    <div class="col-auto">
+        <a asp-action="Index"
+           class="btn btn-sm d-flex align-items-center text-white"
+           style="background-color: #005b96; border-radius: 0.375rem; border: none;">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Vital Signs Card -->
     <div class="col-xl-2 col-md-4 col-6">
         <div class="card text-white dashboard-stat-card" style="background-color: #005b96;">
             <div class="card-body text-center p-3">
@@ -17,6 +28,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Treatments Card -->
     <div class="col-xl-2 col-md-4 col-6">
         <div class="card text-white dashboard-stat-card" style="background-color: #005b96;">
             <div class="card-body text-center p-3">
@@ -26,6 +39,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Doctor Visits Card -->
     <div class="col-xl-2 col-md-4 col-6">
         <div class="card text-white dashboard-stat-card" style="background-color: #005b96;">
             <div class="card-body text-center p-3">
@@ -35,24 +50,8 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-2 col-md-4 col-6">
-        <div class="card text-white dashboard-stat-card" style="background-color: #005b96;">
-            <div class="card-body text-center p-3">
-                <i class="fas fa-calendar-check fa-2x mb-2"></i>
-                <h4 class="mb-0">@Model.Treatments.Count(t => t.DatePerformed.Date == DateTime.Today)</h4>
-                <small>Today's Treatments</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-2 col-md-4 col-6">
-        <div class="card text-white dashboard-stat-card" style="background-color: #005b96;">
-            <div class="card-body text-center p-3">
-                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                <h4 class="mb-0">@Model.VitalSigns.Count(v => v.HeartRate > 100 || v.HeartRate < 60)</h4>
-                <small>Abnormal Vitals</small>
-            </div>
-        </div>
-    </div>
+
+    <!-- PDF Export Card -->
     <div class="col-xl-2 col-md-4 col-6">
         <div class="card text-white dashboard-stat-card" style="background-color: #005b96; cursor: pointer;" onclick="generatePatientPDF()">
             <div class="card-body text-center p-3">
@@ -74,9 +73,6 @@
                 <div class="btn-group">
                     <button class="btn btn-light btn-sm">
                         <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-light btn-sm" onclick="generatePatientPDF()" title="Export Patient Report as PDF">
-                        <i class="fas fa-file-pdf"></i>
                     </button>
                 </div>
             </div>
@@ -271,139 +267,17 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Recent Vital Signs -->
-                    <div class="info-item">
-                        <i class="fas fa-heartbeat" style="color: #005b96;"></i>
-                        <div class="w-100">
-                            <small class="text-muted">Recent Vital Signs</small>
-                            <div class="vital-signs-list mt-1">
-                                @if (Model.VitalSigns.Any(v => !v.IsDeleted))
-                                {
-                                    var latestVitals = Model.VitalSigns.Where(v => !v.IsDeleted).OrderByDescending(v => v.RecordedDate).Take(1).FirstOrDefault();
-                                    if (latestVitals != null)
-                                    {
-                                        <div class="vital-signs-summary">
-                                            <div class="row text-center small">
-                                                <div class="col-4">
-                                                    <div class="fw-semibold @GetVitalColorClass("temp", latestVitals.Tempareture)">
-                                                        @latestVitals.Tempareture.ToString("F1")°C
-                                                    </div>
-                                                    <small class="text-muted">Temp</small>
-                                                </div>
-                                                <div class="col-4">
-                                                    <div class="fw-semibold @GetVitalColorClass("hr", latestVitals.HeartRate)">
-                                                        @latestVitals.HeartRate
-                                                    </div>
-                                                    <small class="text-muted">Heart Rate</small>
-                                                </div>
-                                                <div class="col-4">
-                                                    <div class="fw-semibold @GetVitalColorClass("bp", latestVitals.BloodPressure)">
-                                                        @latestVitals.BloodPressure
-                                                    </div>
-                                                    <small class="text-muted">BP</small>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted d-block mt-1">
-                                                <i class="fas fa-clock me-1"></i>@latestVitals.RecordedDate.ToString("MMM dd, HH:mm")
-                                            </small>
-                                        </div>
-                                    }
-                                    @if (Model.VitalSigns.Count(v => !v.IsDeleted) > 1)
-                                    {
-                                        <small class="text-muted">
-                                            +@(Model.VitalSigns.Count(v => !v.IsDeleted) - 1) more records
-                                        </small>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="text-muted fw-semibold">No vital signs recorded</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Treatments -->
-                    <div class="info-item">
-                        <i class="fas fa-stethoscope" style="color: #005b96;"></i>
-                        <div class="w-100">
-                            <small class="text-muted">Recent Treatments</small>
-                            <div class="treatments-list mt-1">
-                                @if (Model.Treatments.Any(t => !t.IsDeleted))
-                                {
-                                    var recentTreatments = Model.Treatments.Where(t => !t.IsDeleted).OrderByDescending(t => t.DatePerformed).Take(2);
-                                    foreach (var treatment in recentTreatments)
-                                    {
-                                        <div class="treatment-item small text-muted mb-1">
-                                            <i class="fas fa-hand-holding-medical me-1"></i>
-                                            <span class="fw-semibold">@treatment.TreatmentType</span>
-                                            <span class="ms-1">(@treatment.DatePerformed.ToString("MMM dd")</span>
-                                        </div>
-                                    }
-                                    @if (Model.Treatments.Count(t => !t.IsDeleted) > 2)
-                                    {
-                                        <small class="text-muted">
-                                            +@(Model.Treatments.Count(t => !t.IsDeleted) - 2) more treatments
-                                        </small>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="text-muted fw-semibold">No treatments recorded</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Doctor Visits -->
-                    <div class="info-item">
-                        <i class="fas fa-user-md" style="color: #005b96;"></i>
-                        <div class="w-100">
-                            <small class="text-muted">Recent Doctor Visits</small>
-                            <div class="doctor-visits-list mt-1">
-                                @if (Model.DoctorVisits.Any(d => !d.IsDeleted))
-                                {
-                                    var recentVisits = Model.DoctorVisits.Where(d => !d.IsDeleted).OrderByDescending(d => d.VisitDate).Take(2);
-                                    foreach (var visit in recentVisits)
-                                    {
-                                        <div class="visit-item small text-muted mb-1">
-                                            <i class="fas fa-calendar-check me-1"></i>
-                                            <span class="fw-semibold">@visit.VisitDate.ToString("MMM dd, yyyy")</span>
-                                            @if (!string.IsNullOrEmpty(visit.Instructions))
-                                            {
-                                                <div class="mt-1">
-                                                    <small>"@(visit.Instructions.Length > 50 ? visit.Instructions.Substring(0, 50) + "..." : visit.Instructions)"</small>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    @if (Model.DoctorVisits.Count(d => !d.IsDeleted) > 2)
-                                    {
-                                        <small class="text-muted">
-                                            +@(Model.DoctorVisits.Count(d => !d.IsDeleted) - 2) more visits
-                                        </small>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="text-muted fw-semibold">No doctor visits recorded</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Recent Vital Signs Card -->
     <div class="col-xl-4 col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #005b96;">
                 <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Recent Vital Signs</h5>
                 <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addVitalModal">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus"></i>Add
                 </button>
             </div>
             <div class="card-body" style="max-height: 400px; overflow-y: auto;">
@@ -466,7 +340,7 @@
             <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #005b96;">
                 <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Recent Treatments</h5>
                 <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addTreatmentModal">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus"></i>Add
                 </button>
             </div>
             <div class="card-body" style="max-height: 400px; overflow-y: auto;">
@@ -537,7 +411,6 @@
                                         Administered by: @prescription.Employee?.FirstName @prescription.Employee?.LastName
                                     </small>
                                 </div>
-                                <span class="badge" style="background-color: #005b96;">Non-Scheduled</span>
                             </div>
 
                             <div class="medication-list">
@@ -547,9 +420,9 @@
                                         <div>
                                             <strong>@pm.Medication.Name</strong>
                                             <div class="text-muted small">
-                                                <span class="badge bg-info">@pm.Dosage</span>
-                                                <span class="badge bg-warning">@pm.Frequency</span>
-                                                <span class="badge bg-secondary">@pm.DurationDays days</span>
+                                                <div>Dosage: @pm.Dosage</div>
+                                                <div>Frequency: @pm.Frequency</div>
+                                                <div>Duration: @pm.DurationDays days</div>
                                             </div>
                                             @if (!string.IsNullOrEmpty(prescription.Instructions))
                                             {
@@ -559,7 +432,7 @@
                                             }
                                         </div>
                                         <div class="d-flex align-items-center">
-                                            <span class="badge me-2" style="background-color: #005b96;">Non-Scheduled</span>
+                                            
                                             <div class="btn-group">
                                                 @if (User.IsInRole("Nurse"))
                                                 {
@@ -625,7 +498,7 @@
                                         Administered by: @prescription.Employee?.FirstName @prescription.Employee?.LastName
                                     </small>
                                 </div>
-                                <span class="badge" style="background-color: #dc3545;">Scheduled</span>
+                                
                             </div>
 
                             <div class="medication-list">
@@ -635,9 +508,9 @@
                                         <div>
                                             <strong>@pm.Medication.Name</strong>
                                             <div class="text-muted small">
-                                                <span class="badge bg-info">@pm.Dosage</span>
-                                                <span class="badge bg-warning">@pm.Frequency</span>
-                                                <span class="badge bg-secondary">@pm.DurationDays days</span>
+                                                <div>Dosage: @pm.Dosage</div>
+                                                <div>Frequency: @pm.Frequency</div>
+                                                <div>Duration: @pm.DurationDays days</div>
                                             </div>
                                             @if (!string.IsNullOrEmpty(prescription.Instructions))
                                             {
@@ -647,7 +520,7 @@
                                             }
                                         </div>
                                         <div class="d-flex align-items-center">
-                                            <span class="badge me-2" style="background-color: #dc3545;">Scheduled</span>
+
                                             @if (User.IsInRole("Nursing Sister"))
                                             {
                                                 <div class="btn-group">
@@ -691,7 +564,7 @@
             <div class="card-header text-white" style="background-color: #005b96;">
                 <ul class="nav nav-tabs card-header-tabs">
                     <li class="nav-item">
-                        <a class="btn btn-success" data-bs-toggle="tab" href="#notesTab">
+                        <a class="btn text-white border-0" data-bs-toggle="tab" href="#notesTab" style="background: transparent;">
                             <i class="fas fa-file-medical me-1"></i>Visit Notes
                         </a>
                     </li>
@@ -699,34 +572,7 @@
             </div>
             <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                 <div class="tab-content">
-                    @* <!-- Visits Tab -->
-                    <div class="tab-pane fade show active" id="visitsTab">
-                        @if (Model.DoctorVisits.Any())
-                        {
-                            <div class="timeline">
-                                @foreach (var visit in Model.DoctorVisits.OrderByDescending(d => d.VisitDate).Take(5))
-                                {
-                                    <div class="timeline-item mb-3">
-                                        <div class="timeline-marker" style="background-color: #005b96;"></div>
-                                        <div class="timeline-content">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <h6 class="mb-1">Visit on @visit.VisitDate.ToString("MMM dd, yyyy")</h6>
-                                                <small class="text-muted">@visit.VisitDate.ToString("HH:mm")</small>
-                                            </div>
-                                            <p class="small mb-0 text-muted">@visit.Instructions</p>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center text-muted py-4">
-                                <i class="fas fa-stethoscope fa-3x mb-3"></i>
-                                <p>No doctor visits recorded</p>
-                            </div>
-                        }
-                    </div> *@
+                    
 
                     <!-- Notes Tab -->
                     <div class="tab-pane fade" id="notesTab">
@@ -768,6 +614,7 @@
             </div>
         </div>
     </div>
+</div>
 <!-- Edit Non-Scheduled Medication Modal -->
 @foreach (var prescription in Model.NonScheduledPrescriptions)
 {
@@ -790,7 +637,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Medication</label>
                                 <select name="medicationId" class="form-control" required disabled>
-                                    <option value="@pm.MedicationId" selected>@pm.Medication.Name - Level @pm.Medication.ScheduleLevel</option>
+                                    <option value="@pm.MedicationId" selected>@pm.Medication.Name </option>
                                 </select>
                                 <small class="text-muted">Medication cannot be changed for existing prescriptions</small>
                             </div>
@@ -883,86 +730,87 @@
 }
 
 <!-- Edit Scheduled Medication Modal -->
-@foreach (var prescription in Model.ScheduledPrescriptions)
-{
-    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel >= 5))
+    @foreach (var prescription in Model.ScheduledPrescriptions)
     {
-        <div class="modal fade" id="editScheduledModal-@pm.PrescriptionId-@pm.MedicationId" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header text-white" style="background-color: #005b96;">
-                        <h5 class="modal-title">Edit Scheduled Medication (Level 5-10)</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        @using (Html.BeginForm("EditPrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
-                        {
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="prescriptionId" value="@prescription.PrescriptionId" />
-                            <input type="hidden" name="medicationId" value="@pm.MedicationId" />
+        foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.IsScheduledMedication))
+        {
+            <div class="modal fade" id="editScheduledModal-@prescription.PrescriptionId-@pm.MedicationId" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header text-white" style="background-color: #005b96;">
+                            <h5 class="modal-title">Edit Scheduled Medication (Level 5-10)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            @using (Html.BeginForm("EditPrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="prescriptionId" value="@prescription.PrescriptionId" />
+                                <input type="hidden" name="medicationId" value="@pm.MedicationId" />
 
-                            <div class="mb-3">
-                                <label class="form-label">Medication</label>
+                                <div class="mb-3">
+                                    <label class="form-label">Medication</label>
                                 <select name="medicationId" class="form-control" required disabled>
-                                    <option value="@pm.MedicationId" selected>@pm.Medication.Name - Level @pm.Medication.ScheduleLevel</option>
-                                </select>
-                                <small class="text-muted">Medication cannot be changed for existing prescriptions</small>
-                            </div>
+                                        <option value="@pm.MedicationId" selected>@pm.Medication.Name </option>
+                                    </select>
+                                    <small class="text-muted">Medication cannot be changed for existing prescriptions</small>
+                                </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Dosage *</label>
-                                        <input type="text" name="dosage" class="form-control" value="@pm.Dosage" required />
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Dosage *</label>
+                                            <input type="text" name="dosage" class="form-control" value="@pm.Dosage" required />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Frequency *</label>
+                                            <input type="text" name="frequency" class="form-control" value="@pm.Frequency" required />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frequency *</label>
-                                        <input type="text" name="frequency" class="form-control" value="@pm.Frequency" required />
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Duration (Days) *</label>
+                                            <input type="number" name="durationDays" class="form-control" value="@pm.DurationDays" min="1" required />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Date Prescribed</label>
+                                            <input type="date" class="form-control" value="@prescription.DateWritten.ToString("yyyy-MM-dd")" disabled />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Duration (Days) *</label>
-                                        <input type="number" name="durationDays" class="form-control" value="@pm.DurationDays" min="1" required />
-                                    </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Instructions</label>
+                                    <textarea name="instructions" class="form-control" rows="3">@prescription.Instructions</textarea>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Date Prescribed</label>
-                                        <input type="date" class="form-control" value="@prescription.DateWritten.ToString("yyyy-MM-dd")" disabled />
-                                    </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
+                                        <i class="fas fa-save me-2"></i>Update Scheduled Medication
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Instructions</label>
-                                <textarea name="instructions" class="form-control" rows="3">@prescription.Instructions</textarea>
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
-                                    <i class="fas fa-save me-2"></i>Update Scheduled Medication
-                                </button>
-                            </div>
-                        }
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
     }
 }
 
 <!-- Soft Delete Scheduled Medication Modal -->
 @foreach (var prescription in Model.ScheduledPrescriptions)
 {
-    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel >= 5))
+    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.IsScheduledMedication))
     {
-        <div class="modal fade" id="deleteScheduledModal-@pm.PrescriptionId-@pm.MedicationId" tabindex="-1">
+        <div class="modal fade" id="deleteScheduledModal-@prescription.PrescriptionId-@pm.MedicationId" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header text-white" style="background-color: #005b96;">
@@ -997,6 +845,7 @@
         </div>
     }
 }
+
 
 <!-- ================== Edit Vital Modals ================== -->
 @foreach (var v in Model.VitalSigns)
