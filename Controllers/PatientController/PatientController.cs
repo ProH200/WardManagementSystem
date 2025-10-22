@@ -42,8 +42,10 @@ namespace Wellness_Wardens_Project.Controllers
             var patient = await _context.Patients
                 .Include(p => p.VitalSigns)
                 .Include(p => p.Treatments)
-                .Include(p => p.Allergies)
-                .Include(p => p.MedicalConditions)
+                .Include(p => p.PatientAllergies)  // Changed from Allergies
+                    .ThenInclude(pa => pa.Allergy)  // Include the actual Allergy
+                .Include(p => p.PatientMedicalConditions)  // Changed from MedicalConditions
+                    .ThenInclude(pmc => pmc.MedicalCondition)  // Include the actual MedicalCondition
                 .Include(p => p.DoctorVisits)
                 .Include(p => p.Prescriptions)
                     .ThenInclude(pr => pr.PrescriptionMedications)
@@ -54,6 +56,12 @@ namespace Wellness_Wardens_Project.Controllers
                     .ThenInclude(pa => pa.Employee)
                 .Include(p => p.PatientAdmissions)
                     .ThenInclude(pa => pa.PatientMovements)
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.Discharges)  // Include Discharges
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.Bed)  // Include Bed
+                        .ThenInclude(b => b.Room)  // Include Room
+                            .ThenInclude(r => r.Ward)  // Include Ward
                 .FirstOrDefaultAsync(p => p.PatientId == id);
 
             if (patient == null) return NotFound();
@@ -91,8 +99,23 @@ namespace Wellness_Wardens_Project.Controllers
 
             // Get admissions data
             var admissions = patient.PatientAdmissions?.Where(a => !a.IsDeleted).ToList() ?? new List<PatientAdmission>();
-            var allergies = patient.Allergies.Where(a => !a.IsDeleted).ToList();
-            var medicalConditions = patient.MedicalConditions.Where(a => !a.IsDeleted).ToList();
+
+            // Find current admission (not discharged) - using Discharges navigation property
+            var currentAdmission = admissions
+                .Where(a => !a.Discharges.Any(d => !d.IsDeleted))  // No active discharge records
+                .OrderByDescending(a => a.AdmissionDate)
+                .FirstOrDefault();
+
+            // Get allergies and medical conditions from junction tables
+            var allergies = patient.PatientAllergies?
+                .Where(pa => !pa.IsDeleted)
+                .Select(pa => pa.Allergy)
+                .ToList() ?? new List<Allergy>();
+
+            var medicalConditions = patient.PatientMedicalConditions?
+                .Where(pmc => !pmc.IsDeleted)
+                .Select(pmc => pmc.MedicalCondition)
+                .ToList() ?? new List<MedicalCondition>();
 
             var model = new PatientFolderViewModel
             {
@@ -102,7 +125,7 @@ namespace Wellness_Wardens_Project.Controllers
                 ScheduledMedications = scheduledMeds,
                 NonScheduledPrescriptions = nonScheduledPrescriptions,
                 ScheduledPrescriptions = scheduledPrescriptions,
-                VisitNotes = visitNotes,  // Add the separately loaded visit notes
+                VisitNotes = visitNotes,
                 VitalSigns = patient.VitalSigns.Where(v => !v.IsDeleted).ToList(),
                 Treatments = patient.Treatments.Where(t => !t.IsDeleted).ToList(),
                 DoctorVisits = patient.DoctorVisits.Where(d => !d.IsDeleted).ToList(),
@@ -110,13 +133,16 @@ namespace Wellness_Wardens_Project.Controllers
                 MedicalConditions = medicalConditions,
                 Prescriptions = prescriptions,
                 Admissions = admissions,
+                CurrentAdmission = currentAdmission, // Set the current admission
+                IsCurrentlyAdmitted = currentAdmission != null, // Set admission status
 
                 NewVitalSign = new VitalSigns { PatientId = patient.PatientId },
                 NewTreatment = new Treatment { PatientId = patient.PatientId },
                 NewDoctorVisit = new DoctorVisit { PatientId = patient.PatientId },
                 NewPrescription = new Prescription { PatientId = patient.PatientId },
-                NewAllergy = new Allergy { PatientId = patient.PatientId },
-                NewMedicalCondition = new MedicalCondition { PatientId = patient.PatientId },
+                // Remove these since we're using junction tables now
+                // NewAllergy = new Allergy { PatientId = patient.PatientId },
+                // NewMedicalCondition = new MedicalCondition { PatientId = patient.PatientId },
                 NewAdmission = new PatientAdmission
                 {
                     PatientId = patient.PatientId,
@@ -126,8 +152,26 @@ namespace Wellness_Wardens_Project.Controllers
 
             ViewBag.PatientId = id;
             ViewBag.Employees = employees;
+
+            // Add current location to ViewBag for easy access in the view
+            if (currentAdmission != null && currentAdmission.Bed != null)
+            {
+                ViewBag.CurrentWard = currentAdmission.Bed.Room?.Ward?.Name;
+                ViewBag.CurrentRoom = currentAdmission.Bed.Room?.RoomNumber;
+                ViewBag.CurrentBed = currentAdmission.Bed?.BedNumber;
+                ViewBag.CurrentLocation = $"{currentAdmission.Bed.Room?.Ward?.Name} - Room {currentAdmission.Bed.Room?.RoomNumber} - Bed {currentAdmission.Bed?.BedNumber}";
+            }
+            else
+            {
+                ViewBag.CurrentWard = "Not Admitted";
+                ViewBag.CurrentRoom = "N/A";
+                ViewBag.CurrentBed = "N/A";
+                ViewBag.CurrentLocation = "Not Currently Admitted";
+            }
+
             return View(model);
         }
+
         // ======================
         // ====================== VITAL SIGNS ======================
         [HttpPost]

@@ -49,7 +49,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                     Name = model.Name,
                     Description = model.Description,
                     IsDeleted = false,
-                    PatientId = null,    // Explicitly set to null
                     EmployeeId = null   // Explicitly set to null
                 };
 

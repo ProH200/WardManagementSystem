@@ -17,9 +17,10 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
 
         public bool IsDeleted { get; set; } = false;
 
-        [ForeignKey(nameof(Patient))]
-        public int? PatientId { get; set; }
+        //[ForeignKey(nameof(Patient))]
+        //public int? PatientId { get; set; }
 
-        public virtual Patient Patient { get; set; }
+        //public virtual Patient Patient { get; set; }
+        public virtual ICollection<PatientMedicalCondition> PatientMedicalConditions { get; set; } = new List<PatientMedicalCondition>();
     }
 }

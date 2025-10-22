@@ -20,10 +20,11 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
         [ForeignKey(nameof(Employee))]
         public string? EmployeeId { get; set; }
 
-        [ForeignKey(nameof(Patient))]
-        public int? PatientId { get; set; }
+        //[ForeignKey(nameof(Patient))]
+        //public int? PatientId { get; set; }
 
-        public virtual Patient Patient { get; set; }
+        //public virtual Patient Patient { get; set; }
         public virtual Employee Employee { get; set; }
+        public virtual ICollection<PatientAllergy> PatientAllergies { get; set; } = new List<PatientAllergy>();
     }
 }

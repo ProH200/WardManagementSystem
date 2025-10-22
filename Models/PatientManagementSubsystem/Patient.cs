@@ -44,8 +44,8 @@ namespace Wellness_Wardens_Project.Models.PatientManagementSubsystem
         public bool IsDeleted { get; set; } = false;
         public string? EmployeeId { get; set; } 
         public virtual ICollection<PatientMedicalHistory> MedicalHistories { get; set; } = new List<PatientMedicalHistory>();
-        public virtual ICollection<MedicalCondition> MedicalConditions { get; set; }
-        public virtual ICollection<Allergy> Allergies { get; set; }
+        public virtual ICollection<PatientMedicalCondition> PatientMedicalConditions { get; set; } = new List<PatientMedicalCondition>();
+        public virtual ICollection<PatientAllergy> PatientAllergies { get; set; } = new List<PatientAllergy>();
         public virtual ICollection<Discharge> Discharges { get; set; }
         public virtual ICollection<PatientAdmission> PatientAdmissions { get; set; }
         public  virtual ICollection<Treatment> Treatments { get; set; }

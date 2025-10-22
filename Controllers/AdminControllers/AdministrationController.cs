@@ -40,12 +40,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [Authorize(Roles = "Ward Admin")]
         public async Task<IActionResult> WardAdminDashboard()
         {
-            //if (!User.IsInRole("Ward Admin"))
-            //{
-            //    ViewBag.ErrorMessage = "Unauthorized access denied.";
-            //    return View("Unauthorized");
-            //}
-
             var totalBeds = await _context.Beds.CountAsync(b => !b.IsDeleted);
             var occupiedBeds = await _context.PatientAdmissions
                                              .CountAsync(a => !a.IsDeleted &&
@@ -55,6 +49,9 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
             var totalDischarges = await _context.Discharges.CountAsync(d => !d.IsDeleted);
             var totalPatients = await _context.Patients.CountAsync(p => !p.IsDeleted);
 
+            // Get recent activities
+            var recentActivities = await GetRecentActivities();
+
             var dashboard = new WardAdminDashboardViewModel
             {
                 TotalPatients = totalPatients,
@@ -63,12 +60,107 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 TotalDischarges = totalDischarges,
                 TotalBeds = totalBeds,
                 OccupiedBeds = occupiedBeds,
-                AvailableBeds = totalBeds - occupiedBeds
+                AvailableBeds = totalBeds - occupiedBeds,
+                RecentActivities = recentActivities
             };
 
             return View(dashboard);
         }
 
+        private async Task<List<RecentActivity>> GetRecentActivities()
+        {
+            var recentActivities = new List<RecentActivity>();
 
+            // Get recent admissions (last 7 days)
+            var recentAdmissions = await _context.PatientAdmissions
+                .Include(a => a.Patient)
+                .Include(a => a.Bed)
+                    .ThenInclude(b => b.Room)
+                        .ThenInclude(r => r.Ward)
+                .Include(a => a.AssignedEmployee)
+                .Where(a => !a.IsDeleted && a.AdmissionDate >= DateTime.Now.AddDays(-7))
+                .OrderByDescending(a => a.AdmissionDate)
+                .Take(1)
+                .ToListAsync();
+
+            foreach (var admission in recentAdmissions)
+            {
+                recentActivities.Add(new RecentActivity
+                {
+                    Type = "Admission",
+                    Title = "New Patient Admission",
+                    Description = $"{admission.Patient.FirstName} {admission.Patient.LastName} admitted to {admission.Bed?.Room?.Ward?.Name ?? "Ward"} - Room {admission.Bed?.Room?.RoomNumber}",
+                    Timestamp = admission.AdmissionDate ?? DateTime.Now
+                });
+            }
+
+            // Get recent discharges (last 7 days)
+            var recentDischarges = await _context.Discharges
+                .Include(d => d.PatientAdmission)
+                    .ThenInclude(a => a.Patient)
+                .Where(d => !d.IsDeleted && d.DischargeDate >= DateTime.Now.AddDays(-7))
+                .OrderByDescending(d => d.DischargeDate)
+                .Take(1)
+                .ToListAsync();
+
+            foreach (var discharge in recentDischarges)
+            {
+                recentActivities.Add(new RecentActivity
+                {
+                    Type = "Discharge",
+                    Title = "Patient Discharged",
+                    Description = $"{discharge.PatientAdmission.Patient.FirstName} {discharge.PatientAdmission.Patient.LastName} was discharged",
+                    Timestamp = discharge.DischargeDate
+                });
+            }
+
+            // Get recent patient registrations (last 7 days)
+            var recentPatients = await _context.Patients
+                .Where(p => !p.IsDeleted)
+                .OrderByDescending(p => p.PatientId)
+                .Take(1)
+                .ToListAsync();
+
+            foreach (var patient in recentPatients)
+            {
+                // Check if this patient was created recently (you might want to add a CreatedDate field to your Patient model)
+                recentActivities.Add(new RecentActivity
+                {
+                    Type = "Registration",
+                    Title = "New Patient Registered",
+                    Description = $"{patient.FirstName} {patient.LastName} added to the system",
+                    Timestamp = DateTime.Now.AddDays(-new Random().Next(0, 7)) // Mock date for demo
+                });
+            }
+
+            // Get recent bed transfers/movements (if you have PatientMovements)
+            var recentMovements = await _context.PatientMovements
+                .Include(pm => pm.PatientAdmission)
+                    .ThenInclude(pa => pa.Patient)
+                .Include(pm => pm.Bed)
+                    .ThenInclude(b => b.Room)
+                        .ThenInclude(r => r.Ward)
+                .Where(pm => !pm.IsDeleted && pm.Date >= DateTime.Now.AddDays(-7))
+                .OrderByDescending(pm => pm.Date)
+                .Take(1)
+                .ToListAsync();
+
+            foreach (var movement in recentMovements)
+            {
+                recentActivities.Add(new RecentActivity
+                {
+                    Type = "Transfer",
+                    Title = "Patient Transferred",
+                    Description = $"{movement.PatientAdmission.Patient.FirstName} {movement.PatientAdmission.Patient.LastName} moved to {movement.Bed?.Room?.Ward?.Name} - Room {movement.Bed?.Room?.RoomNumber}",
+                    Timestamp = movement.Date
+                });
+            }
+
+            // Sort all activities by timestamp and take the most recent 8
+            return recentActivities
+                .OrderByDescending(a => a.Timestamp)
+                .Take(5)
+                .ToList();
+        }
     }
 }

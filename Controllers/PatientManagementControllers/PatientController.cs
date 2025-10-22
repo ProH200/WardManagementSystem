@@ -274,5 +274,186 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
             return RedirectToAction(nameof(GetHistory), new { patientId });
         }
+
+        //99999999999999999999999999999999999
+        // GET: Assign Conditions Modal
+        [HttpGet]
+        public async Task<IActionResult> GetAssignConditionsModal(int patientId)
+        {
+            var patient = await _context.Patients
+                .Include(p => p.PatientAllergies)
+                    .ThenInclude(pa => pa.Allergy)
+                .Include(p => p.PatientMedicalConditions)
+                    .ThenInclude(pmc => pmc.MedicalCondition)
+                .FirstOrDefaultAsync(p => p.PatientId == patientId && !p.IsDeleted);
+
+            if (patient == null)
+                return NotFound();
+
+            // Get all available allergies and medical conditions (not deleted)
+            var availableAllergies = await _context.Allergies
+                .Where(a => !a.IsDeleted)
+                .OrderBy(a => a.Name)
+                .ToListAsync();
+
+            var availableMedicalConditions = await _context.MedicalConditions
+                .Where(mc => !mc.IsDeleted)
+                .OrderBy(mc => mc.Name)
+                .ToListAsync();
+
+            // Get current patient's assigned items from junction tables
+            var currentPatientAllergies = patient.PatientAllergies?
+                .Where(pa => !pa.IsDeleted)
+                .Select(pa => pa.Allergy)
+                .ToList() ?? new List<Allergy>();
+
+            var currentPatientConditions = patient.PatientMedicalConditions?
+                .Where(pmc => !pmc.IsDeleted)
+                .Select(pmc => pmc.MedicalCondition)
+                .ToList() ?? new List<MedicalCondition>();
+
+            var viewModel = new AssignConditionsViewModel
+            {
+                PatientId = patientId,
+                PatientName = $"{patient.FirstName} {patient.LastName}",
+                AvailableAllergies = availableAllergies,
+                AvailableMedicalConditions = availableMedicalConditions,
+                CurrentPatientAllergies = currentPatientAllergies,
+                CurrentPatientConditions = currentPatientConditions
+            };
+
+            return PartialView("_AssignConditionsModal", viewModel);
+        }
+
+        // POST: Assign Conditions
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignConditions(AssignConditionsViewModel model)
+        {
+            try
+            {
+                var patient = await _context.Patients
+                    .Include(p => p.PatientAllergies)
+                    .Include(p => p.PatientMedicalConditions)
+                    .FirstOrDefaultAsync(p => p.PatientId == model.PatientId && !p.IsDeleted);
+
+                if (patient == null)
+                {
+                    return Json(new { success = false, message = "Patient not found." });
+                }
+
+                // Handle Allergies - Soft delete existing and add new ones
+                if (model.SelectedAllergyIds != null)
+                {
+                    // Soft delete all current patient allergies
+                    var currentPatientAllergies = patient.PatientAllergies?
+                        .Where(pa => !pa.IsDeleted)
+                        .ToList() ?? new List<PatientAllergy>();
+
+                    foreach (var patientAllergy in currentPatientAllergies)
+                    {
+                        patientAllergy.IsDeleted = true;
+                    }
+
+                    // Add new selected allergies
+                    foreach (var allergyId in model.SelectedAllergyIds)
+                    {
+                        var existingRecord = patient.PatientAllergies?
+                            .FirstOrDefault(pa => pa.AllergyId == allergyId && pa.IsDeleted);
+
+                        if (existingRecord != null)
+                        {
+                            // Reactivate soft-deleted record
+                            existingRecord.IsDeleted = false;
+                            existingRecord.DiagnosedDate = DateTime.Now;
+                        }
+                        else
+                        {
+                            // Create new record
+                            var patientAllergy = new PatientAllergy
+                            {
+                                PatientId = model.PatientId,
+                                AllergyId = allergyId,
+                                DiagnosedDate = DateTime.Now,
+                                IsDeleted = false
+                            };
+                            _context.PatientAllergies.Add(patientAllergy);
+                        }
+                    }
+                }
+                else
+                {
+                    // If no allergies selected, soft delete all existing ones
+                    var currentPatientAllergies = patient.PatientAllergies?
+                        .Where(pa => !pa.IsDeleted)
+                        .ToList() ?? new List<PatientAllergy>();
+
+                    foreach (var patientAllergy in currentPatientAllergies)
+                    {
+                        patientAllergy.IsDeleted = true;
+                    }
+                }
+
+                // Handle Medical Conditions - Soft delete existing and add new ones
+                if (model.SelectedMedicalConditionIds != null)
+                {
+                    // Soft delete all current patient medical conditions
+                    var currentPatientConditions = patient.PatientMedicalConditions?
+                        .Where(pmc => !pmc.IsDeleted)
+                        .ToList() ?? new List<PatientMedicalCondition>();
+
+                    foreach (var patientCondition in currentPatientConditions)
+                    {
+                        patientCondition.IsDeleted = true;
+                    }
+
+                    // Add new selected medical conditions
+                    foreach (var conditionId in model.SelectedMedicalConditionIds)
+                    {
+                        var existingRecord = patient.PatientMedicalConditions?
+                            .FirstOrDefault(pmc => pmc.MedicalConditionId == conditionId && pmc.IsDeleted);
+
+                        if (existingRecord != null)
+                        {
+                            // Reactivate soft-deleted record
+                            existingRecord.IsDeleted = false;
+                            existingRecord.DiagnosedDate = DateTime.Now;
+                        }
+                        else
+                        {
+                            // Create new record
+                            var patientCondition = new PatientMedicalCondition
+                            {
+                                PatientId = model.PatientId,
+                                MedicalConditionId = conditionId,
+                                DiagnosedDate = DateTime.Now,
+                                IsDeleted = false
+                            };
+                            _context.PatientMedicalConditions.Add(patientCondition);
+                        }
+                    }
+                }
+                else
+                {
+                    // If no conditions selected, soft delete all existing ones
+                    var currentPatientConditions = patient.PatientMedicalConditions?
+                        .Where(pmc => !pmc.IsDeleted)
+                        .ToList() ?? new List<PatientMedicalCondition>();
+
+                    foreach (var patientCondition in currentPatientConditions)
+                    {
+                        patientCondition.IsDeleted = true;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Conditions and allergies assigned successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
     }
 }

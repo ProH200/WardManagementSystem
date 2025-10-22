@@ -43,28 +43,30 @@ namespace Wellness_Wardens_Project.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var doctor = await _userManager.GetUserAsync(User);
-            if (doctor == null) return Unauthorized();
+            if (doctor == null)
+                return Unauthorized();
 
-            // Get the patient admission with all related data
+            // Get the specific patient with all their related data
             var admission = await _context.PatientAdmissions
                 .Include(a => a.Patient)
+                    .ThenInclude(p => p.PatientAllergies.Where(pa => !pa.IsDeleted))
+                        .ThenInclude(pa => pa.Allergy)  // Include the actual Allergy
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.PatientMedicalConditions.Where(pmc => !pmc.IsDeleted))
+                        .ThenInclude(pmc => pmc.MedicalCondition)  // Include the actual MedicalCondition
+                .Include(a => a.Patient)
                     .ThenInclude(p => p.MedicalHistories)
-                .Include(a => a.Patient)
-                    .ThenInclude(p => p.Allergies)
-                .Include(a => a.Patient)
-                    .ThenInclude(p => p.MedicalConditions)
                 .Include(a => a.Bed)
                     .ThenInclude(b => b.Room)
                         .ThenInclude(r => r.Ward)
                 .Include(a => a.AssignedEmployee)
-                .FirstOrDefaultAsync(a => a.PatientId == id &&
-                                          a.AssignedEmployeeId == doctor.Id &&
-                                          !a.IsDeleted);
+                .FirstOrDefaultAsync(a =>
+                    a.PatientId == id &&               // match the selected patient
+                    a.AssignedEmployeeId == doctor.Id &&
+                    !a.IsDeleted);
 
             if (admission == null)
-            {
                 return NotFound();
-            }
 
             return View(admission);
         }

@@ -74,14 +74,18 @@
                                     }
 
                                     <div class="d-flex justify-content mt-3">
-                                        <a asp-controller="Patient" asp-action="GetHistory" asp-route-patientId="@patient.PatientId" class="btn btn-sm btn-outline-info text-black">
-                                            <i class="bi bi-journal-medical"></i> View Medical History
+                                        <a asp-controller="Patient" asp-action="GetHistory" asp-route-patientId="@patient.PatientId" class="btn btn-sm btn-outline-info">
+                                            Medical History
                                         </a>
+                                        <button class="btn btn-sm btn-outline-warning ms-2"
+                                                onclick="openAssignConditionsModal(@patient.PatientId)">
+                                                Conditions
+                                        </button>
                                         <a asp-action="EditPatient" asp-route-id="@patient.PatientId" class="btn btn-sm btn-outline-primary ms-2">
-                                            <i class="bi bi-pencil-square"></i> Edit
+                                            Edit
                                         </a>
                                         <button class="btn btn-sm btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal-@patient.PatientId">
-                                            <i class="bi bi-trash3"></i> Delete
+                                           Delete
                                         </button>
                                     </div>
                                 </div>
@@ -89,6 +93,8 @@
                         </div>
                     </div>
 
+                    <!-- Modal Container -->
+                    <div id="modalContainer"></div>
 
                     <!-- Delete Modal -->
                     <div class="modal fade" id="deleteModal-@patient.PatientId" tabindex="-1">
@@ -132,7 +138,6 @@
 </div>
 
 @section Scripts {
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -167,13 +172,11 @@
             }
         });
 
-        // ✅ success message toast
         var successMessage = @Html.Raw(Json.Serialize(TempData["SuccessMessage"] ?? ""));
         if (successMessage) {
             showToast('success', successMessage);
         }
 
-        // ❌ validation errors toast
         @foreach (var modelState in ViewData.ModelState.Values)
         {
                 foreach (var error in modelState.Errors)
@@ -182,6 +185,18 @@
                             showToast('error', @Html.Raw(Json.Serialize(error.ErrorMessage)));
                         </text>
                 }
+        }
+    </script>
+    <script>
+        function openAssignConditionsModal(patientId) {
+            $.get('@Url.Action("GetAssignConditionsModal")', { patientId: patientId }, function (data) {
+                $('#modalContainer').html(data);
+                $('#assignConditionsModal').modal('show');
+            });
+        }
+
+        function showCurrentAssignments(patientId) {
+            console.log('Show assignments for patient: ' + patientId);
         }
     </script>
 }

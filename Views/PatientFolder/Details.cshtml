@@ -60,19 +60,20 @@
                     <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Allergies</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Patient.Allergies != null && Model.Patient.Allergies.Any(a => !a.IsDeleted))
+                    @if (Model.Patient.PatientAllergies != null && Model.Patient.PatientAllergies.Any(pa => !pa.IsDeleted))
                     {
                         <ul class="list-group list-group-flush">
-                            @foreach (var allergy in Model.Patient.Allergies.Where(a => !a.IsDeleted))
+                            @foreach (var patientAllergy in Model.Patient.PatientAllergies.Where(pa => !pa.IsDeleted))
                             {
                                 <li class="list-group-item px-0">
-                                    <strong>@allergy.Name</strong>
-                                    @if (!string.IsNullOrEmpty(allergy.Description))
+                                    <strong>@patientAllergy.Allergy.Name</strong>
+                                    @if (!string.IsNullOrEmpty(patientAllergy.Allergy.Description))
                                     {
                                         <br />
-                            
-                                        <small class="text-muted">@allergy.Description</small>
+                                        <small class="text-muted">@patientAllergy.Allergy.Description</small>
                                     }
+                                    <br />
+                                    <small class="text-muted">Diagnosed: @patientAllergy.DiagnosedDate.ToString("dd MMM yyyy")</small>
                                 </li>
                             }
                         </ul>
@@ -92,19 +93,20 @@
                     <h5 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>Medical Conditions</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Patient.MedicalConditions != null && Model.Patient.MedicalConditions.Any(mc => !mc.IsDeleted))
+                    @if (Model.Patient.PatientMedicalConditions != null && Model.Patient.PatientMedicalConditions.Any(pmc => !pmc.IsDeleted))
                     {
                         <ul class="list-group list-group-flush">
-                            @foreach (var condition in Model.Patient.MedicalConditions.Where(mc => !mc.IsDeleted))
+                            @foreach (var patientCondition in Model.Patient.PatientMedicalConditions.Where(pmc => !pmc.IsDeleted))
                             {
                                 <li class="list-group-item px-0">
-                                    <strong>@condition.Name</strong>
-                                    @if (!string.IsNullOrEmpty(condition.Description))
+                                    <strong>@patientCondition.MedicalCondition.Name</strong>
+                                    @if (!string.IsNullOrEmpty(patientCondition.MedicalCondition.Description))
                                     {
                                         <br />
-                            
-                                        <small class="text-muted">@condition.Description</small>
+                                        <small class="text-muted">@patientCondition.MedicalCondition.Description</small>
                                     }
+                                    <br />
+                                    <small class="text-muted">Diagnosed: @patientCondition.DiagnosedDate.ToString("dd MMM yyyy")</small>
                                 </li>
                             }
                         </ul>
@@ -190,14 +192,7 @@
 </div>
 
 <div class="d-flex justify-content-end mt-4 gap-2">
-    <!--Export to Pdf-->
-    <a asp-controller="Reports"
-       asp-action="GeneratePatientFolderWord"
-       asp-route-admissionId="@Model.AdmissionId"
-       class="btn btn-success">
-        <i class="bi bi-file-word me-1"></i>Export to Word
-    </a>
-    <!--Export to Word format-->
+    <!--Export to PDF format-->
     <a asp-controller="Reports"
        asp-action="GeneratePatientFolderPdf"
        asp-route-admissionId="@Model.AdmissionId"
@@ -205,6 +200,7 @@
         <i class="bi bi-file-pdf me-1"></i>Export to PDF
     </a>
 </div>
+
 <style>
     .timeline {
         position: relative;

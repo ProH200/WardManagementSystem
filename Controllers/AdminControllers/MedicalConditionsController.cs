@@ -40,6 +40,7 @@ public class MedicalConditionsController : Controller
     public async Task<IActionResult> AddCondition(MedicalCondition medicalCondition)
     {
         ModelState.Remove("Patient");
+        ModelState.Remove("PatientMedicalConditions"); // Remove this too if it exists
 
         if (ModelState.IsValid)
         {
@@ -53,8 +54,8 @@ public class MedicalConditionsController : Controller
                 return View(medicalCondition);
             }
 
-            // Ensure PatientId is null for master list
-            medicalCondition.PatientId = null;
+            // No need to set PatientId anymore - it's removed from the entity
+            // medicalCondition.PatientId = null; // REMOVE THIS LINE
 
             _context.MedicalConditions.Add(medicalCondition);
             await _context.SaveChangesAsync();
@@ -65,7 +66,6 @@ public class MedicalConditionsController : Controller
 
         return View(medicalCondition);
     }
-
     // GET - Edit Medical Condition
     [HttpGet]
     public async Task<IActionResult> EditCondition(int id)
@@ -88,6 +88,7 @@ public class MedicalConditionsController : Controller
     {
         ModelState.Remove("Patient");
        
+        if (ModelState.IsValid) 
         {
             bool exists = await _context.MedicalConditions
                 .AnyAsync(mc => mc.Name == medicalCondition.Name &&
@@ -96,12 +97,12 @@ public class MedicalConditionsController : Controller
 
             if (exists)
             {
-                ModelState.AddModelError("Name", "This medical condition already exists in the system.");
+                TempData["ErrorMessage"] = "Already exist.";
                 return View(medicalCondition);
             }
 
             // Ensure PatientId remains null
-            medicalCondition.PatientId = null;
+            //medicalCondition.PatientId = null;
 
             _context.Update(medicalCondition);
             await _context.SaveChangesAsync();
@@ -110,7 +111,7 @@ public class MedicalConditionsController : Controller
             return RedirectToAction(nameof(ManageConditions));
         }
 
-        TempData["ErrorMessage"] = $"Failed to Update '{medicalCondition.Name}'";
+        TempData["ErrorMessage"] = "Fail to update.";
         return RedirectToAction(nameof(ManageConditions));
     }
 

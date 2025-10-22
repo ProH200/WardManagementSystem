@@ -9,10 +9,7 @@ namespace Wellness_Wardens_Project.Data
 {
     public class ApplicationDbContext : IdentityDbContext<Employee>
     {
-
-
         public ApplicationDbContext(DbContextOptions options) : base(options) { }
-
 
         // Admin subsystem
         public DbSet<Allergy> Allergies { get; set; }
@@ -23,6 +20,10 @@ namespace Wellness_Wardens_Project.Data
         public DbSet<Medication> Medications { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<Ward> Wards { get; set; }
+
+        // NEW: Many-to-Many Junction Tables
+        public DbSet<PatientAllergy> PatientAllergies { get; set; }
+        public DbSet<PatientMedicalCondition> PatientMedicalConditions { get; set; }
 
         // Consumables & Prescription subsystem
         public DbSet<ConsumablesRequest> ConsumablesRequests { get; set; }
@@ -38,7 +39,6 @@ namespace Wellness_Wardens_Project.Data
         public DbSet<VitalSigns> VitalSigns { get; set; }
         public DbSet<PrescriptionMedication> PrescriptionMedications { get; set; } //Added
 
-
         // Patient Management subsystem
         public DbSet<Discharge> Discharges { get; set; }
         public DbSet<Patient> Patients { get; set; }
@@ -53,6 +53,60 @@ namespace Wellness_Wardens_Project.Data
         {
             base.OnModelCreating(builder);
 
+            // ========== MANY-TO-MANY RELATIONSHIPS ==========
+
+            // Patient ↔ Allergy (Many-to-Many)
+            builder.Entity<PatientAllergy>()
+                .HasKey(pa => pa.PatientAllergyId);
+
+            builder.Entity<PatientAllergy>()
+                .HasOne(pa => pa.Patient)
+                .WithMany(p => p.PatientAllergies)
+                .HasForeignKey(pa => pa.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PatientAllergy>()
+                .HasOne(pa => pa.Allergy)
+                .WithMany(a => a.PatientAllergies)
+                .HasForeignKey(pa => pa.AllergyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Patient ↔ MedicalCondition (Many-to-Many)
+            builder.Entity<PatientMedicalCondition>()
+                .HasKey(pmc => pmc.PatientMedicalConditionId);
+
+            builder.Entity<PatientMedicalCondition>()
+                .HasOne(pmc => pmc.Patient)
+                .WithMany(p => p.PatientMedicalConditions)
+                .HasForeignKey(pmc => pmc.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PatientMedicalCondition>()
+                .HasOne(pmc => pmc.MedicalCondition)
+                .WithMany(mc => mc.PatientMedicalConditions)
+                .HasForeignKey(pmc => pmc.MedicalConditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ========== EXISTING RELATIONSHIPS (UPDATED) ==========
+
+            // Remove the old one-to-many relationships for Patient-Allergy and Patient-MedicalCondition
+            // Comment out or remove these lines:
+            /*
+            builder.Entity<Patient>()
+                .HasMany(p => p.MedicalConditions)
+                .WithOne(mc => mc.Patient)
+                .HasForeignKey(mc => mc.PatientId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Patient>()
+                .HasMany(p => p.Allergies)
+                .WithOne(a => a.Patient)
+                .HasForeignKey(a => a.PatientId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+            */
+
             // PatientAdmission -> Discharge
             builder.Entity<Discharge>()
                 .HasOne(d => d.PatientAdmission)
@@ -62,8 +116,8 @@ namespace Wellness_Wardens_Project.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<PatientAdmission>()
-                .HasOne(pa => pa.Bed)                
-                .WithMany(b => b.PatientAdmissions)   
+                .HasOne(pa => pa.Bed)
+                .WithMany(b => b.PatientAdmissions)
                 .HasForeignKey(pa => pa.BedId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -100,7 +154,7 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Employee & Allergies (1:M)
+            // Employee & Allergies (1:M) - This stays for employee's own allergies
             builder.Entity<Employee>()
                 .HasMany(e => e.Allergies)
                 .WithOne(a => a.Employee)
@@ -181,7 +235,7 @@ namespace Wellness_Wardens_Project.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<PrescriptionMedication>()
-           .HasKey(pm => new { pm.PrescriptionId, pm.MedicationId });
+                .HasKey(pm => new { pm.PrescriptionId, pm.MedicationId });
 
             builder.Entity<PrescriptionMedication>()
                 .HasOne(pm => pm.Prescription)
@@ -235,22 +289,6 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Patient & MedicalConditions (1:M)
-            builder.Entity<Patient>()
-                .HasMany(p => p.MedicalConditions)
-                .WithOne(mc => mc.Patient)
-                .HasForeignKey(mc => mc.PatientId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Patient & Allergies (1:M)
-            builder.Entity<Patient>()
-                .HasMany(p => p.Allergies)
-                .WithOne(a => a.Patient)
-                .HasForeignKey(a => a.PatientId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-
             // Patient & PatientAdmissions (1:M)
             builder.Entity<Patient>()
                 .HasMany(p => p.PatientAdmissions)
@@ -267,7 +305,7 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            //patient & medical history (1:M)
+            // Patient & MedicalHistory (1:M)
             builder.Entity<PatientMedicalHistory>()
                 .HasOne(mh => mh.Patient)
                 .WithMany(p => p.MedicalHistories)
@@ -289,7 +327,7 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Patient & vitalSigns (1:M)
+            // Patient & VitalSigns (1:M)
             builder.Entity<Patient>()
                 .HasMany(e => e.VitalSigns)
                 .WithOne(cr => cr.Patient)
@@ -297,5 +335,6 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
         }
+
     }
 }

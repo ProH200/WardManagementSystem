@@ -1,6 +1,7 @@
-﻿using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -11,14 +12,14 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Wellness_Wardens_Project.Data;
+using Wellness_Wardens_Project.Models.AdministrationSubsystem;
 using Wellness_Wardens_Project.Models.ConsumablesSubsystem;
 using Wellness_Wardens_Project.ViewModels;
+using Excel = DocumentFormat.OpenXml.Spreadsheet;
+using QColors = QuestPDF.Helpers.Colors;
 using QDoc = QuestPDF.Fluent.Document;
 using WDocx = DocumentFormat.OpenXml.Wordprocessing.Document; // for Word
 using Word = DocumentFormat.OpenXml.Wordprocessing;
-using Excel = DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml;
-using QColors = QuestPDF.Helpers.Colors;
 
 namespace Wellness_Wardens_Project.Controllers
 {
@@ -830,9 +831,11 @@ namespace Wellness_Wardens_Project.Controllers
             {
                 var admission = await _context.PatientAdmissions
                     .Include(pa => pa.Patient)
-                        .ThenInclude(p => p.Allergies.Where(a => !a.IsDeleted))
+                        .ThenInclude(p => p.PatientAllergies.Where(pa => !pa.IsDeleted))
+                            .ThenInclude(pa => pa.Allergy)  // Include the actual Allergy
                     .Include(pa => pa.Patient)
-                        .ThenInclude(p => p.MedicalConditions.Where(mc => !mc.IsDeleted))
+                        .ThenInclude(p => p.PatientMedicalConditions.Where(pmc => !pmc.IsDeleted))
+                            .ThenInclude(pmc => pmc.MedicalCondition)  // Include the actual MedicalCondition
                     .Include(pa => pa.Patient)
                         .ThenInclude(p => p.MedicalHistories)
                     .Include(pa => pa.Bed)
@@ -844,6 +847,17 @@ namespace Wellness_Wardens_Project.Controllers
                 {
                     return NotFound("Patient admission not found");
                 }
+
+                // Extract allergies and medical conditions from junction tables
+                var allergies = admission.Patient.PatientAllergies?
+                    .Where(pa => !pa.IsDeleted)
+                    .Select(pa => pa.Allergy)
+                    .ToList() ?? new List<Allergy>();
+
+                var medicalConditions = admission.Patient.PatientMedicalConditions?
+                    .Where(pmc => !pmc.IsDeleted)
+                    .Select(pmc => pmc.MedicalCondition)
+                    .ToList() ?? new List<MedicalCondition>();
 
                 var document = QDoc.Create(container =>
                 {
@@ -910,9 +924,9 @@ namespace Wellness_Wardens_Project.Controllers
                                         allergyCol.Item().Text("⚠️ ALLERGIES").SemiBold().FontSize(12).FontColor(QColors.Red.Darken2);
                                         allergyCol.Spacing(5);
 
-                                        if (admission.Patient.Allergies != null && admission.Patient.Allergies.Any())
+                                        if (allergies.Any())
                                         {
-                                            foreach (var allergy in admission.Patient.Allergies)
+                                            foreach (var allergy in allergies)
                                             {
                                                 allergyCol.Item().Text($"• {allergy.Name}");
                                                 if (!string.IsNullOrEmpty(allergy.Description))
@@ -933,9 +947,9 @@ namespace Wellness_Wardens_Project.Controllers
                                         conditionCol.Item().Text("❤️ MEDICAL CONDITIONS").SemiBold().FontSize(12).FontColor(QColors.Orange.Darken2);
                                         conditionCol.Spacing(5);
 
-                                        if (admission.Patient.MedicalConditions != null && admission.Patient.MedicalConditions.Any())
+                                        if (medicalConditions.Any())
                                         {
-                                            foreach (var condition in admission.Patient.MedicalConditions)
+                                            foreach (var condition in medicalConditions)
                                             {
                                                 conditionCol.Item().Text($"• {condition.Name}");
                                                 if (!string.IsNullOrEmpty(condition.Description))
@@ -1065,7 +1079,6 @@ namespace Wellness_Wardens_Project.Controllers
             }
         }
 
-
         // 🏥 PATIENT FOLDER REPORT - WORD FORMAT
         [HttpGet]
         public async Task<IActionResult> GeneratePatientFolderWord(int admissionId)
@@ -1074,9 +1087,11 @@ namespace Wellness_Wardens_Project.Controllers
             {
                 var admission = await _context.PatientAdmissions
                     .Include(pa => pa.Patient)
-                        .ThenInclude(p => p.Allergies.Where(a => !a.IsDeleted))
+                        .ThenInclude(p => p.PatientAllergies.Where(pa => !pa.IsDeleted))
+                            .ThenInclude(pa => pa.Allergy)  // Include the actual Allergy
                     .Include(pa => pa.Patient)
-                        .ThenInclude(p => p.MedicalConditions.Where(mc => !mc.IsDeleted))
+                        .ThenInclude(p => p.PatientMedicalConditions.Where(pmc => !pmc.IsDeleted))
+                            .ThenInclude(pmc => pmc.MedicalCondition)  // Include the actual MedicalCondition
                     .Include(pa => pa.Patient)
                         .ThenInclude(p => p.MedicalHistories)
                     .Include(pa => pa.Bed)
@@ -1088,6 +1103,17 @@ namespace Wellness_Wardens_Project.Controllers
                 {
                     return NotFound("Patient admission not found");
                 }
+
+                // Extract allergies and medical conditions from junction tables
+                var allergies = admission.Patient.PatientAllergies?
+                    .Where(pa => !pa.IsDeleted)
+                    .Select(pa => pa.Allergy)
+                    .ToList() ?? new List<Allergy>();
+
+                var medicalConditions = admission.Patient.PatientMedicalConditions?
+                    .Where(pmc => !pmc.IsDeleted)
+                    .Select(pmc => pmc.MedicalCondition)
+                    .ToList() ?? new List<MedicalCondition>();
 
                 using var memoryStream = new MemoryStream();
 
@@ -1129,7 +1155,7 @@ namespace Wellness_Wardens_Project.Controllers
                 new { Label = "Date of Birth", Value = admission.Patient.DateOfBirth.ToString("dd MMM yyyy") },
                 new { Label = "Gender", Value = admission.Patient.Gender },
                 new { Label = "Phone Number", Value = admission.Patient.PhoneNumber },
-                new { Label = "Email", Value = admission.Patient.Email },
+                new { Label = "Email", Value = admission.Patient.Email ?? "Not provided" },
                 new { Label = "Emergency Contact", Value = admission.Patient.EmergencyContact },
                 new { Label = "Home Address", Value = admission.Patient.HomeAddress }
             };
@@ -1171,9 +1197,9 @@ namespace Wellness_Wardens_Project.Controllers
                     allergiesContent.AppendChild(CreateRun("ALLERGIES", 14, true, "C62828"));
                     allergiesContent.AppendChild(new Word.Run(new Word.Break())); // Line break
 
-                    if (admission.Patient.Allergies != null && admission.Patient.Allergies.Any())
+                    if (allergies.Any())
                     {
-                        foreach (var allergy in admission.Patient.Allergies)
+                        foreach (var allergy in allergies)
                         {
                             allergiesContent.AppendChild(CreateRun($"• {allergy.Name}", 12, true, "000000"));
                             allergiesContent.AppendChild(new Word.Run(new Word.Break()));
@@ -1200,9 +1226,9 @@ namespace Wellness_Wardens_Project.Controllers
                     conditionsContent.AppendChild(CreateRun("MEDICAL CONDITIONS", 14, true, "EF6C00"));
                     conditionsContent.AppendChild(new Word.Run(new Word.Break())); // Line break
 
-                    if (admission.Patient.MedicalConditions != null && admission.Patient.MedicalConditions.Any())
+                    if (medicalConditions.Any())
                     {
-                        foreach (var condition in admission.Patient.MedicalConditions)
+                        foreach (var condition in medicalConditions)
                         {
                             conditionsContent.AppendChild(CreateRun($"• {condition.Name}", 12, true, "000000"));
                             conditionsContent.AppendChild(new Word.Run(new Word.Break()));
@@ -1345,6 +1371,17 @@ namespace Wellness_Wardens_Project.Controllers
             }
         }
 
+        // Helper method for creating runs (text with formatting)
+        private Word.Run CreateRun(string text, int fontSize, bool bold, string color)
+        {
+            var runProps = new Word.RunProperties();
+            runProps.Append(new Word.FontSize { Val = (fontSize * 2).ToString() });
+            runProps.Append(new Word.Color { Val = color });
+            if (bold) runProps.Append(new Word.Bold());
+
+            return new Word.Run(runProps, new Word.Text(text));
+        }
+
         // Helper method for creating table cells with background color
         private Word.TableCell CreateTableCell(string text, bool isHeader, string backgroundColor = "FFFFFF")
         {
@@ -1362,17 +1399,6 @@ namespace Wellness_Wardens_Project.Controllers
             var paragraph = CreateParagraph(text, fontSize, fontWeight, fontColor);
             cell.AppendChild(paragraph);
             return cell;
-        }
-
-        // Helper method for creating runs (text with formatting)
-        private Word.Run CreateRun(string text, int fontSize, bool bold, string color)
-        {
-            var runProps = new Word.RunProperties();
-            runProps.Append(new Word.FontSize { Val = (fontSize * 2).ToString() });
-            runProps.Append(new Word.Color { Val = color });
-            if (bold) runProps.Append(new Word.Bold());
-
-            return new Word.Run(runProps, new Word.Text(text));
         }
     }
 }

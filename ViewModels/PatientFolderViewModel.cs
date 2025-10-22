@@ -9,9 +9,8 @@ namespace Wellness_Wardens_Project.ViewModels
     {
         public PatientAdmission Admission { get; set; }
         public List<PatientMedicalHistory> MedicalHistories { get; set; } = new();
-        public List<Allergy> Allergies { get; set; } = new();
-        public List<MedicalCondition> MedicalConditions { get; set; } = new();
-
+        public List<Allergy> Allergies { get; set; }
+        public List<MedicalCondition> MedicalConditions { get; set; }
         public Patient Patient { get; set; }
         public List<VitalSigns> VitalSigns { get; set; }
         public List<Treatment> Treatments { get; set; }
@@ -29,8 +28,8 @@ namespace Wellness_Wardens_Project.ViewModels
         public Treatment NewTreatment { get; set; } = new Treatment();
         public DoctorVisit NewDoctorVisit { get; set; } = new DoctorVisit();
         public Prescription NewPrescription { get; set; } = new Prescription();
-        public Allergy NewAllergy { get; set; } = new Allergy();
-        public MedicalCondition NewMedicalCondition { get; set; } = new MedicalCondition();
+        //public Allergy NewAllergy { get; set; } = new Allergy();
+        //public MedicalCondition NewMedicalCondition { get; set; } = new MedicalCondition();
 
         public List<PatientAdmission> Admissions { get; set; } = new List<PatientAdmission>();
         public PatientAdmission CurrentAdmission { get; set; } // Currently active admission

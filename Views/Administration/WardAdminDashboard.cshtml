@@ -45,6 +45,23 @@
     h2, h4, h5 {
         color: #1A1A2E;
     }
+
+    .activity-item {
+        border-left: 3px solid #0d6efd;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+
+    .activity-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .activity-badge {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        border-radius: 15px;
+    }
 </style>
 
 <div class="container-fluid mt-4">
@@ -156,7 +173,74 @@
         </div>
     </div>
 
-    <!-- Beds Summary (Keep as before) -->
+    <!-- Recent Activity Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>Recent Activity</span>
+                    <a href="#" class="btn btn-sm btn-light">View All</a>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentActivities != null && Model.RecentActivities.Any())
+                    {
+                        foreach (var activity in Model.RecentActivities)
+                        {
+                            <div class="activity-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>@activity.Title</strong> - @activity.Description
+                                        <div class="activity-time">@FormatTimeAgo(activity.Timestamp)</div>
+                                    </div>
+                                    <span class="badge @GetActivityBadgeClass(activity.Type) activity-badge">@activity.Type</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-clock-history fs-1"></i>
+                            <p class="mt-2">No recent activity to display</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @functions {
+        private string FormatTimeAgo(DateTime timestamp)
+        {
+            var timeSpan = DateTime.Now - timestamp;
+
+            if (timeSpan.TotalMinutes < 1)
+                return "Just now";
+            if (timeSpan.TotalHours < 1)
+                return $"{(int)timeSpan.TotalMinutes} minutes ago";
+            if (timeSpan.TotalDays < 1)
+                return $"{(int)timeSpan.TotalHours} hours ago";
+            if (timeSpan.TotalDays < 7)
+                return $"{(int)timeSpan.TotalDays} days ago";
+
+            return timestamp.ToString("MMM dd, yyyy 'at' h:mm tt");
+        }
+
+        private string GetActivityBadgeClass(string activityType)
+        {
+            return activityType?.ToLower() switch
+            {
+                "admission" => "bg-success",
+                "discharge" => "bg-info",
+                "registration" => "bg-primary",
+                "transfer" => "bg-warning text-dark",
+                "maintenance" => "bg-secondary",
+                _ => "bg-secondary"
+            };
+        }
+    }
+
+    <!-- Beds Summary -->
     <h4 class="fw-bold mb-3">Bed Status Summary</h4>
     <div class="row g-4">
         <div class="col-md-4">

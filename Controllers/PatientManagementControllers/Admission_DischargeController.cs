@@ -130,10 +130,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         [Authorize(Roles = "Ward Admin")]
         public IActionResult SelectPatient()
         {
-            if (!ModelState.IsValid)
-            {
-
-            }
             // Patients
             var patients = _context.Patients
                 .Where(p => !p.IsDeleted)
@@ -300,7 +296,9 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             if (model.RoomId != 0)
             {
                 model.Beds = await _context.Beds
-                    .Where(b => b.RoomId == model.RoomId && !b.IsDeleted)
+                    .Where(b => b.RoomId == model.RoomId &&
+                               !b.IsDeleted &&
+                               b.Status == "Available")
                     .Select(b => new SelectListItem { Value = b.BedId.ToString(), Text = b.BedNumber })
                     .ToListAsync();
             }
@@ -330,7 +328,9 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         public JsonResult GetBeds(int roomId)
         {
             var beds = _context.Beds
-                .Where(b => b.RoomId == roomId && !b.IsDeleted)
+                .Where(b => b.RoomId == roomId &&
+                           !b.IsDeleted &&
+                           b.Status == "Available")
                 .Select(b => new { b.BedId, b.BedNumber })
                 .ToList();
             return Json(beds);
@@ -354,6 +354,12 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             int wardId = admission.Bed?.Room?.WardId ?? 0;
             int roomId = admission.Bed?.RoomId ?? 0;
 
+            // Get available beds + current bed (even if occupied)
+            var bedsQuery = _context.Beds
+                .Where(b => b.RoomId == roomId &&
+                           !b.IsDeleted &&
+                           (b.Status == "Available" || b.BedId == admission.BedId)); // Available OR current bed
+
             var model = new PatientAdmissionViewModel
             {
                 AdmissionId = admission.AdmissionId,
@@ -375,9 +381,12 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                     .Select(r => new SelectListItem { Value = r.RoomId.ToString(), Text = r.RoomNumber })
                     .ToListAsync(),
 
-                Beds = await _context.Beds
-                    .Where(b => b.RoomId == roomId && !b.IsDeleted)
-                    .Select(b => new SelectListItem { Value = b.BedId.ToString(), Text = b.BedNumber })
+                Beds = await bedsQuery
+                    .Select(b => new SelectListItem
+                    {
+                        Value = b.BedId.ToString(),
+                        Text = b.BedNumber + (b.Status == "Occupied" ? " (Currently Occupied)" : "")
+                    })
                     .ToListAsync(),
 
                 Employees = await _context.Employees
@@ -399,17 +408,10 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             ModelState.Remove("Wards");
             ModelState.Remove("PatientName");
 
-            var isValid = ModelState.IsValid;
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-
-            Console.WriteLine($"ModelState is valid: {isValid}");
-            Console.WriteLine($"Errors: {string.Join(", ", errors)}");
-
-
             if (ModelState.IsValid)
             {
                 var admission = await _context.PatientAdmissions.Include(a => a.Bed)
-                .FirstOrDefaultAsync(a => a.AdmissionId == model.AdmissionId);
+                    .FirstOrDefaultAsync(a => a.AdmissionId == model.AdmissionId);
 
                 if (admission == null)
                 {
@@ -420,11 +422,21 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 // Update bed status if changed
                 if (admission.BedId != model.BedId)
                 {
+                    // Free up the old bed
                     var oldBed = await _context.Beds.FindAsync(admission.BedId);
-                    if (oldBed != null) oldBed.Status = "Available";
+                    if (oldBed != null)
+                    {
+                        oldBed.Status = "Available";
+                        _context.Beds.Update(oldBed);
+                    }
 
+                    // Occupy the new bed
                     var newBed = await _context.Beds.FindAsync(model.BedId);
-                    if (newBed != null) newBed.Status = "Occupied";
+                    if (newBed != null)
+                    {
+                        newBed.Status = "Occupied";
+                        _context.Beds.Update(newBed);
+                    }
                 }
 
                 admission.BedId = model.BedId;
@@ -437,7 +449,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
                 TempData["SuccessMessage"] = "Admission updated successfully!";
                 return RedirectToAction("Admissions");
-            
             }
 
             TempData["ErrorMessage"] = "Please fix validation errors.";
