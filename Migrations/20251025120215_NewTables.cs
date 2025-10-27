@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Wellness_Wardens_Project.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateTables : Migration
+    public partial class NewTables : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,6 +23,21 @@ namespace Wellness_Wardens_Project.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedicalConditions",
+                columns: table => new
+                {
+                    MedicalConditionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MedicalConditions", x => x.MedicalConditionId);
                 });
 
             migrationBuilder.CreateTable(
@@ -110,28 +125,6 @@ namespace Wellness_Wardens_Project.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MedicalConditions",
-                columns: table => new
-                {
-                    MedicalConditionId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    PatientId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MedicalConditions", x => x.MedicalConditionId);
-                    table.ForeignKey(
-                        name: "FK_MedicalConditions_Patients_PatientId",
-                        column: x => x.PatientId,
-                        principalTable: "Patients",
-                        principalColumn: "PatientId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MedicalHistories",
                 columns: table => new
                 {
@@ -148,6 +141,34 @@ namespace Wellness_Wardens_Project.Migrations
                     table.PrimaryKey("PK_MedicalHistories", x => x.Id);
                     table.ForeignKey(
                         name: "FK_MedicalHistories_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "PatientId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PatientMedicalConditions",
+                columns: table => new
+                {
+                    PatientMedicalConditionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PatientId = table.Column<int>(type: "int", nullable: false),
+                    MedicalConditionId = table.Column<int>(type: "int", nullable: false),
+                    DiagnosedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PatientMedicalConditions", x => x.PatientMedicalConditionId);
+                    table.ForeignKey(
+                        name: "FK_PatientMedicalConditions_MedicalConditions_MedicalConditionId",
+                        column: x => x.MedicalConditionId,
+                        principalTable: "MedicalConditions",
+                        principalColumn: "MedicalConditionId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PatientMedicalConditions_Patients_PatientId",
                         column: x => x.PatientId,
                         principalTable: "Patients",
                         principalColumn: "PatientId",
@@ -225,7 +246,7 @@ namespace Wellness_Wardens_Project.Migrations
                     RoomNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     RoomType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    WardId = table.Column<int>(type: "int", nullable: true)
+                    WardId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -247,8 +268,7 @@ namespace Wellness_Wardens_Project.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    PatientId = table.Column<int>(type: "int", nullable: true)
+                    EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -258,12 +278,6 @@ namespace Wellness_Wardens_Project.Migrations
                         column: x => x.EmployeeId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Allergies_Patients_PatientId",
-                        column: x => x.PatientId,
-                        principalTable: "Patients",
-                        principalColumn: "PatientId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -590,6 +604,34 @@ namespace Wellness_Wardens_Project.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PatientAllergies",
+                columns: table => new
+                {
+                    PatientAllergyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PatientId = table.Column<int>(type: "int", nullable: false),
+                    AllergyId = table.Column<int>(type: "int", nullable: false),
+                    DiagnosedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PatientAllergies", x => x.PatientAllergyId);
+                    table.ForeignKey(
+                        name: "FK_PatientAllergies_Allergies_AllergyId",
+                        column: x => x.AllergyId,
+                        principalTable: "Allergies",
+                        principalColumn: "AllergyId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PatientAllergies_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "PatientId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Consumables",
                 columns: table => new
                 {
@@ -622,6 +664,47 @@ namespace Wellness_Wardens_Project.Migrations
                         column: x => x.WardId,
                         principalTable: "Wards",
                         principalColumn: "WardId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PatientMedications",
+                columns: table => new
+                {
+                    PatientMedicationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PatientId = table.Column<int>(type: "int", nullable: false),
+                    MedicationId = table.Column<int>(type: "int", nullable: false),
+                    EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    AssignmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Dosage = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Frequency = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    QuantityAssigned = table.Column<int>(type: "int", nullable: false),
+                    DurationDays = table.Column<int>(type: "int", nullable: false),
+                    AdministrationNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PatientMedications", x => x.PatientMedicationId);
+                    table.ForeignKey(
+                        name: "FK_PatientMedications_AspNetUsers_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PatientMedications_Medications_MedicationId",
+                        column: x => x.MedicationId,
+                        principalTable: "Medications",
+                        principalColumn: "MedicationId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PatientMedications_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "PatientId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -789,11 +872,6 @@ namespace Wellness_Wardens_Project.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Allergies_PatientId",
-                table: "Allergies",
-                column: "PatientId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
                 column: "RoleId");
@@ -898,11 +976,6 @@ namespace Wellness_Wardens_Project.Migrations
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MedicalConditions_PatientId",
-                table: "MedicalConditions",
-                column: "PatientId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_MedicalHistories_PatientId",
                 table: "MedicalHistories",
                 column: "PatientId");
@@ -930,6 +1003,41 @@ namespace Wellness_Wardens_Project.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_PatientAdmissions_PatientId",
                 table: "PatientAdmissions",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientAllergies_AllergyId",
+                table: "PatientAllergies",
+                column: "AllergyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientAllergies_PatientId",
+                table: "PatientAllergies",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedicalConditions_MedicalConditionId",
+                table: "PatientMedicalConditions",
+                column: "MedicalConditionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedicalConditions_PatientId",
+                table: "PatientMedicalConditions",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_EmployeeId",
+                table: "PatientMedications",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_MedicationId",
+                table: "PatientMedications",
+                column: "MedicationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_PatientId",
+                table: "PatientMedications",
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
@@ -1007,9 +1115,6 @@ namespace Wellness_Wardens_Project.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Allergies");
-
-            migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
             migrationBuilder.DropTable(
@@ -1037,10 +1142,16 @@ namespace Wellness_Wardens_Project.Migrations
                 name: "Instructions");
 
             migrationBuilder.DropTable(
-                name: "MedicalConditions");
+                name: "MedicalHistories");
 
             migrationBuilder.DropTable(
-                name: "MedicalHistories");
+                name: "PatientAllergies");
+
+            migrationBuilder.DropTable(
+                name: "PatientMedicalConditions");
+
+            migrationBuilder.DropTable(
+                name: "PatientMedications");
 
             migrationBuilder.DropTable(
                 name: "PatientMovements");
@@ -1065,6 +1176,12 @@ namespace Wellness_Wardens_Project.Migrations
 
             migrationBuilder.DropTable(
                 name: "ConsumablesRequests");
+
+            migrationBuilder.DropTable(
+                name: "Allergies");
+
+            migrationBuilder.DropTable(
+                name: "MedicalConditions");
 
             migrationBuilder.DropTable(
                 name: "PatientAdmissions");

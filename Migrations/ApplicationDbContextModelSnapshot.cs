@@ -445,6 +445,64 @@ namespace Wellness_Wardens_Project.Migrations
                     b.ToTable("Medications");
                 });
 
+            modelBuilder.Entity("Wellness_Wardens_Project.Models.AdministrationSubsystem.PatientMedication", b =>
+                {
+                    b.Property<int>("PatientMedicationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PatientMedicationId"));
+
+                    b.Property<string>("AdministrationNotes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Dosage")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmployeeId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MedicationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityAssigned")
+                        .HasColumnType("int");
+
+                    b.HasKey("PatientMedicationId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("MedicationId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("PatientMedications");
+                });
+
             modelBuilder.Entity("Wellness_Wardens_Project.Models.AdministrationSubsystem.PrescriptionMedication", b =>
                 {
                     b.Property<int>("PrescriptionId")
@@ -1261,6 +1319,32 @@ namespace Wellness_Wardens_Project.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("Wellness_Wardens_Project.Models.AdministrationSubsystem.PatientMedication", b =>
+                {
+                    b.HasOne("Wellness_Wardens_Project.Models.AdministrationSubsystem.Employee", "Employee")
+                        .WithMany("PatientMedications")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wellness_Wardens_Project.Models.AdministrationSubsystem.Medication", "Medication")
+                        .WithMany("PatientMedications")
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wellness_Wardens_Project.Models.PatientManagementSubsystem.Patient", "Patient")
+                        .WithMany("PatientMedications")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Medication");
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Wellness_Wardens_Project.Models.AdministrationSubsystem.PrescriptionMedication", b =>
                 {
                     b.HasOne("Wellness_Wardens_Project.Models.AdministrationSubsystem.Medication", "Medication")
@@ -1562,6 +1646,8 @@ namespace Wellness_Wardens_Project.Migrations
 
                     b.Navigation("PatientAdmissions");
 
+                    b.Navigation("PatientMedications");
+
                     b.Navigation("Prescriptions");
 
                     b.Navigation("ScheduleVisits");
@@ -1576,6 +1662,8 @@ namespace Wellness_Wardens_Project.Migrations
 
             modelBuilder.Entity("Wellness_Wardens_Project.Models.AdministrationSubsystem.Medication", b =>
                 {
+                    b.Navigation("PatientMedications");
+
                     b.Navigation("PrescriptionMedications");
 
                     b.Navigation("TreatmentMedications");
@@ -1620,6 +1708,8 @@ namespace Wellness_Wardens_Project.Migrations
                     b.Navigation("PatientAllergies");
 
                     b.Navigation("PatientMedicalConditions");
+
+                    b.Navigation("PatientMedications");
 
                     b.Navigation("Prescriptions");
 

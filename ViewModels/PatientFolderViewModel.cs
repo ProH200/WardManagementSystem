@@ -1,4 +1,5 @@
-﻿using Wellness_Wardens_Project.Models.AdministrationSubsystem;
+﻿using System.ComponentModel.DataAnnotations;
+using Wellness_Wardens_Project.Models.AdministrationSubsystem;
 using Wellness_Wardens_Project.Models.ConsumablesSubsystem;
 using Wellness_Wardens_Project.Models.PatientCareSubsystem;
 using Wellness_Wardens_Project.Models.PatientManagementSubsystem;
@@ -19,10 +20,10 @@ namespace Wellness_Wardens_Project.ViewModels
         public List<Medication> Medications { get; set; } = new List<Medication>();
 
         // Add these new properties
-        public List<Medication> NonScheduledMedications { get; set; } = new List<Medication>();
+        //public List<Medication> NonScheduledMedications { get; set; } = new List<Medication>();
         public List<Medication> ScheduledMedications { get; set; } = new List<Medication>();
-        public List<Prescription> NonScheduledPrescriptions { get; set; } = new List<Prescription>();
-        public List<Prescription> ScheduledPrescriptions { get; set; } = new List<Prescription>();
+        //public List<Prescription> NonScheduledPrescriptions { get; set; } = new List<Prescription>();
+        //public List<Prescription> ScheduledPrescriptions { get; set; } = new List<Prescription>();
 
         public VitalSigns NewVitalSign { get; set; } = new VitalSigns();
         public Treatment NewTreatment { get; set; } = new Treatment();
@@ -30,6 +31,9 @@ namespace Wellness_Wardens_Project.ViewModels
         public Prescription NewPrescription { get; set; } = new Prescription();
         //public Allergy NewAllergy { get; set; } = new Allergy();
         //public MedicalCondition NewMedicalCondition { get; set; } = new MedicalCondition();
+        public List<PatientMedication> NonScheduledAssignments { get; set; } = new List<PatientMedication>();
+        public List<PatientMedication> ScheduledAssignments { get; set; } = new List<PatientMedication>();
+        public PatientMedication NewMedicationAssignment { get; set; } = new PatientMedication();
 
         public List<PatientAdmission> Admissions { get; set; } = new List<PatientAdmission>();
         public PatientAdmission CurrentAdmission { get; set; } // Currently active admission
@@ -39,5 +43,30 @@ namespace Wellness_Wardens_Project.ViewModels
         public bool IsCurrentlyAdmitted { get; set; }
         public DateTime? DischargeDate { get; set; }
         public List<VisitNote> VisitNotes { get; set; } = new List<VisitNote>();
+
+        //assign medication
+        public int PatientId { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please select a medication")]
+        public int MedicationId { get; set; }
+
+        public DateTime AssignmentDate { get; set; }
+
+        [Required(ErrorMessage = "Dosage is required")]
+        public string Dosage { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Frequency is required")]
+        public string Frequency { get; set; } = string.Empty;
+
+        public string Notes { get; set; } = string.Empty;
+        public int Duration { get; set; }
+        public string Instructions { get; internal set; }
+        public int QuantityAssigned { get; set; }
+        public int DurationDays { get; set; }
+        public string AdministrationNotes { get; set; }
+        public Prescription RecentPrescription { get; set; }
+        public bool HasPrescriptions { get; set; }
+        public List<Medication> ScheduledAdministrations { get; set; } = new List<Medication>();
     }
 }

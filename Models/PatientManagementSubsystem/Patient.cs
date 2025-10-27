@@ -52,5 +52,6 @@ namespace Wellness_Wardens_Project.Models.PatientManagementSubsystem
         public virtual ICollection<DoctorVisit> DoctorVisits { get; set; }
         public virtual ICollection<Prescription> Prescriptions { get; set; }
         public virtual ICollection<VitalSigns> VitalSigns { get; set; }
+        public virtual ICollection<PatientMedication> PatientMedications { get; set; } = new List<PatientMedication>();
     }
 }

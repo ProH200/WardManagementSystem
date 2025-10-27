@@ -33,25 +33,22 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         {
             TempData["ReturnPage"] = "Admissions";
             
-            // Base query: all active admissions (not discharged)
             var admissionsQuery = _context.PatientAdmissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed)
                     .ThenInclude(b => b.Room)
                         .ThenInclude(r => r.Ward)
                 .Include(a => a.AssignedEmployee)
-                .Where(a => !a.IsDeleted && !a.Discharges.Any()); // Added discharge filter
+                .Where(a => !a.IsDeleted && !a.Discharges.Any());
 
             List<PatientAdmission> admissions;
 
             if (User.IsInRole("Admin"))
             {
-                // Admin sees all patients, even those without admissions
                 var allPatients = _context.Patients
                     .Where(p => !p.IsDeleted)
                     .ToList();
 
-                // Left join patients with active admissions only
                 admissions = allPatients
                     .GroupJoin(admissionsQuery,
                                p => p.PatientId,
@@ -65,12 +62,11 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                                    AssignedEmployee = null,
                                    Discharges = null
                                })
-                    .Where(a => a.Discharges == null) // Ensure we don't include discharged patients
+                    .Where(a => a.Discharges == null)
                     .ToList();
             }
             else
             {
-                // Ward Admin sees only existing active admissions
                 admissions = admissionsQuery.ToList();
             }
 
@@ -85,7 +81,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
             if (id.HasValue && id.Value != 0)
             {
-                // Normal admission details
                 admission = _context.PatientAdmissions
                     .Include(a => a.Patient)
                     .Include(a => a.Bed)
@@ -101,7 +96,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             }
             else if (patientId.HasValue)
             {
-                // For Admin: patient exists but no admission
                 var patient = _context.Patients.Find(patientId.Value);
                 if (patient == null) return NotFound();
 
@@ -125,19 +119,16 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         }
 
 
-        // GET: Select patient and prepare empty admission form
         [HttpGet]
         [Authorize(Roles = "Ward Admin")]
         public IActionResult SelectPatient()
         {
-            // Patients
             var patients = _context.Patients
                 .Where(p => !p.IsDeleted)
                 .Select(p => new { p.PatientId, FullName = p.FirstName + " " + p.LastName })
                 .ToList();
             ViewBag.Patients = new SelectList(patients, "PatientId", "FullName");
 
-            // Wards
             var wards = _context.Wards
                 .Where(w => !w.IsDeleted)
                 .Select(w => new SelectListItem
@@ -148,9 +139,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 .ToList();
             ViewBag.Wards = wards;
 
-            // Employees
             var employees = _context.Employees
-                .Where(e => !e.IsDeleted && (e.Role == "Doctor" || e.Role == "Nurse"))
+                .Where(e => !e.IsDeleted && (e.Role == "Doctor"))
                 .Select(e => new SelectListItem
                 {
                     Value = e.Id,

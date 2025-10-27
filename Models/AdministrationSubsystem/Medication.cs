@@ -27,6 +27,7 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
 
         // Many-to-many with Prescription
         public virtual ICollection<PrescriptionMedication> PrescriptionMedications { get; set; } = new List<PrescriptionMedication>();
+            public virtual ICollection<PatientMedication> PatientMedications { get; set; } = new List<PatientMedication>();
     }
 
 }

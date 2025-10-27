@@ -383,94 +383,7 @@
         </div>
     </div>
 
-    <!-- Non-Scheduled Medications Card -->
-    <div class="col-xl-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #005b96;">
-                <h5 class="mb-0"><i class="fas fa-pills me-2"></i>Non-Scheduled Medications</h5>
-                @if (User.IsInRole("Nurse"))
-                {
-                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addNonScheduledModal">
-                        <i class="fas fa-plus me-1"></i> Add
-                    </button>
-                }
-            </div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                @if (Model.NonScheduledPrescriptions != null && Model.NonScheduledPrescriptions.Any())
-                {
-                    foreach (var prescription in Model.NonScheduledPrescriptions)
-                    {
-                        <div class="prescription-item mb-3 p-3 border rounded">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h6 class="mb-1">
-                                        <i class="fas fa-calendar me-1"></i>
-                                        @prescription.DateWritten.ToString("MMM dd, yyyy")
-                                    </h6>
-                                    <small class="text-muted">
-                                        Administered by: @prescription.Employee?.FirstName @prescription.Employee?.LastName
-                                    </small>
-                                </div>
-                            </div>
-
-                            <div class="medication-list">
-                                @foreach (var pm in prescription.PrescriptionMedications.Where(pm => !pm.Medication.IsScheduledMedication))
-                                {
-                                    <div class="medication-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                        <div>
-                                            <strong>@pm.Medication.Name</strong>
-                                            <div class="text-muted small">
-                                                <div>Dosage: @pm.Dosage</div>
-                                                <div>Frequency: @pm.Frequency</div>
-                                                <div>Duration: @pm.DurationDays days</div>
-                                            </div>
-                                            @if (!string.IsNullOrEmpty(prescription.Instructions))
-                                            {
-                                                <div class="text-muted small mt-1">
-                                                    <strong>Instructions:</strong> @prescription.Instructions
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            
-                                            <div class="btn-group">
-                                                @if (User.IsInRole("Nurse"))
-                                                {
-                                                    <button class="btn btn-sm btn-outline-warning"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#editNonScheduledModal-@prescription.PrescriptionId-@pm.MedicationId">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#deleteNonScheduledModal-@prescription.PrescriptionId-@pm.MedicationId">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-pills fa-3x mb-3"></i>
-                        <p>No non-scheduled medications</p>
-                        @if (!User.IsInRole("Nurse"))
-                        {
-                            <small class="text-warning">Only nurses can administer non-scheduled medications</small>
-                        }
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- Scheduled Medications Card (Levels 5-10) -->
+    <!-- Scheduled Medications Card -->
     <div class="col-xl-6 mb-4">
         <div class="card h-100">
             <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #dc3545;">
@@ -478,67 +391,65 @@
                 @if (User.IsInRole("Nursing Sister"))
                 {
                     <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addScheduledModal">
-                        <i class="fas fa-plus me-1"></i> Add
+                        <i class="fas fa-syringe me-1"></i> Administer
                     </button>
                 }
             </div>
             <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                @if (Model.ScheduledPrescriptions != null && Model.ScheduledPrescriptions.Any())
+                @if (Model.ScheduledAssignments.Any())
                 {
-                    foreach (var prescription in Model.ScheduledPrescriptions)
+                    foreach (var assignment in Model.ScheduledAssignments)
                     {
-                        <div class="prescription-item mb-3 p-3 border rounded">
+                        <div class="administration-item mb-3 p-3 border rounded">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <h6 class="mb-1">
-                                        <i class="fas fa-calendar me-1"></i>
-                                        @prescription.DateWritten.ToString("MMM dd, yyyy")
+                                        <i class="fas fa-syringe me-1"></i>
+                                        @assignment.AssignmentDate.ToString("MMM dd, yyyy hh:mm tt")
                                     </h6>
                                     <small class="text-muted">
-                                        Administered by: @prescription.Employee?.FirstName @prescription.Employee?.LastName
+                                        Administered by: @assignment.Employee?.FirstName @assignment.Employee?.LastName
+                                        @if (assignment.Medication.ScheduleLevel > 4)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">Level @assignment.Medication.ScheduleLevel</span>
+                                        }
                                     </small>
                                 </div>
-                                
+                                <span class="badge bg-success">Administered</span>
                             </div>
 
-                            <div class="medication-list">
-                                @foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.IsScheduledMedication))
-                                {
-                                    <div class="medication-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                        <div>
-                                            <strong>@pm.Medication.Name</strong>
-                                            <div class="text-muted small">
-                                                <div>Dosage: @pm.Dosage</div>
-                                                <div>Frequency: @pm.Frequency</div>
-                                                <div>Duration: @pm.DurationDays days</div>
-                                            </div>
-                                            @if (!string.IsNullOrEmpty(prescription.Instructions))
+                            <div class="medication-details">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="text-primary">@assignment.Medication.Name</strong>
+                                        <div class="text-muted small mt-1">
+                                            <div><strong>Dosage:</strong> @assignment.Dosage</div>
+                                            <div><strong>Frequency:</strong> @assignment.Frequency</div>
+                                            <div><strong>Duration:</strong> @assignment.DurationDays day/s</div>
+                                            @if (!string.IsNullOrEmpty(assignment.AdministrationNotes))
                                             {
-                                                <div class="text-muted small mt-1">
-                                                    <strong>Instructions:</strong> @prescription.Instructions
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="d-flex align-items-center">
-
-                                            @if (User.IsInRole("Nursing Sister"))
-                                            {
-                                                <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-warning"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#editScheduledModal-@prescription.PrescriptionId-@pm.MedicationId">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#deleteScheduledModal-@prescription.PrescriptionId-@pm.MedicationId">
-                                                        <i class="fas fa-archive"></i>
-                                                    </button>
+                                                <div class="mt-1">
+                                                    <strong>Notes:</strong> @assignment.AdministrationNotes
                                                 </div>
                                             }
                                         </div>
                                     </div>
-                                }
+                                    @if (User.IsInRole("Nursing Sister"))
+                                    {
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editScheduledModal-@assignment.PatientMedicationId">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteScheduledModal-@assignment.PatientMedicationId">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
                     }
@@ -547,11 +458,349 @@
                 {
                     <div class="text-center text-muted py-4">
                         <i class="fas fa-prescription-bottle-alt fa-3x mb-3"></i>
-                        <p>No scheduled medications</p>
-                        @if (!User.IsInRole("Nursing Sister"))
+                        <p>No scheduled medications administered</p>
+                        @if (User.IsInRole("Nursing Sister"))
                         {
-                            <small class="text-warning">Only nursing sisters and doctors can administer scheduled medications</small>
+                            <small class="text-primary">Click the Administer button to add medication</small>
                         }
+                        else
+                        {
+                            <small class="text-warning">Only nursing sisters can administer scheduled medications</small>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Administer Scheduled Medication Modal -->
+    <div class="modal fade" id="addScheduledModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #dc3545;">
+                    <h5 class="modal-title">Administer Scheduled Medication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @using (Html.BeginForm("AdministerMedication", "Patient", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="PatientId" value="@ViewBag.PatientId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Scheduled Medication *</label>
+                            <select name="MedicationId" class="form-control" required>
+                                <option value="">Select Scheduled Medication</option>
+                                @foreach (var med in ViewBag.ScheduledMedications as List<Medication>)
+                                {
+                                    <option value="@med.MedicationId">@med.Name (Available: @med.QuantityAvailable)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Dosage *</label>
+                                    <input type="text" name="Dosage" class="form-control" placeholder="e.g., 500mg" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Frequency *</label>
+                                    <input type="text" name="Frequency" class="form-control" placeholder="e.g., Twice daily" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Duration (Days)</label>
+                                    <input type="number" name="DurationDays" class="form-control" min="0" value="0" />
+                                    <small class="text-muted">Set to 0 for single dose assignment</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity to Assign *</label>
+                                    <input type="number" name="QuantityAssigned" class="form-control" min="1" value="1" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Administration Notes</label>
+                            <textarea name="AdministrationNotes" class="form-control" rows="3"
+                                  placeholder="Additional instructions or notes..."></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-lg" style="background-color: #dc3545; color: white;">
+                                <i class="fas fa-syringe me-2"></i>Administer Medication
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non-Scheduled Medications Card -->
+    <div class="col-xl-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #005b96;">
+                <h5 class="mb-0"><i class="fas fa-pills me-2"></i>Non-Scheduled Medications</h5>
+                @if (User.IsInRole("Nurse"))
+                {
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#assignNonScheduledModal">
+                        <i class="fas fa-syringe me-1"></i> Administer
+                    </button>
+                }
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.NonScheduledAssignments != null && Model.NonScheduledAssignments.Any())
+                {
+                    foreach (var assignment in Model.NonScheduledAssignments)
+                    {
+                        <div class="assignment-item mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        @assignment.AssignmentDate.ToString("MMM dd, yyyy")
+                                    </h6>
+                                    <small class="text-muted">
+                                        Assigned by: @assignment.Employee?.FirstName @assignment.Employee?.LastName
+                                    </small>
+                                </div>
+                                <span class="badge bg-success">Administered</span>
+                            </div>
+
+                            <div class="medication-details">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@assignment.Medication.Name</strong>
+                                        <div class="text-muted small">
+                                            <div>Dosage: @assignment.Dosage</div>
+                                            <div>Frequency: @assignment.Frequency</div>
+                                            <div>Duration: @assignment.DurationDays days</div>
+                                            <div>Quantity: @assignment.QuantityAssigned</div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(assignment.AdministrationNotes))
+                                        {
+                                            <div class="text-muted small mt-1">
+                                                <strong>Notes:</strong> @assignment.AdministrationNotes
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="btn-group">
+                                            @if (User.IsInRole("Nurse"))
+                                            {
+                                                <button class="btn btn-sm btn-outline-warning"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editNonScheduledModal-@assignment.PatientMedicationId">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteNonScheduledModal-@assignment.PatientMedicationId">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-pills fa-3x mb-3"></i>
+                        <p>No non-scheduled medications assigned</p>
+                        @if (User.IsInRole("Nurse"))
+                        {
+                            <small>Click the "Assign" button to add non-scheduled medications</small>
+                        }
+                        else
+                        {
+                            <small class="text-warning">Only nurses can assign non-scheduled medications</small>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* <!-- Scheduled Medications Card -->
+    <div class="col-xl-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #dc3545;">
+                <h5 class="mb-0"><i class="fas fa-prescription-bottle-alt me-2"></i>Scheduled Medications</h5>
+                @if (User.IsInRole("Nursing Sister"))
+                {
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addScheduledModal">
+                        <i class="fas fa-syringe me-1"></i> Administer
+                    </button>
+                }
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.ScheduledAssignments.Any())
+                {
+                    foreach (var assignment in Model.ScheduledAssignments)
+                    {
+                        <div class="administration-item mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-syringe me-1"></i>
+                                        @assignment.AssignmentDate.ToString("MMM dd, yyyy hh:mm tt")
+                                    </h6>
+                                    <small class="text-muted">
+                                        Administered by: @assignment.Employee?.FirstName @assignment.Employee?.LastName
+                                        @if (assignment.Medication.ScheduleLevel > 4)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">Level @assignment.Medication.ScheduleLevel</span>
+                                        }
+                                    </small>
+                                </div>
+                                <span class="badge bg-success">Administered</span>
+                            </div>
+
+                            <div class="medication-details">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="text-primary">@assignment.Medication.Name</strong>
+                                        <div class="text-muted small mt-1">
+                                            <div><strong>Dosage:</strong> @assignment.Dosage</div>
+                                            <div><strong>Frequency:</strong> @assignment.Frequency</div>
+                                            @if (!string.IsNullOrEmpty(assignment.AdministrationNotes))
+                                            {
+                                                <div class="mt-1">
+                                                    <strong>Notes:</strong> @assignment.AdministrationNotes
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (User.IsInRole("Nursing Sister"))
+                                    {
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editScheduledModal-@assignment.PatientMedicationId">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmDelete(@assignment.PatientMedicationId, '@assignment.Medication.Name')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-prescription-bottle-alt fa-3x mb-3"></i>
+                        <p>No scheduled medications administered</p>
+                        @if (User.IsInRole("Nursing Sister"))
+                        {
+                            <small class="text-primary">Click the Administer button to add medication</small>
+                        }
+                        else
+                        {
+                            <small class="text-warning">Only nursing sisters can administer scheduled medications</small>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div> *@
+
+    <!-- Recent Prescription Card -->
+    <div class="col-xl-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #28a745;">
+                <div>
+                    <i class="fas fa-prescription me-2"></i>
+                    <span>Recent Prescription</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentPrescription != null)
+                {
+                    var prescription = Model.RecentPrescription;
+
+                    <div class="prescription-details">
+                        <!-- Header with Date and Status -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h6 class="mb-1">@prescription.DateWritten.ToString("MMM dd, yyyy")</h6>
+                            </div>
+                        </div>
+
+                        <!-- Medications -->
+                        <div class="medications-section mb-3">
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-pills me-1"></i>Medications
+                            </h6>
+                            @if (prescription.PrescriptionMedications.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var pm in prescription.PrescriptionMedications)
+                                    {
+                                        <div class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h7 class="mb-1">@pm.Medication?.Name</h7>
+                                                @if (!string.IsNullOrEmpty(pm.Dosage))
+                                                {
+                                                    <small class="text-muted">@pm.Dosage</small>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small">No medications listed</p>
+                            }
+                        </div>
+
+                        <!-- General Instructions -->
+                        @if (!string.IsNullOrEmpty(prescription.Instructions))
+                        {
+                            <div class="instructions-section mb-3">
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>Instructions
+                                </h6>
+                                <div class="alert alert-info py-2">
+                                    <p class="mb-0 small">@prescription.Instructions</p>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Prescriber Information -->
+                        <div class="prescriber-info">
+                            <small class="text-muted">
+                                <i class="fas fa-user-md me-1"></i>
+                                Prescribed by: Dr. @prescription.Employee?.FirstName @prescription.Employee?.LastName
+                            </small>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-prescription fa-3x mb-3"></i>
+                        <h6>No Prescriptions</h6>
+                        <p class="small">No prescriptions found for this patient</p>
                     </div>
                 }
             </div>
@@ -615,236 +864,6 @@
         </div>
     </div>
 </div>
-<!-- Edit Non-Scheduled Medication Modal -->
-@foreach (var prescription in Model.NonScheduledPrescriptions)
-{
-    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel <= 4))
-    {
-        <div class="modal fade" id="editNonScheduledModal-@pm.PrescriptionId-@pm.MedicationId" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header text-white" style="background-color: #005b96;">
-                        <h5 class="modal-title">Edit Non-Scheduled Medication</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        @using (Html.BeginForm("EditPrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
-                        {
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="prescriptionId" value="@prescription.PrescriptionId" />
-                            <input type="hidden" name="medicationId" value="@pm.MedicationId" />
-
-                            <div class="mb-3">
-                                <label class="form-label">Medication</label>
-                                <select name="medicationId" class="form-control" required disabled>
-                                    <option value="@pm.MedicationId" selected>@pm.Medication.Name </option>
-                                </select>
-                                <small class="text-muted">Medication cannot be changed for existing prescriptions</small>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Dosage *</label>
-                                        <input type="text" name="dosage" class="form-control" value="@pm.Dosage" required />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frequency *</label>
-                                        <input type="text" name="frequency" class="form-control" value="@pm.Frequency" required />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Duration (Days) *</label>
-                                        <input type="number" name="durationDays" class="form-control" value="@pm.DurationDays" min="1" required />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Date</label>
-                                        <input type="date" class="form-control" value="@prescription.DateWritten.ToString("yyyy-MM-dd")" disabled />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Instructions</label>
-                                <textarea name="instructions" class="form-control" rows="3">@prescription.Instructions</textarea>
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
-                                    <i class="fas fa-save me-2"></i>Update Medication
-                                </button>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
-
-<!-- Delete Non-Scheduled Medication Modal -->
-@foreach (var prescription in Model.NonScheduledPrescriptions)
-{
-    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel <= 4))
-    {
-        <div class="modal fade" id="deleteNonScheduledModal-@pm.PrescriptionId-@pm.MedicationId" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header text-white" style="background-color: #005b96;">
-                        <h5 class="modal-title">Delete Non-Scheduled Medication</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to delete this medication record?</p>
-                        <div class="alert alert-warning">
-                            <strong>Medication Details:</strong><br>
-                            <strong>Name:</strong> @pm.Medication.Name<br>
-                            <strong>Dosage:</strong> @pm.Dosage<br>
-                            <strong>Frequency:</strong> @pm.Frequency<br>
-                            <strong>Duration:</strong> @pm.DurationDays days<br>
-                            <strong>Schedule Level:</strong> @pm.Medication.ScheduleLevel<br>
-                            <strong>Date Prescribed:</strong> @prescription.DateWritten.ToString("MMM dd, yyyy")
-                        </div>
-                        <p class="text-danger"><small>This action cannot be undone.</small></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        @using (Html.BeginForm("DeletePrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
-                        {
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn" style="background-color: #005b96; color: white;">Delete Medication</button>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
-
-<!-- Edit Scheduled Medication Modal -->
-    @foreach (var prescription in Model.ScheduledPrescriptions)
-    {
-        foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.IsScheduledMedication))
-        {
-            <div class="modal fade" id="editScheduledModal-@prescription.PrescriptionId-@pm.MedicationId" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header text-white" style="background-color: #005b96;">
-                            <h5 class="modal-title">Edit Scheduled Medication (Level 5-10)</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            @using (Html.BeginForm("EditPrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
-                            {
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="prescriptionId" value="@prescription.PrescriptionId" />
-                                <input type="hidden" name="medicationId" value="@pm.MedicationId" />
-
-                                <div class="mb-3">
-                                    <label class="form-label">Medication</label>
-                                <select name="medicationId" class="form-control" required disabled>
-                                        <option value="@pm.MedicationId" selected>@pm.Medication.Name </option>
-                                    </select>
-                                    <small class="text-muted">Medication cannot be changed for existing prescriptions</small>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Dosage *</label>
-                                            <input type="text" name="dosage" class="form-control" value="@pm.Dosage" required />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Frequency *</label>
-                                            <input type="text" name="frequency" class="form-control" value="@pm.Frequency" required />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Duration (Days) *</label>
-                                            <input type="number" name="durationDays" class="form-control" value="@pm.DurationDays" min="1" required />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Date Prescribed</label>
-                                            <input type="date" class="form-control" value="@prescription.DateWritten.ToString("yyyy-MM-dd")" disabled />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Instructions</label>
-                                    <textarea name="instructions" class="form-control" rows="3">@prescription.Instructions</textarea>
-                                </div>
-
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
-                                        <i class="fas fa-save me-2"></i>Update Scheduled Medication
-                                    </button>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-    }
-}
-
-<!-- Soft Delete Scheduled Medication Modal -->
-@foreach (var prescription in Model.ScheduledPrescriptions)
-{
-    foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.IsScheduledMedication))
-    {
-        <div class="modal fade" id="deleteScheduledModal-@prescription.PrescriptionId-@pm.MedicationId" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header text-white" style="background-color: #005b96;">
-                        <h5 class="modal-title">Archive Scheduled Medication</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to archive this scheduled medication record?</p>
-                        <div class="alert alert-warning">
-                            <strong>Medication Details:</strong><br>
-                            <strong>Name:</strong> @pm.Medication.Name<br>
-                            <strong>Schedule Level:</strong> @pm.Medication.ScheduleLevel<br>
-                            <strong>Dosage:</strong> @pm.Dosage<br>
-                            <strong>Frequency:</strong> @pm.Frequency<br>
-                            <strong>Duration:</strong> @pm.DurationDays days<br>
-                            <strong>Date Prescribed:</strong> @prescription.DateWritten.ToString("MMM dd, yyyy")<br>
-                            <strong>Prescribed by:</strong> @prescription.Employee?.FirstName @prescription.Employee?.LastName
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        @using (Html.BeginForm("DeletePrescription", "Patient", new { prescriptionId = prescription.PrescriptionId, medicationId = pm.MedicationId }, FormMethod.Post))
-                        {
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn" style="background-color: #005b96; color: white;">
-                                <i class="fas fa-archive me-1"></i>Delete Medication
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
 
 
 <!-- ================== Edit Vital Modals ================== -->
@@ -996,7 +1015,6 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="patientId" value="@Model.Patient.PatientId" />
 
-                    <!-- Add Recorded Date Field -->
                     <div class="mb-3">
                         <label class="form-label">Recorded Date & Time</label>
                         <input type="datetime-local" class="form-control" name="recordedDate"
@@ -1025,143 +1043,6 @@
     </div>
 </div>
 
-<!-- Add Non-Scheduled Medication Modal -->
-<div class="modal fade" id="addNonScheduledModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header text-white" style="background-color: #005b96;">
-                <h5 class="modal-title">Administer Non-Scheduled Medication</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                @using (Html.BeginForm("AddPrescription", "Patient", new { patientId = ViewBag.PatientId, medicationType = "nonScheduled" }, FormMethod.Post))
-                {
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="patientId" value="@ViewBag.PatientId" />
-                    <input type="hidden" name="medicationType" value="nonScheduled" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Select Non-Scheduled Medication *</label>
-                        <select name="medicationId" class="form-control" required>
-                            <option value="">Select Non-Scheduled Medication</option>
-                            @foreach (var med in ViewBag.NonScheduledMedications as List<Medication>)
-                            {
-                                <option value="@med.MedicationId">@med.Name</option>
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Rest of your form remains the same -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Dosage *</label>
-                                <input type="text" name="dosage" class="form-control" placeholder="e.g., 500mg" required />
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Frequency *</label>
-                                <input type="text" name="frequency" class="form-control" placeholder="e.g., Twice daily" required />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Duration (Days) *</label>
-                                <input type="number" name="durationDays" class="form-control" min="1" required />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Instructions</label>
-                        <textarea name="instructions" class="form-control" rows="3"
-                              placeholder="Additional instructions..."
-                              onkeypress="return allowOnlyText(event)"></textarea>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
-                            <i class="fas fa-save me-2"></i>Administer Medication
-                        </button>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Scheduled Medication Modal -->
-<div class="modal fade" id="addScheduledModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header text-white" style="background-color: #dc3545;">
-                <h5 class="modal-title">Administer Scheduled Medication</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                @using (Html.BeginForm("AddPrescription", "Patient", new { patientId = ViewBag.PatientId, medicationType = "scheduled" }, FormMethod.Post))
-                {
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="patientId" value="@ViewBag.PatientId" />
-                    <input type="hidden" name="medicationType" value="scheduled" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Select Scheduled Medication *</label>
-                        <select name="medicationId" class="form-control" required>
-                            <option value="">Select Scheduled Medication</option>
-                            @foreach (var med in ViewBag.ScheduledMedications as List<Medication>)
-                            {
-                                <option value="@med.MedicationId">@med.Name</option>
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Rest of your form (same as non-scheduled) -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Dosage *</label>
-                                <input type="text" name="dosage" class="form-control" placeholder="e.g., 500mg" required />
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Frequency *</label>
-                                <input type="text" name="frequency" class="form-control" placeholder="e.g., Twice daily" required />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Duration (Days) *</label>
-                                <input type="number" name="durationDays" class="form-control" min="1" required />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Instructions</label>
-                        <textarea name="instructions" class="form-control" rows="3"
-                              placeholder="Additional instructions..."
-                              onkeypress="return allowOnlyText(event)"></textarea>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-lg" style="background-color: #dc3545; color: white;">
-                            <i class="fas fa-save me-2"></i>Administer Medication
-                        </button>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- ================== Add Treatment Modal ================== -->
 
@@ -1193,6 +1074,309 @@
         </div>
     </div>
 </div>
+
+@* Assigning medication *@
+<!-- Edit Non-Scheduled Assigned Medication Modal -->
+@foreach (var assignment in Model.NonScheduledAssignments)
+{
+    <div class="modal fade" id="editNonScheduledModal-@assignment.PatientMedicationId" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #005b96;">
+                    <h5 class="modal-title">Edit Non-Scheduled Medication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @using (Html.BeginForm("EditAssignedMedication", "Patient", new { patientMedicationId = assignment.PatientMedicationId }, FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="patientMedicationId" value="@assignment.PatientMedicationId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Medication</label>
+                            <select class="form-control" disabled>
+                                <option value="@assignment.MedicationId" selected>@assignment.Medication.Name (Available: @assignment.Medication.QuantityAvailable)</option>
+                            </select>
+                            <small class="text-muted">Medication cannot be changed for existing assignments</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Dosage *</label>
+                                    <input type="text" name="dosage" class="form-control" value="@assignment.Dosage" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Frequency *</label>
+                                    <input type="text" name="frequency" class="form-control" value="@assignment.Frequency" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Duration (Days) *</label>
+                                    <input type="number" name="durationDays" class="form-control" value="@assignment.DurationDays" min="0" required />
+                                    <small class="text-muted">Set to 0 for single dose</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity Assigned</label>
+                                    <input type="number" class="form-control" value="@assignment.QuantityAssigned" disabled />
+                                    <small class="text-muted">Quantity cannot be changed</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Administration Notes</label>
+                            <textarea name="administrationNotes" class="form-control" rows="3">@assignment.AdministrationNotes</textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
+                                <i class="fas fa-save me-2"></i>Update Medication
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Soft Delete Non-Scheduled Assigned Medication Modal -->
+@foreach (var assignment in Model.NonScheduledAssignments)
+{
+    <div class="modal fade" id="deleteNonScheduledModal-@assignment.PatientMedicationId" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #005b96;">
+                    <h5 class="modal-title">Remove Non-Scheduled Medication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove this medication assignment?</p>
+                    <div class="alert alert-warning">
+                        <strong>Medication Details:</strong><br>
+                        <strong>Name:</strong> @assignment.Medication.Name<br>
+                        <strong>Dosage:</strong> @assignment.Dosage<br>
+                        <strong>Frequency:</strong> @assignment.Frequency<br>
+                        <strong>Duration:</strong> @assignment.DurationDays days<br>
+                        <strong>Quantity Assigned:</strong> @assignment.QuantityAssigned<br>
+                        <strong>Date Assigned:</strong> @assignment.AssignmentDate.ToString("MMM dd, yyyy")<br>
+                        <strong>Assigned by:</strong> @assignment.Employee?.Title @assignment.Employee?.LastName
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> @assignment.QuantityAssigned unit(s) will be returned to inventory.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @using (Html.BeginForm("SoftDeleteAssignedMedication", "Patient", new { patientMedicationId = assignment.PatientMedicationId }, FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn" style="background-color: #005b96; color: white;">
+                            <i class="fas fa-archive me-1"></i>Remove Medication
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Scheduled Assigned Medication Modal -->
+@foreach (var assignment in Model.ScheduledAssignments)
+{
+    <div class="modal fade" id="editScheduledModal-@assignment.PatientMedicationId" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #dc3545;">
+                    <h5 class="modal-title">Edit Scheduled Medication (Level 5-10)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @using (Html.BeginForm("EditAssignedMedication", "Patient", new { patientMedicationId = assignment.PatientMedicationId }, FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="patientMedicationId" value="@assignment.PatientMedicationId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Medication</label>
+                            <select class="form-control" disabled>
+                                <option value="@assignment.MedicationId" selected>@assignment.Medication.Name - Level @assignment.Medication.ScheduleLevel (Available: @assignment.Medication.QuantityAvailable)</option>
+                            </select>
+                            <small class="text-muted">Medication cannot be changed for existing assignments</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Dosage *</label>
+                                    <input type="text" name="dosage" class="form-control" value="@assignment.Dosage" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Frequency *</label>
+                                    <input type="text" name="frequency" class="form-control" value="@assignment.Frequency" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Duration (Days) *</label>
+                                    <input type="number" name="durationDays" class="form-control" value="@assignment.DurationDays" min="1" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity Assigned</label>
+                                    <input type="number" class="form-control" value="@assignment.QuantityAssigned" disabled />
+                                    <small class="text-muted">Quantity cannot be changed</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Administration Notes</label>
+                            <textarea name="administrationNotes" class="form-control" rows="3">@assignment.AdministrationNotes</textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-lg" style="background-color: #dc3545; color: white;">
+                                <i class="fas fa-save me-2"></i>Update Scheduled Medication
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Soft Delete Scheduled Assigned Medication Modal -->
+@foreach (var assignment in Model.ScheduledAssignments)
+{
+    <div class="modal fade" id="deleteScheduledModal-@assignment.PatientMedicationId" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #dc3545;">
+                    <h5 class="modal-title">Remove Scheduled Medication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove this scheduled medication assignment?</p>
+                    <div class="alert alert-warning">
+                        <strong>Medication Details:</strong><br>
+                        <strong>Name:</strong> @assignment.Medication.Name<br>
+                        <strong>Dosage:</strong> @assignment.Dosage<br>
+                        <strong>Frequency:</strong> @assignment.Frequency<br>
+                        <strong>Duration:</strong> @assignment.DurationDays days<br>
+                        <strong>Quantity Assigned:</strong> @assignment.QuantityAssigned<br>
+                        <strong>Date Assigned:</strong> @assignment.AssignmentDate.ToString("MMM dd, yyyy")<br>
+                        <strong>Assigned by:</strong> @assignment.Employee?.Title @assignment.Employee?.LastName
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> @assignment.QuantityAssigned unit(s) will be returned to inventory.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @using (Html.BeginForm("SoftDeleteAssignedMedication", "Patient", new { patientMedicationId = assignment.PatientMedicationId }, FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn" style="background-color: #dc3545; color: white;">
+                            <i class="fas fa-archive me-1"></i>Remove Medication
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Assign Non-Scheduled Medication Modal -->
+<div class="modal fade" id="assignNonScheduledModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background-color: #005b96;">
+                <h5 class="modal-title">Assign Non-Scheduled Medication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @using (Html.BeginForm("AssignMedication", "Patient", new { patientId = ViewBag.PatientId }, FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="patientId" value="@ViewBag.PatientId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Non-Scheduled Medication *</label>
+                        <select name="medicationId" class="form-control" required>
+                            <option value="">Select Non-Scheduled Medication</option>
+                            @foreach (var med in ViewBag.NonScheduledMedications as List<Medication>)
+                            {
+                                <option value="@med.MedicationId">@med.Name (Available: @med.QuantityAvailable)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Dosage *</label>
+                                <input type="text" name="dosage" class="form-control" placeholder="e.g., 500mg" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Frequency *</label>
+                                <input type="text" name="frequency" class="form-control" placeholder="e.g., Twice daily" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (Days)</label>
+                                <input type="number" name="durationDays" class="form-control" min="0" value="0" />
+                                <small class="text-muted">Set to 0 for single dose assignment</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity to Assign *</label>
+                                <input type="number" name="quantityAssigned" class="form-control" min="1" value="1" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Administration Notes</label>
+                        <textarea name="administrationNotes" class="form-control" rows="3"
+                              placeholder="Additional instructions or notes..."></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-lg" style="background-color: #005b96; color: white;">
+                            <i class="fas fa-paper-plane me-2"></i>Assign Medication
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    }
 
 @section Styles {
     <style>
@@ -1600,46 +1784,40 @@
             return html;
         }
 
-        function generateMedicationsSection() {
-            const nonScheduledCount = @Model.NonScheduledPrescriptions.Count;
-            const scheduledCount = @Model.ScheduledPrescriptions.Count;
+                function generateMedicationsSection() {
+                    const nonScheduledCount = @Model.NonScheduledAssignments.Count;
+                    const scheduledCount = @Model.ScheduledAssignments.Count;
 
-            let html = '<div style="margin-bottom: 20px;"><h4 style="color: #005b96;">Current Medications</h4>';
+                    let html = '<div style="margin-bottom: 20px;"><h4 style="color: #005b96;">Current Medications</h4>';
 
-            if (nonScheduledCount === 0 && scheduledCount === 0) {
-                html += '<p>No current medications</p></div>';
-                return html;
-            }
+                    if (nonScheduledCount === 0 && scheduledCount === 0) {
+                        html += '<p>No current medications</p></div>';
+                        return html;
+                    }
 
-            if (nonScheduledCount > 0) {
-                html += '<h5 style="color: #005b96; margin-top: 15px;">Non-Scheduled Medications (Level 1-4)</h5>';
-        @foreach (var prescription in Model.NonScheduledPrescriptions)
-        {
-            foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel <= 4))
-            {
-                <text>
-                            html += '<p style="margin: 5px 0;"><strong>@Html.Raw(pm.Medication.Name)</strong> - @Html.Raw(pm.Dosage), @Html.Raw(pm.Frequency), @pm.DurationDays days (Level @pm.Medication.ScheduleLevel)</p>';
-                </text>
-            }
-        }
-                            }
+                    if (nonScheduledCount > 0) {
+                        html += '<h5 style="color: #005b96; margin-top: 15px;">Non-Scheduled Medications (Level 1-4)</h5>';
+                        @foreach (var assignment in Model.NonScheduledAssignments)
+                        {
+                                <text>
+                                    html += '<p style="margin: 5px 0;"><strong>@Html.Raw(assignment.Medication.Name)</strong> - @Html.Raw(assignment.Dosage), @Html.Raw(assignment.Frequency), @assignment.DurationDays days, Qty: @assignment.QuantityAssigned (Level @assignment.Medication.ScheduleLevel)</p>';
+                                </text>
+                        }
+                    }
 
-            if (scheduledCount > 0) {
-                html += '<h5 style="color: #005b96; margin-top: 15px;">Scheduled Medications (Level 5-10)</h5>';
-        @foreach (var prescription in Model.ScheduledPrescriptions)
-        {
-            foreach (var pm in prescription.PrescriptionMedications.Where(pm => pm.Medication.ScheduleLevel >= 5))
-            {
-                <text>
-                            html += '<p style="margin: 5px 0;"><strong>@Html.Raw(pm.Medication.Name)</strong> - @Html.Raw(pm.Dosage), @Html.Raw(pm.Frequency), @pm.DurationDays days (Level @pm.Medication.ScheduleLevel)</p>';
-                </text>
-            }
-        }
-                            }
+                    if (scheduledCount > 0) {
+                        html += '<h5 style="color: #005b96; margin-top: 15px;">Scheduled Medications (Level 5-10)</h5>';
+                        @foreach (var assignment in Model.ScheduledAssignments)
+                        {
+                                <text>
+                                    html += '<p style="margin: 5px 0;"><strong>@Html.Raw(assignment.Medication.Name)</strong> - @Html.Raw(assignment.Dosage), @Html.Raw(assignment.Frequency), @assignment.DurationDays days, Qty: @assignment.QuantityAssigned (Level @assignment.Medication.ScheduleLevel)</p>';
+                                </text>
+                        }
+                    }
 
-            html += '</div>';
-            return html;
-        }
+                    html += '</div>';
+                    return html;
+                }
         function allowOnlyText(event) {
             const char = String.fromCharCode(event.which);
             // Allow letters, spaces, and basic punctuation
@@ -1686,8 +1864,80 @@
                 html += '</tbody></table></div>';
             return html;
         }
-
     </script>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <script>
+                // Universal toast notification function
+                function showUniversalToast(icon, title, message) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        background: '#fff',
+                        iconColor: getIconColor(icon),
+                        color: '#2c3e50',
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer);
+                            toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        }
+                    });
+
+                    Toast.fire({
+                        icon: icon,
+                        title: title,
+                        text: message
+                    });
+                }
+
+                // Get appropriate color for each icon type
+                function getIconColor(icon) {
+                    const colors = {
+                        'success': '#28a745',
+                        'error': '#dc3545',
+                        'warning': '#ffc107',
+                        'info': '#17a2b8',
+                        'question': '#6c757d'
+                    };
+                    return colors[icon] || '#6c757d';
+                }
+
+                // Check for TempData messages on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Success message
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                            <text>
+                            showUniversalToast('success', 'Success', '@Html.Raw(TempData["SuccessMessage"])');
+                            </text>
+                    }
+
+                    // Error message
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                            <text>
+                            showUniversalToast('error', 'Error', '@Html.Raw(TempData["ErrorMessage"])');
+                            </text>
+                    }
+
+                    // Warning message
+                    @if (TempData["WarningMessage"] != null)
+                    {
+                            <text>
+                            showUniversalToast('warning', 'Warning', '@Html.Raw(TempData["WarningMessage"])');
+                            </text>
+                    }
+
+                    // Info message
+                    @if (TempData["InfoMessage"] != null)
+                    {
+                            <text>
+                            showUniversalToast('info', 'Information', '@Html.Raw(TempData["InfoMessage"])');
+                            </text>
+                    }
+                });
+            </script>
 }
 
 @functions {

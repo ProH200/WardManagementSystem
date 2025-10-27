@@ -20,6 +20,7 @@ namespace Wellness_Wardens_Project.Data
         public DbSet<Medication> Medications { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<Ward> Wards { get; set; }
+        public DbSet<PatientMedication> PatientMedications { get; set; }
 
         // NEW: Many-to-Many Junction Tables
         public DbSet<PatientAllergy> PatientAllergies { get; set; }
@@ -87,25 +88,32 @@ namespace Wellness_Wardens_Project.Data
                 .HasForeignKey(pmc => pmc.MedicalConditionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Patient ↔ Medication (Many-to-Many) - NEW
+            builder.Entity<PatientMedication>()
+                .HasKey(pm => pm.PatientMedicationId);
+
+            builder.Entity<PatientMedication>()
+                .HasOne(pm => pm.Patient)
+                .WithMany(p => p.PatientMedications)
+                .HasForeignKey(pm => pm.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PatientMedication>()
+                .HasOne(pm => pm.Medication)
+                .WithMany(m => m.PatientMedications)
+                .HasForeignKey(pm => pm.MedicationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PatientMedication>()
+                .HasOne(pm => pm.Employee)
+                .WithMany(e => e.PatientMedications)
+                .HasForeignKey(pm => pm.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ========== EXISTING RELATIONSHIPS (UPDATED) ==========
 
             // Remove the old one-to-many relationships for Patient-Allergy and Patient-MedicalCondition
-            // Comment out or remove these lines:
-            /*
-            builder.Entity<Patient>()
-                .HasMany(p => p.MedicalConditions)
-                .WithOne(mc => mc.Patient)
-                .HasForeignKey(mc => mc.PatientId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<Patient>()
-                .HasMany(p => p.Allergies)
-                .WithOne(a => a.Patient)
-                .HasForeignKey(a => a.PatientId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-            */
+            // These should be commented out or removed since we're using many-to-many now
 
             // PatientAdmission -> Discharge
             builder.Entity<Discharge>()
@@ -146,7 +154,7 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Employee & Medications (1:M)  → stock management
+            // Employee & Medications (1:M) → stock management
             builder.Entity<Employee>()
                 .HasMany(e => e.Medications)
                 .WithOne(m => m.Employee)
@@ -161,6 +169,14 @@ namespace Wellness_Wardens_Project.Data
                 .HasForeignKey(a => a.EmployeeId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Employee & PatientMedications (1:M) - NEW
+            builder.Entity<Employee>()
+                .HasMany(e => e.PatientMedications)
+                .WithOne(pm => pm.Employee)
+                .HasForeignKey(pm => pm.EmployeeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Employee & PatientAdmissions (1:M)
             builder.Entity<Employee>()
@@ -234,6 +250,7 @@ namespace Wellness_Wardens_Project.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Prescription & PrescriptionMedications (Many-to-Many)
             builder.Entity<PrescriptionMedication>()
                 .HasKey(pm => new { pm.PrescriptionId, pm.MedicationId });
 

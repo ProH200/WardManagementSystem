@@ -275,7 +275,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             return RedirectToAction(nameof(GetHistory), new { patientId });
         }
 
-        //99999999999999999999999999999999999
         // GET: Assign Conditions Modal
         [HttpGet]
         public async Task<IActionResult> GetAssignConditionsModal(int patientId)
@@ -301,7 +300,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 .OrderBy(mc => mc.Name)
                 .ToListAsync();
 
-            // Get current patient's assigned items from junction tables
             var currentPatientAllergies = patient.PatientAllergies?
                 .Where(pa => !pa.IsDeleted)
                 .Select(pa => pa.Allergy)
@@ -342,10 +340,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                     return Json(new { success = false, message = "Patient not found." });
                 }
 
-                // Handle Allergies - Soft delete existing and add new ones
                 if (model.SelectedAllergyIds != null)
                 {
-                    // Soft delete all current patient allergies
                     var currentPatientAllergies = patient.PatientAllergies?
                         .Where(pa => !pa.IsDeleted)
                         .ToList() ?? new List<PatientAllergy>();
@@ -355,7 +351,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                         patientAllergy.IsDeleted = true;
                     }
 
-                    // Add new selected allergies
                     foreach (var allergyId in model.SelectedAllergyIds)
                     {
                         var existingRecord = patient.PatientAllergies?
@@ -363,13 +358,11 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
                         if (existingRecord != null)
                         {
-                            // Reactivate soft-deleted record
                             existingRecord.IsDeleted = false;
                             existingRecord.DiagnosedDate = DateTime.Now;
                         }
                         else
                         {
-                            // Create new record
                             var patientAllergy = new PatientAllergy
                             {
                                 PatientId = model.PatientId,
@@ -383,7 +376,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 }
                 else
                 {
-                    // If no allergies selected, soft delete all existing ones
                     var currentPatientAllergies = patient.PatientAllergies?
                         .Where(pa => !pa.IsDeleted)
                         .ToList() ?? new List<PatientAllergy>();
@@ -394,10 +386,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                     }
                 }
 
-                // Handle Medical Conditions - Soft delete existing and add new ones
                 if (model.SelectedMedicalConditionIds != null)
                 {
-                    // Soft delete all current patient medical conditions
                     var currentPatientConditions = patient.PatientMedicalConditions?
                         .Where(pmc => !pmc.IsDeleted)
                         .ToList() ?? new List<PatientMedicalCondition>();
@@ -407,7 +397,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                         patientCondition.IsDeleted = true;
                     }
 
-                    // Add new selected medical conditions
                     foreach (var conditionId in model.SelectedMedicalConditionIds)
                     {
                         var existingRecord = patient.PatientMedicalConditions?
@@ -415,13 +404,11 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
                         if (existingRecord != null)
                         {
-                            // Reactivate soft-deleted record
                             existingRecord.IsDeleted = false;
                             existingRecord.DiagnosedDate = DateTime.Now;
                         }
                         else
                         {
-                            // Create new record
                             var patientCondition = new PatientMedicalCondition
                             {
                                 PatientId = model.PatientId,
@@ -435,7 +422,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                 }
                 else
                 {
-                    // If no conditions selected, soft delete all existing ones
                     var currentPatientConditions = patient.PatientMedicalConditions?
                         .Where(pmc => !pmc.IsDeleted)
                         .ToList() ?? new List<PatientMedicalCondition>();
