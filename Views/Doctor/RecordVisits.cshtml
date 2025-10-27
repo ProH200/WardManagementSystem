@@ -56,16 +56,14 @@
         padding: 0.3rem 0.6rem;
         font-size: 0.8rem;
     }
+
+    .btn-group-sm > .btn {
+        border-radius: 8px;
+        margin: 0 2px;
+    }
 </style>
 
 <div class="container mt-4">
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -123,7 +121,7 @@
                                     @if (note.Assessment.Length > 50)
                                     {
                                         @note.Assessment.Substring(0, 50)
-                            
+
                                         <text>...</text>
                                     }
                                     else
@@ -133,11 +131,24 @@
                                 </td>
                                 <td>@note.CreatedAt.ToString("dd MMM yyyy")</td>
                                 <td class="text-center">
-                                    <a asp-action="VisitNoteDetails" asp-controller="DoctorVisit"
-                                       asp-route-id="@note.VisitNoteId"
-                                       class="btn btn-sm btn-outline-primary action-btn">
-                                        <i class="bi bi-eye me-1"></i> View
-                                    </a>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <!-- View Button -->
+                                        <a asp-action="VisitNoteDetails" asp-controller="DoctorVisit"
+                                           asp-route-id="@note.VisitNoteId"
+                                           class="btn btn-outline-primary action-btn"
+                                           data-bs-toggle="tooltip" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                        <!-- Delete Button with SweetAlert -->
+                                        <button type="button" class="btn btn-outline-danger action-btn delete-visitnote-btn"
+                                                data-visitnote-id="@note.VisitNoteId"
+                                                data-patient-name="@note.Patient?.FirstName @note.Patient?.LastName"
+                                                data-visit-date="@note.VisitDate.ToString("MMM dd, yyyy")"
+                                                data-bs-toggle="tooltip" title="Delete Note">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -148,25 +159,131 @@
     </div>
 </div>
 
+<!-- Hidden form for delete operations -->
+<form id="deleteVisitNoteForm" asp-action="DeleteVisitNote" asp-controller="DoctorVisit" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteVisitNoteId" />
+</form>
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Search functionality
-        document.addEventListener('DOMContentLoaded', function () {
+        // Function to show success toast
+        function showSuccessToast(message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+        }
+
+        // Function to show error toast
+        function showErrorToast(message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: message,
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+        }
+
+        // Simple working delete with form submission
+        function setupDeleteButtons() {
+            document.querySelectorAll('.delete-visitnote-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const visitNoteId = this.getAttribute('data-visitnote-id');
+                    const patientName = this.getAttribute('data-patient-name');
+                    const visitDate = this.getAttribute('data-visit-date');
+
+                    const visitNoteTitle = `${patientName} - ${visitDate}`;
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        html: `You are about to delete the visit note for:<br><strong>"${visitNoteTitle}"</strong><br><br>This action cannot be undone.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Set the ID and submit the hidden form
+                            document.getElementById('deleteVisitNoteId').value = visitNoteId;
+                            document.getElementById('deleteVisitNoteForm').submit();
+                        }
+                    });
+                });
+            });
+        }
+
+        // Initialize tooltips
+        function initializeTooltips() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        // Check for TempData messages on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            initializeTooltips();
+
+            // Setup delete buttons
+            setupDeleteButtons();
+
+            // Check for server-side TempData messages
+            @if (TempData["SuccessMessage"] != null)
+            {
+                    <text>showSuccessToast('@TempData["SuccessMessage"]');</text>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                    <text>showErrorToast('@TempData["ErrorMessage"]');</text>
+            }
+
+            // Search functionality
             const searchInput = document.getElementById('searchInput');
             const rows = document.querySelectorAll('#visitNotesGrid tr');
 
-            searchInput.addEventListener('input', function () {
-                const term = this.value.toLowerCase();
+            if (searchInput && rows.length > 0) {
+                searchInput.addEventListener('input', function () {
+                    const term = this.value.toLowerCase();
 
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    if (text.includes(term)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(term)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
                 });
-            });
+            }
         });
     </script>
 }

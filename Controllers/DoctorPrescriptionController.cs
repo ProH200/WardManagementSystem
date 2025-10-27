@@ -36,7 +36,7 @@ namespace Wellness_Wardens_Project.Controllers
                 .OrderByDescending(p => p.DateWritten)
                 .ToListAsync();
 
-            return View("~/Views/Doctor/Prescriptions.cshtml", prescriptions); // FIXED: Full path
+            return View("~/Views/Doctor/Prescriptions.cshtml", prescriptions);
         }
 
         // GET: Create a new prescription
@@ -134,29 +134,5 @@ namespace Wellness_Wardens_Project.Controllers
 
             return View("~/Views/Doctor/PrescriptionDetails.cshtml", prescription); // FIXED: Full path
         }
-
-        //// POST: Mark prescription as processed
-        //[HttpPost]
-        //public async Task<IActionResult> MarkAsProcessed(int id)
-        //{
-        //    var doctor = await _userManager.GetUserAsync(User);
-        //    if (doctor == null) return Unauthorized();
-
-        //    var prescription = await _context.Prescriptions
-        //        .FirstOrDefaultAsync(p => p.PrescriptionId == id &&
-        //                                p.EmployeeId == doctor.Id &&
-        //                                !p.IsDeleted);
-
-        //    if (prescription == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    prescription.IsProcessed = true;
-        //    await _context.SaveChangesAsync();
-
-        //    TempData["SuccessMessage"] = "Prescription marked as processed!";
-        //    return RedirectToAction("Prescriptions"); // FIXED: Explicit action name
-        //}
     }
 }

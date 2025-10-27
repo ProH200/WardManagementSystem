@@ -6,15 +6,6 @@
 }
 
 <div class="container mt-4">
-    <!-- Success Message -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
@@ -136,22 +127,39 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <a asp-action="InstructionDetails" asp-controller="DoctorInstructions"
-                                           asp-route-id="@instruction.InstructionId"
-                                           class="btn btn-sm btn-outline-primary me-1">
-                                            <i class="bi bi-eye"></i> View
-                                        </a>
-                                        @if (User.IsInRole("Nurse") && !instruction.IsCompleted)
-                                        {
-                                            <form asp-action="MarkAsCompleted" asp-controller="DoctorInstructions"
-                                                  method="post" class="d-inline">
-                                                <input type="hidden" name="id" value="@instruction.InstructionId" />
-                                                <button type="submit" class="btn btn-sm btn-outline-success"
-                                                        onclick="return confirm('Mark this instruction as completed?')">
-                                                    <i class="bi bi-check-lg"></i> Complete
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <!-- View Button -->
+                                            <a asp-action="InstructionDetails" asp-controller="DoctorInstructions"
+                                               asp-route-id="@instruction.InstructionId"
+                                               class="btn btn-outline-primary"
+                                               data-bs-toggle="tooltip" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+
+                                            @if (User.IsInRole("Doctor"))
+                                            {
+                               
+
+                                                <!-- Delete Button -->
+                                                <button type="button" class="btn btn-outline-danger delete-instruction-btn"
+                                                        data-instruction-id="@instruction.InstructionId"
+                                                        data-instruction-title="@instruction.Title"
+                                                        data-bs-toggle="tooltip" title="Delete Instruction">
+                                                    <i class="bi bi-trash"></i>
                                                 </button>
-                                            </form>
-                                        }
+                                            }
+
+                                            @if (User.IsInRole("Nurse") && !instruction.IsCompleted)
+                                            {
+                                                <!-- Complete Button -->
+                                                <button type="button" class="btn btn-outline-success complete-instruction-btn"
+                                                        data-instruction-id="@instruction.InstructionId"
+                                                        data-instruction-title="@instruction.Title"
+                                                        data-bs-toggle="tooltip" title="Mark as Completed">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            }
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -169,47 +177,80 @@
     </div>
 </div>
 
-@if (TempData["ToastMessage"] != null)
-{
-    <div class="toast align-items-center text-white bg-@(TempData["ToastType"] ?? "info") border-0 show position-fixed top-0 end-0 m-3"
-         role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 1050;">
-        <div class="d-flex">
-            <div class="toast-body">
-                @TempData["ToastMessage"]
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    </div>
+<!-- Hidden form for delete operations -->
+<form id="deleteInstructionForm" asp-action="DeleteInstruction" asp-controller="DoctorInstructions" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteInstructionId" />
+</form>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            var toastEl = document.querySelector('.toast');
-            if (toastEl) {
-                var toast = new bootstrap.Toast(toastEl);
-                toast.show();
-            }
-        });
-    </script>
-}
+<!-- Hidden form for complete operations -->
+<form id="completeInstructionForm" asp-action="MarkAsCompleted" asp-controller="DoctorInstructions" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="completeInstructionId" />
+</form>
+
+<!-- Modal Container -->
+<div id="modalContainer"></div>
 
 @section Scripts {
+    <!-- Include SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Include jQuery Validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+
     <style>
         body {
             background: linear-gradient(120deg, #f0f4f8 0%, #e0e7ff 100%);
             min-height: 100vh;
         }
-    </style>
 
+        .btn-group .btn {
+            border-radius: 0.375rem;
+            margin: 0 1px;
+        }
+
+            .btn-group .btn:first-child {
+                border-top-left-radius: 0.375rem;
+                border-bottom-left-radius: 0.375rem;
+            }
+
+            .btn-group .btn:last-child {
+                border-top-right-radius: 0.375rem;
+                border-bottom-right-radius: 0.375rem;
+            }
+    </style>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Live Search Functionality
+            console.log("DOM loaded - initializing instructions page");
+
+            // Initialize tooltips
+            initializeTooltips();
+
+            // Setup live search
+            setupLiveSearch();
+
+            // Setup action buttons
+            setupActionButtons();
+
+            // Show any toast messages
+            showToastMessages();
+        });
+
+        function initializeTooltips() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        function setupLiveSearch() {
             const searchInput = document.getElementById('instructionSearch');
             const instructionRows = document.querySelectorAll('.instruction-row');
             const noResults = document.getElementById('noResults');
             const tableBody = document.getElementById('instructionsTableBody');
 
-            if (searchInput) {
+            if (searchInput && instructionRows.length > 0) {
                 searchInput.addEventListener('input', function() {
                     const searchTerm = this.value.toLowerCase().trim();
                     let visibleCount = 0;
@@ -245,6 +286,296 @@
                     }
                 });
             }
-        });
+        }
+
+        function setupActionButtons() {
+            // Edit Instruction Modal - Use event delegation
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.edit-instruction-btn')) {
+                    const button = e.target.closest('.edit-instruction-btn');
+                    const instructionId = button.getAttribute('data-instruction-id');
+                    console.log('Edit button clicked for instruction:', instructionId);
+                    openEditInstructionModal(instructionId);
+                }
+            });
+
+            // Delete Instruction with SweetAlert
+            document.querySelectorAll('.delete-instruction-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const instructionId = this.getAttribute('data-instruction-id');
+                    const instructionTitle = this.getAttribute('data-instruction-title');
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: `You are about to delete the instruction: "${instructionTitle}". This action cannot be undone.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.getElementById('deleteInstructionId').value = instructionId;
+                            document.getElementById('deleteInstructionForm').submit();
+                        }
+                    });
+                });
+            });
+
+            // Complete Instruction with SweetAlert (for Nurses)
+            document.querySelectorAll('.complete-instruction-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const instructionId = this.getAttribute('data-instruction-id');
+                    const instructionTitle = this.getAttribute('data-instruction-title');
+
+                    Swal.fire({
+                        title: 'Mark as Completed?',
+                        text: `Are you sure you want to mark "${instructionTitle}" as completed?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, mark as completed!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.getElementById('completeInstructionId').value = instructionId;
+                            document.getElementById('completeInstructionForm').submit();
+                        }
+                    });
+                });
+            });
+        }
+
+        function openEditInstructionModal(instructionId) {
+            console.log('Opening modal for instruction:', instructionId);
+
+            // Show loading state
+            const modalContainer = document.getElementById('modalContainer');
+            if (!modalContainer) {
+                console.error('Modal container not found!');
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Modal system not initialized properly.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            modalContainer.innerHTML = `
+                <div class="modal fade" id="editInstructionModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-white">
+                                <h5 class="modal-title">Loading Instruction...</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center py-4">
+                                <div class="spinner-border text-warning" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Please wait while we load the instruction...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Show the loading modal immediately
+            const loadingModal = new bootstrap.Modal(document.getElementById('editInstructionModal'));
+            loadingModal.show();
+
+            // Load the modal content using fetch
+            fetch('@Url.Action("EditInstructionModal", "DoctorInstructions")' + '?id=' + instructionId)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Replace the loading modal with the actual form
+                    modalContainer.innerHTML = html;
+
+                    // Re-initialize the modal with the form
+                    const modalElement = document.getElementById('editInstructionModal');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+
+                        // Set select values explicitly
+                        setFormValues();
+
+                        // Initialize validation
+                        initializeFormValidation();
+
+                        // Handle form submission
+                        setupFormSubmission(modal);
+
+                        // Show the modal
+                        modal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading modal:', error);
+                    loadingModal.hide();
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to load instruction data. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }
+
+        function setFormValues() {
+            // This function will be called after the modal HTML is loaded
+            // The values should already be set by the server, but we can double-check
+            console.log('Form loaded, values should be pre-filled by server');
+        }
+
+        function initializeFormValidation() {
+            const form = document.getElementById('editInstructionForm');
+            if (form && typeof jQuery !== 'undefined' && jQuery.fn.validate) {
+                $(form).validate({
+                    rules: {
+                        Title: { required: true, minlength: 3 },
+                        Content: { required: true, minlength: 10 },
+                        InstructionType: { required: true },
+                        Priority: { required: true }
+                    },
+                    messages: {
+                        Title: {
+                            required: "Please enter a title",
+                            minlength: "Title must be at least 3 characters long"
+                        },
+                        Content: {
+                            required: "Please enter instructions",
+                            minlength: "Instructions must be at least 10 characters long"
+                        },
+                        InstructionType: "Please select instruction type",
+                        Priority: "Please select priority"
+                    },
+                    errorElement: 'span',
+                    errorPlacement: function (error, element) {
+                        error.addClass('text-danger small');
+                        element.closest('.form-group').append(error);
+                    },
+                    highlight: function (element) {
+                        $(element).addClass('is-invalid');
+                    },
+                    unhighlight: function (element) {
+                        $(element).removeClass('is-invalid');
+                    },
+                    submitHandler: function(form) {
+                        // This will be handled by our custom submission
+                        return false;
+                    }
+                });
+            }
+        }
+
+        function setupFormSubmission(modal) {
+            const form = document.getElementById('editInstructionForm');
+            if (!form) return;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!$(this).valid()) {
+                    return;
+                }
+
+                const formData = new FormData(this);
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+
+                // Show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Updating...';
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        modal.hide();
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred while updating the instruction. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            });
+        }
+
+        function showToastMessages() {
+            @if (TempData["ToastMessage"] != null)
+            {
+                    var toastType = TempData["ToastType"]?.ToString() ?? "info";
+                    var icon = toastType == "success" ? "success" :
+                                        toastType == "error" ? "error" :
+                                        toastType == "warning" ? "warning" : "info";
+
+                    <text>
+                    Swal.fire({
+                        title: '@TempData["ToastMessage"]',
+                        icon: '@icon',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer)
+                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        }
+                    });
+                    </text>
+            }
+        }
+
+        // Debug function - you can call this in browser console to test
+        window.debugEditModal = function(instructionId) {
+            console.log('Debug: Testing modal with ID', instructionId);
+            openEditInstructionModal(instructionId);
+        };
     </script>
 }

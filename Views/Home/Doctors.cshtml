@@ -80,11 +80,11 @@
                         <div class="col-md-6 col-lg-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-box-arrow-right display-4 text-secondary mb-3"></i>
-                                    <h5 class="card-title">Discharge</h5>
-                                    <p class="text-muted">Discharge recovered patients.</p>
-                                    <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-outline-secondary w-100">
-                                        Discharge Patients
+                                    <i class="bi bi-chat-dots-fill display-4 text-info mb-3"></i>
+                                    <h5 class="card-title">Instructions</h5>
+                                    <p class="text-muted">Leave notes for nurses/assistants.</p>
+                                    <a asp-action="Instructions" asp-controller="DoctorInstructions" class="btn btn-outline-info w-100">
+                                        Manage Instructions
                                     </a>
                                 </div>
                             </div>
@@ -93,11 +93,11 @@
                         <div class="col-md-6 col-lg-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-chat-dots-fill display-4 text-info mb-3"></i>
-                                    <h5 class="card-title">Instructions</h5>
-                                    <p class="text-muted">Leave notes for nurses/assistants.</p>
-                                    <a asp-action="Instructions" asp-controller="DoctorInstructions" class="btn btn-outline-info w-100">
-                                        Manage Instructions
+                                    <i class="bi bi-box-arrow-right display-4 text-secondary mb-3"></i>
+                                    <h5 class="card-title">Discharge</h5>
+                                    <p class="text-muted">Discharge recovered patients.</p>
+                                    <a asp-action="Discharge" asp-controller="DoctorDischarge" class="btn btn-outline-secondary w-100">
+                                        Discharge Patients
                                     </a>
                                 </div>
                             </div>
@@ -139,7 +139,7 @@
                     </div>
                     <div class="card-body">
                         <ul id="upcomingEvents" class="list-group">
-                            <li class="list-group-item text-muted", >No events yet</li>
+                            <li class="list-group-item text-muted", >No visits yet</li>
                         </ul>
                     </div>
                 </div>
@@ -148,7 +148,7 @@
     </div>
 </div>
 
-<!-- Enhanced Event Modal with Individual Event Management -->
+<!-- Enhanced Event Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -162,11 +162,11 @@
                     <input type="hidden" id="editingEventId" />
 
                     <div class="mb-3">
-                        <label for="eventTitle" class="form-label">Event Title</label>
+                        <label for="eventTitle" class="form-label">Visit Title</label>
                         <input type="text" class="form-control" id="eventTitle" placeholder="Enter title">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Event Time</label>
+                        <label class="form-label">Visit Time</label>
                         <div class="row">
                             <div class="col-md-6">
                                 <label for="startTime" class="form-label small">Start Time</label>
@@ -180,7 +180,7 @@
                     </div>
 
                     <div class="existing-events-container mt-3">
-                        <h6 class="border-bottom pb-2">Existing Events on This Date</h6>
+                        <h6 class="border-bottom pb-2">Existing Visit on This Date</h6>
                         <div class="existing-events" id="existingEvents" style="max-height: 150px; overflow-y: auto;">
                             <!-- Existing events will be displayed here -->
                         </div>
@@ -188,8 +188,8 @@
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                     <div>
-                        <button type="button" class="btn btn-success" id="saveEvent">Add Event</button>
-                        <button type="button" class="btn btn-warning" id="updateEvent" style="display: none;">Update Event</button>
+                        <button type="button" class="btn btn-success" id="saveEvent">Add Visit</button>
+                        <button type="button" class="btn btn-warning" id="updateEvent" style="display: none;">Update Visit</button>
                     </div>
                     <div>
                         <button type="button" class="btn btn-danger" id="deleteEvent">Remove All</button>
@@ -284,6 +284,7 @@
         let selectedCell = null;
         let currentEditingEvent = null;
 
+        // the upcoming events
         async function loadEvents() {
             try {
                 const res = await fetch("/Doctor/GetEvents");

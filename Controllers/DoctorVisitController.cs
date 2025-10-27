@@ -87,7 +87,6 @@ namespace Wellness_Wardens_Project.Controllers
             return RedirectToAction("RecordVisits", "DoctorVisit");
         }
 
-
         // GET: View a specific visit note
         public async Task<IActionResult> VisitNoteDetails(int id)
         {
@@ -107,6 +106,75 @@ namespace Wellness_Wardens_Project.Controllers
             }
 
             return View("~/Views/Doctor/VisitNoteDetails.cshtml", visitNote);
+        }
+
+        // GET: Delete visit note confirmation
+        public async Task<IActionResult> DeleteVisitNoteConfirmation(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var visitNote = await _context.VisitNotes
+                .Include(v => v.Patient)
+                .Include(v => v.Doctor)
+                .FirstOrDefaultAsync(v => v.VisitNoteId == id &&
+                                        v.DoctorId == doctor.Id &&
+                                        !v.IsDeleted);
+
+            if (visitNote == null)
+            {
+                TempData["ErrorMessage"] = "Visit note not found or you don't have permission to delete it.";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+
+            return View("~/Views/Doctor/DeleteVisitNoteConfirmation.cshtml", visitNote);
+        }     
+
+        // POST: Delete visit note
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteVisitNote(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null)
+            {
+                TempData["ErrorMessage"] = "Unauthorized access.";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+
+            var visitNote = await _context.VisitNotes
+                .Include(v => v.Patient)
+                .FirstOrDefaultAsync(v => v.VisitNoteId == id &&
+                                        v.DoctorId == doctor.Id &&
+                                        !v.IsDeleted);
+
+            if (visitNote == null)
+            {
+                TempData["ErrorMessage"] = "Visit note not found or you don't have permission to delete it.";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+
+            try
+            {
+                // Soft delete
+                visitNote.IsDeleted = true;
+                visitNote.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Visit note for {visitNote.Patient?.FirstName} {visitNote.Patient?.LastName} deleted successfully!";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting visit note: {ex.Message}";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+        }
+
+        private bool VisitNoteExists(int id)
+        {
+            return _context.VisitNotes.Any(e => e.VisitNoteId == id && !e.IsDeleted);
         }
     }
 }

@@ -114,6 +114,71 @@ namespace Wellness_Wardens_Project.Controllers
             return View("~/Views/Doctor/InstructionDetails.cshtml", instruction);
         }
 
+
+        // GET: Delete instruction confirmation
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> DeleteInstructionConfirmation(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var instruction = await _context.Instructions
+                .Include(i => i.Patient)
+                .Include(i => i.Doctor)
+                .FirstOrDefaultAsync(i => i.InstructionId == id && 
+                                        i.DoctorId == doctor.Id && 
+                                        !i.IsDeleted);
+
+            if (instruction == null)
+            {
+                TempData["ToastMessage"] = "Instruction not found or you don't have permission to delete it.";
+                TempData["ToastType"] = "error";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+
+            return View("~/Views/Doctor/DeleteInstructionConfirmation.cshtml", instruction);
+        }
+
+        // POST: Delete instruction (soft delete)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> DeleteInstruction(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var instruction = await _context.Instructions
+                .FirstOrDefaultAsync(i => i.InstructionId == id && 
+                                        i.DoctorId == doctor.Id && 
+                                        !i.IsDeleted);
+
+            if (instruction == null)
+            {
+                TempData["ToastMessage"] = "Instruction not found or you don't have permission to delete it.";
+                TempData["ToastType"] = "error";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+
+            try
+            {
+                // Soft delete
+                instruction.IsDeleted = true;
+
+                await _context.SaveChangesAsync();
+
+                TempData["ToastMessage"] = "Instruction deleted successfully!";
+                TempData["ToastType"] = "success";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastMessage"] = $"Error deleting instruction: {ex.Message}";
+                TempData["ToastType"] = "error";
+                return RedirectToAction("DeleteInstructionConfirmation", "DoctorInstructions", new { id });
+            }
+        }
+
         // POST: Mark instruction as completed (for nurses)
         [HttpPost]
         [Authorize(Roles = "Nurse")]
@@ -150,6 +215,11 @@ namespace Wellness_Wardens_Project.Controllers
                 TempData["ToastType"] = "error";
                 return RedirectToAction("Instructions", "DoctorInstructions");
             }
+        }
+
+        private bool InstructionExists(int id)
+        {
+            return _context.Instructions.Any(e => e.InstructionId == id && !e.IsDeleted);
         }
     }
 }
