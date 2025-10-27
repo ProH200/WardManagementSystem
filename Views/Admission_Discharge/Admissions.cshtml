@@ -151,13 +151,6 @@
                                 <i class="bi bi-pencil"></i>
                             </button>
                         }
-                        <a asp-action="Details"
-                           asp-route-id="@(admission.AdmissionId != 0 ? admission.AdmissionId : (int?)null)"
-                           asp-route-patientId="@(admission.AdmissionId == 0 ? admission.Patient.PatientId : (int?)null)"
-                           class="btn btn-sm btn-outline-primary rounded-circle"
-                           title="View Patient Folder">
-                            <i class="bi bi-eye"></i>
-                        </a>
                     </div>
                 </div>
             </div>

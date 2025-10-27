@@ -330,7 +330,7 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 if (exists)
                 {
                     TempData["ErrorMessage"] = $"Bed '{bed.BedNumber}' already exists in this room.";
-                    return RedirectToAction("ManageRooms");
+                    return RedirectToAction("ManageRooms", exists);
                 }
 
                 bed.Status = "Available";

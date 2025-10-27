@@ -59,6 +59,7 @@ namespace Wellness_Wardens_Project.Models.AdministrationSubsystem
         public virtual ICollection<ConsumablesRequest> ConsumablesRequests { get; set; }
         public virtual ICollection<VitalSigns> VitalSigns { get; set; }
         public virtual ICollection<PatientAdmission> AssignedAdmissions { get; set; }
+        public virtual ICollection<PatientMedication> PatientMedications { get; set; } = new List<PatientMedication>();
 
     }
 }

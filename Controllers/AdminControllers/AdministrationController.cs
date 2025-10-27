@@ -114,26 +114,26 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Get recent patient registrations (last 7 days)
+            // Get recent patient registrations (last 7 days) - Add CreatedDate to Patient model for real data
             var recentPatients = await _context.Patients
-                .Where(p => !p.IsDeleted)
+                .Where(p => !p.IsDeleted && p.PatientId > 0) // You might need to add a CreatedDate field
                 .OrderByDescending(p => p.PatientId)
                 .Take(1)
                 .ToListAsync();
 
             foreach (var patient in recentPatients)
             {
-                // Check if this patient was created recently (you might want to add a CreatedDate field to your Patient model)
+                // If you add a CreatedDate field to Patient model, use that instead
                 recentActivities.Add(new RecentActivity
                 {
                     Type = "Registration",
                     Title = "New Patient Registered",
                     Description = $"{patient.FirstName} {patient.LastName} added to the system",
-                    Timestamp = DateTime.Now.AddDays(-new Random().Next(0, 7)) // Mock date for demo
+                    Timestamp = DateTime.Now.AddDays(-new Random().Next(0, 3)) // Use actual CreatedDate when available
                 });
             }
 
-            // Get recent bed transfers/movements (if you have PatientMovements)
+            // Get recent bed transfers/movements
             var recentMovements = await _context.PatientMovements
                 .Include(pm => pm.PatientAdmission)
                     .ThenInclude(pa => pa.Patient)
@@ -156,7 +156,28 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Sort all activities by timestamp and take the most recent 8
+            // Get recent medication assignments
+            var recentMedications = await _context.PatientMedications
+                .Include(pm => pm.Patient)
+                .Include(pm => pm.Medication)
+                .Include(pm => pm.Employee)
+                .Where(pm => !pm.IsDeleted && pm.AssignmentDate >= DateTime.Now.AddDays(-7))
+                .OrderByDescending(pm => pm.AssignmentDate)
+                .Take(1)
+                .ToListAsync();
+
+            foreach (var medication in recentMedications)
+            {
+                recentActivities.Add(new RecentActivity
+                {
+                    Type = "Medication",
+                    Title = "Medication Assigned",
+                    Description = $"{medication.Medication.Name} assigned to {medication.Patient.FirstName} {medication.Patient.LastName}",
+                    Timestamp = medication.AssignmentDate
+                });
+            }
+
+            // Sort all activities by timestamp and take the most recent 5
             return recentActivities
                 .OrderByDescending(a => a.Timestamp)
                 .Take(5)

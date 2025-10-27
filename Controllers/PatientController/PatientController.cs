@@ -11,12 +11,15 @@ using Wellness_Wardens_Project.Models.AdministrationSubsystem;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Wellness_Wardens_Project.Models.ConsumablesSubsystem;
+using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Identity;
 
 namespace Wellness_Wardens_Project.Controllers
 {
     public class PatientController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<Employee> _userManager;
 
         public PatientController(ApplicationDbContext context)
         {
@@ -42,26 +45,31 @@ namespace Wellness_Wardens_Project.Controllers
             var patient = await _context.Patients
                 .Include(p => p.VitalSigns)
                 .Include(p => p.Treatments)
-                .Include(p => p.PatientAllergies)  // Changed from Allergies
-                    .ThenInclude(pa => pa.Allergy)  // Include the actual Allergy
-                .Include(p => p.PatientMedicalConditions)  // Changed from MedicalConditions
-                    .ThenInclude(pmc => pmc.MedicalCondition)  // Include the actual MedicalCondition
+                .Include(p => p.PatientAllergies)
+                    .ThenInclude(pa => pa.Allergy)
+                .Include(p => p.PatientMedicalConditions)
+                    .ThenInclude(pmc => pmc.MedicalCondition)
                 .Include(p => p.DoctorVisits)
                 .Include(p => p.Prescriptions)
                     .ThenInclude(pr => pr.PrescriptionMedications)
                     .ThenInclude(pm => pm.Medication)
                 .Include(p => p.Prescriptions)
                     .ThenInclude(pr => pr.Employee)
+                // Add includes for medication assignments
+                .Include(p => p.PatientMedications)
+                    .ThenInclude(pm => pm.Medication)
+                .Include(p => p.PatientMedications)
+                    .ThenInclude(pm => pm.Employee)
                 .Include(p => p.PatientAdmissions)
                     .ThenInclude(pa => pa.Employee)
                 .Include(p => p.PatientAdmissions)
                     .ThenInclude(pa => pa.PatientMovements)
                 .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.Discharges)  // Include Discharges
+                    .ThenInclude(pa => pa.Discharges)
                 .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.Bed)  // Include Bed
-                        .ThenInclude(b => b.Room)  // Include Room
-                            .ThenInclude(r => r.Ward)  // Include Ward
+                    .ThenInclude(pa => pa.Bed)
+                        .ThenInclude(b => b.Room)
+                            .ThenInclude(r => r.Ward)
                 .FirstOrDefaultAsync(p => p.PatientId == id);
 
             if (patient == null) return NotFound();
@@ -76,33 +84,98 @@ namespace Wellness_Wardens_Project.Controllers
             var employees = await _context.Employees.ToListAsync();
 
             // Get all prescriptions for the patient
-            var prescriptions = patient.Prescriptions?.Where(p => !p.IsDeleted).ToList() ?? new List<Prescription>();
+            var allPrescriptions = patient.Prescriptions?.Where(p => !p.IsDeleted).ToList() ?? new List<Prescription>();
 
-            // Separate prescriptions by medication schedule type
-            var nonScheduledPrescriptions = prescriptions
-                .Where(p => p.PrescriptionMedications.Any(pm =>
-                    pm.Medication.IsScheduledMedication == false))
+            // Filter prescriptions based on user role
+            List<Prescription> filteredPrescriptions;
+            Prescription recentPrescription;
+
+            if (User.IsInRole("Nurse"))
+            {
+                // Nurse sees only prescriptions with NO scheduled medications
+                filteredPrescriptions = allPrescriptions
+                    .Where(p => !p.PrescriptionMedications.Any(pm =>
+                        pm.Medication.IsScheduledMedication == true)) // Exclude if ANY medication is scheduled
+                    .ToList();
+
+                recentPrescription = filteredPrescriptions
+                    .OrderByDescending(p => p.DateWritten)
+                    .FirstOrDefault();
+            }
+            else if (User.IsInRole("Nursing Sister"))
+            {
+                // Nursing Sister sees only prescriptions WITH scheduled medications
+                filteredPrescriptions = allPrescriptions
+                    .Where(p => p.PrescriptionMedications.Any(pm =>
+                        pm.Medication.IsScheduledMedication == true)) // Include if ANY medication is scheduled
+                    .ToList();
+
+                recentPrescription = filteredPrescriptions
+                    .OrderByDescending(p => p.DateWritten)
+                    .FirstOrDefault();
+            }
+            else
+            {
+                // Other roles (Doctor, Admin, etc.) see all prescriptions
+                filteredPrescriptions = allPrescriptions;
+                recentPrescription = allPrescriptions
+                    .OrderByDescending(p => p.DateWritten)
+                    .FirstOrDefault();
+            }
+
+            // Separate prescriptions by medication schedule type (for other parts of the view)
+            var nonScheduledPrescriptions = allPrescriptions
+                .Where(p => p.PrescriptionMedications.All(pm =>
+                    pm.Medication.IsScheduledMedication == false)) // ALL medications are non-scheduled
                 .ToList();
 
-            var scheduledPrescriptions = prescriptions
+            var scheduledPrescriptions = allPrescriptions
                 .Where(p => p.PrescriptionMedications.Any(pm =>
-                    pm.Medication.IsScheduledMedication == true))
+                    pm.Medication.IsScheduledMedication == true)) // ANY medication is scheduled
+                .ToList();
+
+            // Get active medication assignments (many-to-many)
+            var activeMedicationAssignments = patient.PatientMedications?
+                .Where(pm => !pm.IsDeleted && pm.IsActive)
+                .ToList() ?? new List<PatientMedication>();
+
+            // Separate assignments by schedule type
+            var nonScheduledAssignments = activeMedicationAssignments
+                .Where(pm => !pm.Medication.IsScheduledMedication)
+                .ToList();
+
+            var scheduledAssignments = activeMedicationAssignments
+                .Where(pm => pm.Medication.IsScheduledMedication)
                 .ToList();
 
             // Separate medications by schedule type
             var nonScheduledMeds = allMedications.Where(m => m.IsScheduledMedication == false).ToList();
             var scheduledMeds = allMedications.Where(m => m.IsScheduledMedication == true).ToList();
 
-            // Populate ViewBag with medications
-            ViewBag.NonScheduledMedications = nonScheduledMeds;
-            ViewBag.ScheduledMedications = scheduledMeds;
+            // Populate ViewBag with medications based on role
+            if (User.IsInRole("Nurse"))
+            {
+                ViewBag.NonScheduledMedications = nonScheduledMeds;
+                ViewBag.ScheduledMedications = new List<Medication>(); // Empty for nurses
+            }
+            else if (User.IsInRole("Nursing Sister"))
+            {
+                ViewBag.NonScheduledMedications = new List<Medication>(); // Empty for nursing sisters
+                ViewBag.ScheduledMedications = scheduledMeds;
+            }
+            else
+            {
+                // Other roles see all medications
+                ViewBag.NonScheduledMedications = nonScheduledMeds;
+                ViewBag.ScheduledMedications = scheduledMeds;
+            }
 
             // Get admissions data
             var admissions = patient.PatientAdmissions?.Where(a => !a.IsDeleted).ToList() ?? new List<PatientAdmission>();
 
             // Find current admission (not discharged) - using Discharges navigation property
             var currentAdmission = admissions
-                .Where(a => !a.Discharges.Any(d => !d.IsDeleted))  // No active discharge records
+                .Where(a => !a.Discharges.Any(d => !d.IsDeleted))
                 .OrderByDescending(a => a.AdmissionDate)
                 .FirstOrDefault();
 
@@ -121,28 +194,29 @@ namespace Wellness_Wardens_Project.Controllers
             {
                 Patient = patient,
                 Medications = allMedications,
-                NonScheduledMedications = nonScheduledMeds,
                 ScheduledMedications = scheduledMeds,
-                NonScheduledPrescriptions = nonScheduledPrescriptions,
-                ScheduledPrescriptions = scheduledPrescriptions,
+                // Add the new assignment collections
+                NonScheduledAssignments = nonScheduledAssignments,
+                ScheduledAssignments = scheduledAssignments,
                 VisitNotes = visitNotes,
                 VitalSigns = patient.VitalSigns.Where(v => !v.IsDeleted).ToList(),
                 Treatments = patient.Treatments.Where(t => !t.IsDeleted).ToList(),
                 DoctorVisits = patient.DoctorVisits.Where(d => !d.IsDeleted).ToList(),
                 Allergies = allergies,
                 MedicalConditions = medicalConditions,
-                Prescriptions = prescriptions,
+                Prescriptions = filteredPrescriptions, // Use filtered prescriptions based on role
+                RecentPrescription = recentPrescription,
+                HasPrescriptions = filteredPrescriptions.Any(), // Check filtered prescriptions
                 Admissions = admissions,
-                CurrentAdmission = currentAdmission, // Set the current admission
-                IsCurrentlyAdmitted = currentAdmission != null, // Set admission status
+                CurrentAdmission = currentAdmission,
+                IsCurrentlyAdmitted = currentAdmission != null,
 
                 NewVitalSign = new VitalSigns { PatientId = patient.PatientId },
                 NewTreatment = new Treatment { PatientId = patient.PatientId },
                 NewDoctorVisit = new DoctorVisit { PatientId = patient.PatientId },
                 NewPrescription = new Prescription { PatientId = patient.PatientId },
-                // Remove these since we're using junction tables now
-                // NewAllergy = new Allergy { PatientId = patient.PatientId },
-                // NewMedicalCondition = new MedicalCondition { PatientId = patient.PatientId },
+                // Add new assignment form model
+                NewMedicationAssignment = new PatientMedication { PatientId = patient.PatientId },
                 NewAdmission = new PatientAdmission
                 {
                     PatientId = patient.PatientId,
@@ -152,6 +226,8 @@ namespace Wellness_Wardens_Project.Controllers
 
             ViewBag.PatientId = id;
             ViewBag.Employees = employees;
+            ViewBag.UserRole = User.IsInRole("Nurse") ? "Nurse" :
+                              User.IsInRole("Nursing Sister") ? "NursingSister" : "Other";
 
             // Add current location to ViewBag for easy access in the view
             if (currentAdmission != null && currentAdmission.Bed != null)
@@ -239,7 +315,7 @@ namespace Wellness_Wardens_Project.Controllers
                 existingVital.Tempareture = Tempareture;
                 existingVital.HeartRate = HeartRate;
                 existingVital.BloodPressure = BloodPressure;
-                
+
 
                 // Mark as modified and save
                 _context.VitalSigns.Update(existingVital);
@@ -444,166 +520,330 @@ namespace Wellness_Wardens_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult AddPrescription(int patientId)
+        public IActionResult AssignMedication(int patientId)
         {
-            var patient = _context.Patients.Find(patientId);
+            var patient = _context.Patients
+                .FirstOrDefault(p => p.PatientId == patientId);
+
             if (patient == null) return NotFound();
 
-            // Get medications for dropdowns
-            ViewBag.NonScheduledMedications = _context.Medications
-                .Where(m => !m.IsScheduledMedication && !m.IsDeleted)
-                .ToList();
+            // Get current user's role
+            var currentUserRole = User.IsInRole("Nursing Sister") ? "Nursing Sister" :
+                                 User.IsInRole("Nurse") ? "Nurse" :
+                                 User.IsInRole("Doctor") ? "Doctor" : "Unknown";
 
-            ViewBag.ScheduledMedications = _context.Medications
-                .Where(m => m.IsScheduledMedication && !m.IsDeleted)
-                .ToList();
+            // Get medications based on current user's role
+            List<Medication> medications;
 
-            var model = new Prescription
+            if (currentUserRole == "Nurse")
+            {
+                // Nurses can only see non-scheduled medications
+                medications = _context.Medications
+                    .Where(m => !m.IsScheduledMedication && !m.IsDeleted && m.QuantityAvailable > 0)
+                    .ToList();
+            }
+            else if (currentUserRole == "Nursing Sister" || currentUserRole == "Doctor")
+            {
+                // Nursing Sisters and Doctors can see all medications
+                medications = _context.Medications
+                    .Where(m => !m.IsDeleted && m.QuantityAvailable > 0)
+                    .ToList();
+            }
+            else
+            {
+                medications = new List<Medication>();
+            }
+
+            ViewBag.Medications = medications;
+            ViewBag.CurrentUserRole = currentUserRole;
+
+            return View(new PatientFolderViewModel
             {
                 PatientId = patientId,
-                DateWritten = DateTime.Today,
-            };
-
-            return View(model);
+                PatientName = $"{patient.FirstName} {patient.LastName}",
+                AssignmentDate = DateTime.Today
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddPrescription(int patientId, int medicationId, string medicationType,
- string dosage, string frequency, int durationDays, string instructions = "")
+        public async Task<IActionResult> AssignMedication(PatientFolderViewModel model)
         {
             try
             {
+                // Validate patient exists
+                var patient = await _context.Patients.FindAsync(model.PatientId);
+                if (patient == null)
+                {
+                    return NotFound("Patient not found.");
+                }
+
+                // Get the medication from existing data
+                var medication = await _context.Medications.FindAsync(model.MedicationId);
+                if (medication == null)
+                {
+                    TempData["ErrorMessage"] = "Medication not found.";
+                    return RedirectToAction("AssignMedication", new { patientId = model.PatientId });
+                }
+
+                // Check if sufficient quantity is available
+                if (medication.QuantityAvailable < model.QuantityAssigned)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity available. Only {medication.QuantityAvailable} units in stock.";
+                    return RedirectToAction("AssignMedication", new { patientId = model.PatientId });
+                }
+
                 // Get current user's role
                 var currentUserRole = User.IsInRole("Nursing Sister") ? "Nursing Sister" :
                                      User.IsInRole("Nurse") ? "Nurse" :
                                      User.IsInRole("Doctor") ? "Doctor" : "Unknown";
 
-                // Get the medication to check if it's scheduled
-                var medication = await _context.Medications.FindAsync(medicationId);
-                if (medication == null)
+                // Role-based access control
+                if (medication.IsScheduledMedication)
                 {
-                    return BadRequest("Medication not found.");
-                }
-
-                // Access control logic based on IsScheduledMedication only
-                if (medication.IsScheduledMedication == false)
-                {
-                    // Only Nurses can administer non-scheduled medications
-                    if (!User.IsInRole("Nurse"))
-                    {
-                        return Forbid("Only nurses can administer non-scheduled medications.");
-                    }
-                }
-                else // IsScheduledMedication == true
-                {
-                    // Only Nursing Sisters and Doctors can administer scheduled medications
                     if (!User.IsInRole("Nursing Sister") && !User.IsInRole("Doctor"))
                     {
-                        return Forbid("Only nursing sisters and doctors can administer scheduled medications.");
+                        return Forbid("Only nursing sisters and doctors can assign scheduled medications.");
+                    }
+                }
+                else
+                {
+                    if (!User.IsInRole("Nurse"))
+                    {
+                        return Forbid("Only nurses can assign non-scheduled medications.");
                     }
                 }
 
                 // Get current user (employee) ID
                 var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                var prescription = new Prescription
+                // Create direct medication assignment using PatientMedication (many-to-many)
+                var patientMedication = new PatientMedication
                 {
-                    PatientId = patientId,
-                    DateWritten = DateTime.Today,
-                    Instructions = instructions,
-                    EmployeeId = currentUserId, // Use current logged-in user
+                    PatientId = model.PatientId,
+                    MedicationId = model.MedicationId,
+                    EmployeeId = currentUserId,
+                    AssignmentDate = DateTime.Now,
+                    Dosage = model.Dosage,
+                    Frequency = model.Frequency,
+                    QuantityAssigned = model.QuantityAssigned,
+                    DurationDays = model.DurationDays,
+                    AdministrationNotes = model.AdministrationNotes,
+                    IsActive = true,
                     IsDeleted = false
                 };
 
-                var prescriptionMedication = new PrescriptionMedication
-                {
-                    MedicationId = medicationId,
-                    Dosage = dosage,
-                    Frequency = frequency,
-                    DurationDays = durationDays,
-                    Prescription = prescription
-                };
+                // Update medication inventory - reduce available quantity
+                medication.QuantityAvailable -= model.QuantityAssigned;
 
-                _context.Prescriptions.Add(prescription);
-                prescription.PrescriptionMedications = new List<PrescriptionMedication> { prescriptionMedication };
-
+                _context.PatientMedications.Add(patientMedication);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Medication added successfully.";
 
-                return RedirectToAction("Folder", new { id = patientId });
+                TempData["SuccessMessage"] = $"{medication.Name} assigned successfully to {patient.FirstName} {patient.LastName}. Quantity updated in inventory.";
+                return RedirectToAction("Folder", new { id = model.PatientId });
             }
             catch (Exception ex)
             {
-                // Log error
-                Console.WriteLine($"Error saving prescription: {ex.Message}");
-                return RedirectToAction("Folder", new { id = patientId });
+                Console.WriteLine($"Error assigning medication: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while assigning medication.";
+                return RedirectToAction("AssignMedication", new { patientId = model.PatientId });
             }
         }
-        // Edit Prescription Medication
+
+        // Edit Assigned Medication
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditPrescription(int prescriptionId, int medicationId, string dosage, string frequency, int durationDays, string instructions)
-        {
-                var prescriptionMedication = await _context.PrescriptionMedications
-                    .FirstOrDefaultAsync(pm => pm.PrescriptionId == prescriptionId && pm.MedicationId == medicationId);
-
-                if (prescriptionMedication == null)
-                {
-                    return NotFound();
-                }
-
-                prescriptionMedication.Dosage = dosage;
-                prescriptionMedication.Frequency = frequency;
-                prescriptionMedication.DurationDays = durationDays;
-
-                var prescription = await _context.Prescriptions.FindAsync(prescriptionId);
-                if (prescription != null)
-                {
-                    prescription.Instructions = instructions;
-                }
-
-                await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Prescription updated successfully.";
-            return RedirectToAction("Folder", new { id = prescription.PatientId });
-            
-            
-        }
-
-        // Delete Prescription Medication
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeletePrescription(int prescriptionId, int medicationId)
+        public async Task<IActionResult> EditAssignedMedication(int patientMedicationId, string dosage, string frequency, int durationDays, string administrationNotes)
         {
             try
             {
-                var prescriptionMedication = await _context.PrescriptionMedications
-                    .Include(pm => pm.Prescription)
-                    .FirstOrDefaultAsync(pm => pm.PrescriptionId == prescriptionId && pm.MedicationId == medicationId);
+                var patientMedication = await _context.PatientMedications
+                    .Include(pm => pm.Patient)
+                    .Include(pm => pm.Medication)
+                    .FirstOrDefaultAsync(pm => pm.PatientMedicationId == patientMedicationId);
 
-                if (prescriptionMedication == null)
+                if (patientMedication == null)
                 {
-                    return NotFound();
+                    return NotFound("Medication assignment not found.");
                 }
 
-                // Get patient ID before deleting
-                var patientId = prescriptionMedication.Prescription.PatientId;
+                // Get current user's role for authorization check
+                var currentUserRole = User.IsInRole("Nursing Sister") ? "Nursing Sister" :
+                                     User.IsInRole("Nurse") ? "Nurse" :
+                                     User.IsInRole("Doctor") ? "Doctor" : "Unknown";
 
-                _context.PrescriptionMedications.Remove(prescriptionMedication);
+                // Role-based access control
+                if (patientMedication.Medication.IsScheduledMedication)
+                {
+                    if (!User.IsInRole("Nursing Sister") && !User.IsInRole("Doctor"))
+                    {
+                        return Forbid("Only nursing sisters and doctors can edit scheduled medications.");
+                    }
+                }
+                else
+                {
+                    if (!User.IsInRole("Nurse"))
+                    {
+                        return Forbid("Only nurses can edit non-scheduled medications.");
+                    }
+                }
+
+                // Update the medication assignment
+                patientMedication.Dosage = dosage;
+                patientMedication.Frequency = frequency;
+                patientMedication.DurationDays = durationDays;
+                patientMedication.AdministrationNotes = administrationNotes;
+
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Medication deleted successfully.";
 
-                return RedirectToAction("Folder", new { id = patientId });
+                TempData["SuccessMessage"] = "Medication assignment updated successfully.";
+                return RedirectToAction("Folder", new { id = patientMedication.PatientId });
             }
             catch (Exception ex)
             {
-                // Handle error - try to get patient ID from the prescription ID
-                var prescription = await _context.Prescriptions.FindAsync(prescriptionId);
-                if (prescription != null)
+                Console.WriteLine($"Error editing medication assignment: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while updating the medication assignment.";
+                return RedirectToAction("Folder", new { id = await GetPatientIdFromAssignment(patientMedicationId) });
+            }
+        }
+
+        // Soft Delete Assigned Medication
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SoftDeleteAssignedMedication(int patientMedicationId)
+        {
+            try
+            {
+                var patientMedication = await _context.PatientMedications
+                    .Include(pm => pm.Patient)
+                    .Include(pm => pm.Medication)
+                    .FirstOrDefaultAsync(pm => pm.PatientMedicationId == patientMedicationId);
+
+                if (patientMedication == null)
                 {
-                    return RedirectToAction("Folder", new { id = prescription.PatientId });
+                    return NotFound("Medication assignment not found.");
                 }
-                return RedirectToAction("Index");
+
+                // Get current user's role for authorization check
+                var currentUserRole = User.IsInRole("Nursing Sister") ? "Nursing Sister" :
+                                     User.IsInRole("Nurse") ? "Nurse" :
+                                     User.IsInRole("Doctor") ? "Doctor" : "Unknown";
+
+                // Role-based access control
+                if (patientMedication.Medication.IsScheduledMedication)
+                {
+                    if (!User.IsInRole("Nursing Sister") && !User.IsInRole("Doctor"))
+                    {
+                        return Forbid("Only nursing sisters and doctors can delete scheduled medications.");
+                    }
+                }
+                else
+                {
+                    if (!User.IsInRole("Nurse"))
+                    {
+                        return Forbid("Only nurses can delete non-scheduled medications.");
+                    }
+                }
+
+                // Soft delete - return medication quantity to inventory
+                var medication = patientMedication.Medication;
+                medication.QuantityAvailable += patientMedication.QuantityAssigned;
+
+                // Mark as deleted and inactive
+                patientMedication.IsDeleted = true;
+                patientMedication.IsActive = false;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Medication assignment removed successfully. Quantity returned to inventory.";
+                return RedirectToAction("Folder", new { id = patientMedication.PatientId });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting medication assignment: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while removing the medication assignment.";
+                return RedirectToAction("Folder", new { id = await GetPatientIdFromAssignment(patientMedicationId) });
+            }
+        }
+
+        // Helper method to get patient ID from assignment
+        private async Task<int> GetPatientIdFromAssignment(int patientMedicationId)
+        {
+            var assignment = await _context.PatientMedications
+                .FirstOrDefaultAsync(pm => pm.PatientMedicationId == patientMedicationId);
+            return assignment?.PatientId ?? 0;
+        }
+
+        // Administer Scheduled Medication - updated to match AssignMedication pattern
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdministerMedication(PatientFolderViewModel model)
+        {
+            try
+            {
+                // Validate patient exists
+                var patient = await _context.Patients.FindAsync(model.PatientId);
+                if (patient == null)
+                {
+                    TempData["ErrorMessage"] = "Patient not found.";
+                    return RedirectToAction("Folder", new { id = model.PatientId });
+                }
+
+                // Get the medication from existing data
+                var medication = await _context.Medications.FindAsync(model.MedicationId);
+                if (medication == null || !medication.IsScheduledMedication)
+                {
+                    TempData["ErrorMessage"] = "Scheduled medication not found.";
+                    return RedirectToAction("Folder", new { id = model.PatientId });
+                }
+
+                // Check if sufficient quantity is available
+                if (medication.QuantityAvailable < model.QuantityAssigned)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity available. Only {medication.QuantityAvailable} units in stock.";
+                    return RedirectToAction("Folder", new { id = model.PatientId });
+                }
+
+                // Check if user is authorized (Nursing Sister or Doctor)
+                if (!User.IsInRole("Nursing Sister") && !User.IsInRole("Doctor"))
+                {
+                    TempData["ErrorMessage"] = "Only nursing sisters and doctors can administer scheduled medications.";
+                    return RedirectToAction("Folder", new { id = model.PatientId });
+                }
+
+                // Get current user (employee) ID
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                // Create medication assignment using PatientMedication model
+                var patientMedication = new PatientMedication
+                {
+                    PatientId = model.PatientId,
+                    MedicationId = model.MedicationId,
+                    EmployeeId = currentUserId,
+                    AssignmentDate = DateTime.Now,
+                    Dosage = model.Dosage,
+                    Frequency = model.Frequency,
+                    QuantityAssigned = model.QuantityAssigned,
+                    DurationDays = model.DurationDays,
+                    AdministrationNotes = model.AdministrationNotes,
+                    IsActive = true,
+                    IsDeleted = false
+                };
+
+                // Update medication inventory - reduce available quantity
+                medication.QuantityAvailable -= model.QuantityAssigned;
+
+                _context.PatientMedications.Add(patientMedication);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"{medication.Name} administered successfully to {patient.FirstName} {patient.LastName}. Quantity updated in inventory.";
+                return RedirectToAction("Folder", new { id = model.PatientId });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error administering medication: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while administering medication.";
+                return RedirectToAction("Folder", new { id = model.PatientId });
             }
         }
     }
