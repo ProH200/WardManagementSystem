@@ -291,8 +291,8 @@
                 }
 
                 // Call backend check
-                $.getJSON('/Admission_Discharge/CheckActiveAdmission', { patientId: patientId })
-                    .done(function (response) {
+                $.getJSON('@Url.Action("CheckActiveAdmission", "Admission_Discharge")', { patientId: patientId })
+                            .done(function (response) {
                         if (response.isAdmitted) {
                             Swal.fire({
                                 icon: 'error',

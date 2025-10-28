@@ -168,9 +168,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             return Json(new { isAdmitted });
         }
 
-
-
-
         // POST: Patient selected, show admit section
         [HttpPost]
         [ValidateAntiForgeryToken]
