@@ -216,7 +216,7 @@
                 }
 
                 // Check active admission
-                $.getJSON('/AdmissionDischarge/CheckActiveAdmission', { patientId: patientId })
+                $.getJSON('/Admission_Discharge/CheckActiveAdmission', { patientId: patientId })
                     .done(function (response) {
                         if (response.isAdmitted) {
                             Swal.fire({ icon: 'error', title: '⚠️ Patient is already admitted!', toast: true, position: 'top-end', timer: 3000 });
