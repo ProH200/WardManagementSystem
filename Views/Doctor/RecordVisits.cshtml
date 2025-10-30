@@ -115,7 +115,12 @@
                         @foreach (var note in Model)
                         {
                             <tr>
-                                <td class="patient-name">@note.Patient?.FirstName @note.Patient?.LastName</td>
+                                <td class="patient-name">@note.Patient?.FirstName @note.Patient?.LastName <br/>
+                                    <small class="text-muted">ID: @note.Patient.IdentityNumber</small>
+
+                                
+                            </td>
+
                                 <td>@note.VisitDate.ToString("dd MMM yyyy")</td>
                                 <td>
                                     @if (note.Assessment.Length > 50)
@@ -138,6 +143,14 @@
                                            class="btn btn-outline-primary action-btn"
                                            data-bs-toggle="tooltip" title="View Details">
                                             <i class="bi bi-eye"></i>
+                                        </a>
+
+                                        <!-- Edit Button -->
+                                        <a asp-action="EditVisitNote" asp-controller="DoctorVisit"
+                                           asp-route-id="@note.VisitNoteId"
+                                           class="btn btn-outline-warning action-btn"
+                                           data-bs-toggle="tooltip" title="Edit Note">
+                                            <i class="bi bi-pencil"></i>
                                         </a>
 
                                         <!-- Delete Button with SweetAlert -->

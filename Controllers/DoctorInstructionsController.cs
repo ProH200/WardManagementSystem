@@ -221,5 +221,101 @@ namespace Wellness_Wardens_Project.Controllers
         {
             return _context.Instructions.Any(e => e.InstructionId == id && !e.IsDeleted);
         }
+
+        // GET: Edit instruction
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> EditInstruction(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var instruction = await _context.Instructions
+                .Include(i => i.Patient)
+                .FirstOrDefaultAsync(i => i.InstructionId == id &&
+                                        i.DoctorId == doctor.Id &&
+                                        !i.IsDeleted);
+
+            if (instruction == null)
+            {
+                TempData["ToastMessage"] = "Instruction not found or you don't have permission to edit it.";
+                TempData["ToastType"] = "error";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+
+            // Get patients assigned to this doctor
+            var patients = await _context.PatientAdmissions
+                .Include(pa => pa.Patient)
+                .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                           !pa.IsDeleted &&
+                           !pa.Patient.IsDeleted &&
+                           !pa.Discharges.Any(d => !d.IsDeleted))
+                .Select(pa => pa.Patient)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.Patients = patients;
+
+            return View("~/Views/Doctor/EditInstruction.cshtml", instruction);
+        }
+
+        // POST: Update instruction - FIXED VERSION
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> EditInstruction(int id, [Bind("InstructionId,PatientId,InstructionType,Title,Content,Priority,ExpiryDate")] Instruction instruction)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var existingInstruction = await _context.Instructions
+                .FirstOrDefaultAsync(i => i.InstructionId == id &&
+                                        i.DoctorId == doctor.Id &&
+                                        !i.IsDeleted);
+
+            if (existingInstruction == null)
+            {
+                TempData["ToastMessage"] = "Instruction not found or you don't have permission to edit it.";
+                TempData["ToastType"] = "error";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+
+            try
+            {
+                // Update only the fields that should be editable
+                existingInstruction.PatientId = instruction.PatientId;
+                existingInstruction.InstructionType = instruction.InstructionType;
+                existingInstruction.Title = instruction.Title;
+                existingInstruction.Content = instruction.Content;
+                existingInstruction.Priority = instruction.Priority;
+                existingInstruction.ExpiryDate = instruction.ExpiryDate;
+
+                await _context.SaveChangesAsync();
+
+                TempData["ToastMessage"] = "Instruction updated successfully!";
+                TempData["ToastType"] = "success";
+                return RedirectToAction("Instructions", "DoctorInstructions");
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastMessage"] = $"Error updating instruction: {ex.Message}";
+                TempData["ToastType"] = "error";
+
+                // Reload patients for the view
+                var patients = await _context.PatientAdmissions
+                    .Include(pa => pa.Patient)
+                    .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                               !pa.IsDeleted &&
+                               !pa.Patient.IsDeleted &&
+                               !pa.Discharges.Any(d => !d.IsDeleted))
+                    .Select(pa => pa.Patient)
+                    .Distinct()
+                    .ToListAsync();
+
+                ViewBag.Patients = patients;
+
+                return View("~/Views/Doctor/EditInstruction.cshtml", instruction);
+            }
+        }
+
     }
 }

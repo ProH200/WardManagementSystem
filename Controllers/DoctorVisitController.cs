@@ -128,7 +128,7 @@ namespace Wellness_Wardens_Project.Controllers
             }
 
             return View("~/Views/Doctor/DeleteVisitNoteConfirmation.cshtml", visitNote);
-        }     
+        }
 
         // POST: Delete visit note
         [HttpPost]
@@ -175,6 +175,96 @@ namespace Wellness_Wardens_Project.Controllers
         private bool VisitNoteExists(int id)
         {
             return _context.VisitNotes.Any(e => e.VisitNoteId == id && !e.IsDeleted);
+        }
+
+
+        // GET: Edit visit note
+        public async Task<IActionResult> EditVisitNote(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var visitNote = await _context.VisitNotes
+                .Include(v => v.Patient)
+                .FirstOrDefaultAsync(v => v.VisitNoteId == id &&
+                                        v.DoctorId == doctor.Id &&
+                                        !v.IsDeleted);
+
+            if (visitNote == null)
+            {
+                TempData["ErrorMessage"] = "Visit note not found or you don't have permission to edit it.";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+
+            // Get patients assigned to this doctor
+            var patients = await _context.PatientAdmissions
+                .Include(pa => pa.Patient)
+                .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                           !pa.IsDeleted &&
+                           !pa.Patient.IsDeleted &&
+                           !pa.Discharges.Any(d => !d.IsDeleted))
+                .Select(pa => pa.Patient)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.Patients = patients;
+
+            return View("~/Views/Doctor/EditVisitNote.cshtml", visitNote);
+        }
+
+        // POST: Update visit note (Simplified version)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditVisitNote(int id, IFormCollection form)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var existingVisitNote = await _context.VisitNotes
+                .FirstOrDefaultAsync(v => v.VisitNoteId == id &&
+                                        v.DoctorId == doctor.Id &&
+                                        !v.IsDeleted);
+
+            if (existingVisitNote == null)
+            {
+                TempData["ErrorMessage"] = "Visit note not found or you don't have permission to edit it.";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+
+            try
+            {
+                // Update fields from form collection
+                existingVisitNote.PatientId = int.Parse(form["PatientId"]);
+                existingVisitNote.VisitDate = DateTime.Parse(form["VisitDate"]);
+                existingVisitNote.Subjective = form["Subjective"];
+                existingVisitNote.Objective = form["Objective"];
+                existingVisitNote.Assessment = form["Assessment"];
+                existingVisitNote.Plan = form["Plan"];
+                existingVisitNote.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Visit note updated successfully!";
+                return RedirectToAction("RecordVisits", "DoctorVisit");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating visit note: {ex.Message}";
+
+                // Reload patients and return to view
+                var patients = await _context.PatientAdmissions
+                    .Include(pa => pa.Patient)
+                    .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                               !pa.IsDeleted &&
+                               !pa.Patient.IsDeleted &&
+                               !pa.Discharges.Any(d => !d.IsDeleted))
+                    .Select(pa => pa.Patient)
+                    .Distinct()
+                    .ToListAsync();
+
+                ViewBag.Patients = patients;
+                return View("~/Views/Doctor/EditVisitNote.cshtml", existingVisitNote);
+            }
         }
     }
 }
