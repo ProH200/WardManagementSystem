@@ -3,10 +3,20 @@
 @{
     ViewData["Title"] = "Patient Admissions";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var totalAdmissions = Model.Count();
+    var currentPage = Context.Request.Query["page"].ToString() != "" ? int.Parse(Context.Request.Query["page"]) : 1;
+    var pageSize = 4;
+    var totalPages = (int)Math.Ceiling((double)totalAdmissions / pageSize);
+    var pagedAdmissions = Model
+        .OrderByDescending(a => a.AdmissionDate)
+        .Skip((currentPage - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
 }
 <style>
     body {
-        background-color: #CAD5E2; /* Soft body background */
+        background-color: #CAD5E2;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: #212529;
         margin: 0;
@@ -14,7 +24,7 @@
     }
 
     .admission-item {
-        background-color: #D3DCE6; /* Slightly lighter than body */
+        background-color: #D3DCE6;
         transition: transform 0.2s, box-shadow 0.2s;
     }
 
@@ -38,6 +48,12 @@
         .admission-item .text-secondary span {
             display: block;
         }
+
+    .load-more-container {
+        text-align: center;
+        margin-top: 2rem;
+        padding: 1rem;
+    }
 </style>
 
 <div class="container mt-5">
@@ -82,82 +98,138 @@
         }
     </div>
 
-
-    <!-- Search bar -->
-    <div class="input-group mb-4 shadow" style="background-color:#CAD5E2;">
-        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
-        <input type="text" id="admissionSearch" class="form-control border-0 bg-transparent"
-               placeholder="Search patients by name, ward, room, bed, or staff..." />
+    <!-- Controls Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group shadow" style="background-color:#CAD5E2;">
+                <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="admissionSearch" class="form-control border-0 bg-transparent"
+                       placeholder="Search patients by name, ward, room, bed, or staff..." />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-alpha-down me-1"></i> Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="date-desc">Admission Date (Newest First)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="date-asc">Admission Date (Oldest First)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-asc">Patient Name (A-Z)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-desc">Patient Name (Z-A)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="ward-asc">Ward Name (A-Z)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="status">Status (Admitted First)</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-
 
     <!-- Admissions List -->
     <div id="admissionList" class="d-flex flex-column gap-3">
-        @foreach (var admission in Model)
+        @if (pagedAdmissions.Any())
         {
-            <div class="admission-item p-4 rounded-3 shadow-sm d-flex justify-content-between align-items-center">
+            foreach (var admission in pagedAdmissions)
+            {
+                <div class="admission-item p-4 rounded-3 shadow-sm d-flex justify-content-between align-items-center"
+                     data-name="@admission.Patient?.FirstName?.ToLower() @admission.Patient?.LastName?.ToLower()"
+                     data-date="@admission.AdmissionDate?.ToString("yyyyMMdd")"
+                     data-ward="@admission.Bed?.Room?.Ward?.Name?.ToLower()"
+                     data-status="@(admission.Discharges?.Any() == true ? "discharged" : "admitted")">
 
-                <!-- Left: Patient Details -->
-                <div class="d-flex align-items-start gap-3">
-                    <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center"
-                         style="width:50px; height:50px; font-size:1.2rem;">
-                        <i class="bi bi-person-fill"></i>
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center"
+                             style="width:50px; height:50px; font-size:1.2rem;">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold">@admission.Patient?.FirstName @admission.Patient?.LastName</h5>
+                            <small class="text-muted">
+                                <i class="bi bi-envelope me-1"></i>@(admission.Patient?.Email ?? "N/A")
+                            </small>
+                            <div class="mt-2 small text-secondary">
+                                <i class="bi bi-calendar-event me-1"></i> @(admission.AdmissionDate?.ToString("dd MMM yyyy") ?? "-") <br />
+                                <i class="bi bi-clipboard-check me-1"></i> @(admission.Reason ?? "-")
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold">@admission.Patient?.FirstName @admission.Patient?.LastName</h5>
-                        <small class="text-muted">
-                            <i class="bi bi-envelope me-1"></i>@(admission.Patient?.Email ?? "N/A")
-                        </small>
-                        <div class="mt-2 small text-secondary">
-                            <i class="bi bi-calendar-event me-1"></i> @(admission.AdmissionDate?.ToString("dd MMM yyyy") ?? "-") <br />
-                            <i class="bi bi-clipboard-check me-1"></i> @(admission.Reason ?? "-")
+
+                    <div class="d-flex flex-column text-secondary small">
+                        <span><i class="bi bi-building me-1"></i> Ward: <strong>@(admission.Bed?.Room?.Ward?.Name ?? "-")</strong></span>
+                        <span><i class="bi bi-door-closed me-1"></i> Room: <strong>@(admission.Bed?.Room?.RoomNumber ?? "-")</strong></span>
+                        <span><i class="bi bi-hash me-1"></i> Bed: <strong>@(admission.Bed?.BedNumber ?? "-")</strong></span>
+                        <span>
+                            <i class="bi bi-person-badge me-1"></i> Staff:
+                            @if (admission.AssignedEmployee != null)
+                            {
+                                @($"{admission.AssignedEmployee.Title} {admission.AssignedEmployee.LastName}")
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </span>
+                    </div>
+
+                    <div class="d-flex flex-column align-items-end">
+                        <span class="badge rounded-pill px-3 py-2 mb-2 @(admission.Discharges?.Any() == true ? "bg-success" : "bg-warning text-dark")">
+                            @(admission.Discharges?.Any() == true ? "Discharged" : (admission.AdmissionDate != null ? "Admitted" : "Not Admitted"))
+                        </span>
+
+                        <div class="d-flex gap-2">
+                            @if (User.IsInRole("Ward Admin") && admission.AdmissionDate != null)
+                            {
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary rounded-circle"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editAdmissionModal"
+                                        data-id="@admission.AdmissionId"
+                                        title="Edit Admission">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            }
                         </div>
                     </div>
                 </div>
-
-                <!-- Middle: Allocation Details -->
-                <div class="d-flex flex-column text-secondary small">
-                    <span><i class="bi bi-building me-1"></i> Ward: <strong>@(admission.Bed?.Room?.Ward?.Name ?? "-")</strong></span>
-                    <span><i class="bi bi-door-closed me-1"></i> Room: <strong>@(admission.Bed?.Room?.RoomNumber ?? "-")</strong></span>
-                    <span><i class="bi bi-hash me-1"></i> Bed: <strong>@(admission.Bed?.BedNumber ?? "-")</strong></span>
-                    <span>
-                        <i class="bi bi-person-badge me-1"></i> Staff:
-                        @if (admission.AssignedEmployee != null)
-                        {
-                            @($"{admission.AssignedEmployee.Title} {admission.AssignedEmployee.LastName}")
-                        }
-                        else
-                        {
-                            <span class="text-muted">N/A</span>
-                        }
-                    </span>
-                </div>
-
-                <!-- Right: Status + Actions -->
-                <div class="d-flex flex-column align-items-end">
-                    <span class="badge rounded-pill px-3 py-2 mb-2 @(admission.Discharges?.Any() == true ? "bg-success" : "bg-warning text-dark")">
-                        @(admission.Discharges?.Any() == true ? "Discharged" : (admission.AdmissionDate != null ? "Admitted" : "Not Admitted"))
-                    </span>
-
-                    <div class="d-flex gap-2">
-                        @if (User.IsInRole("Ward Admin") && admission.AdmissionDate != null)
-                        {
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-secondary rounded-circle"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editAdmissionModal"
-                                    data-id="@admission.AdmissionId"
-                                    title="Edit Admission">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        }
-                    </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> No admissions found.
                 </div>
             </div>
         }
     </div>
-</div>
 
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Admission pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" href="?page=@(currentPage - 1)" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link" href="?page=@i">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" href="?page=@(currentPage + 1)" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
 
 <div class="modal fade" id="editAdmissionModal" tabindex="-1" aria-labelledby="editAdmissionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -167,7 +239,6 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="editAdmissionFormContainer">
-                <!-- Form will load via PartialView -->
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-3 text-muted">Loading admission details...</p>
@@ -177,51 +248,84 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-       const searchInput = document.getElementById('admissionSearch');
-       const admissionItems = document.querySelectorAll('.admission-item');
+        const searchInput = document.getElementById('admissionSearch');
+        const admissionItems = document.querySelectorAll('.admission-item');
 
-    function showToast(type, message) {
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: type,
-            title: message,
-            showConfirmButton: false,
-            timer: 2500,
-            timerProgressBar: true
-        });
-    }
+        function showToast(type, message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+        }
 
-    searchInput.addEventListener('keyup', function () {
-        const query = this.value.toLowerCase().trim();
-        let matchFound = false;
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase().trim();
+            let matchFound = false;
 
-        admissionItems.forEach(item => {
-            // Get the patient name element
-            const nameElement = item.querySelector('h5.fw-bold');
-            if (nameElement) {
-                const nameText = nameElement.innerText.toLowerCase();
-                const isMatch = nameText.includes(query);
+            admissionItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const isMatch = text.includes(query);
                 item.style.display = isMatch ? 'flex' : 'none';
                 if (isMatch) matchFound = true;
+            });
+
+            if (!matchFound && query !== "") {
+                showToast('warning', 'No patients found matching your search.');
             }
         });
 
-        // Show toast if nothing found
-        if (!matchFound && query !== "") {
-            showToast('warning', 'No patients found matching your search.');
+        document.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortType = this.getAttribute('data-sort');
+                sortAdmissions(sortType);
+
+                const dropdownButton = document.getElementById('sortDropdown');
+                const icon = dropdownButton.querySelector('i');
+                dropdownButton.innerHTML = icon.outerHTML + ' ' + this.textContent;
+            });
+        });
+
+        function sortAdmissions(sortType) {
+            const container = document.getElementById('admissionList');
+            const items = Array.from(container.querySelectorAll('.admission-item'));
+
+            items.sort((a, b) => {
+                switch(sortType) {
+                    case 'date-desc':
+                        return (b.getAttribute('data-date') || '').localeCompare(a.getAttribute('data-date') || '');
+                    case 'date-asc':
+                        return (a.getAttribute('data-date') || '').localeCompare(b.getAttribute('data-date') || '');
+                    case 'name-asc':
+                        return (a.getAttribute('data-name') || '').localeCompare(b.getAttribute('data-name') || '');
+                    case 'name-desc':
+                        return (b.getAttribute('data-name') || '').localeCompare(a.getAttribute('data-name') || '');
+                    case 'ward-asc':
+                        return (a.getAttribute('data-ward') || '').localeCompare(b.getAttribute('data-ward') || '');
+                    case 'status':
+                        const statusA = a.getAttribute('data-status');
+                        const statusB = b.getAttribute('data-status');
+                        if (statusA === statusB) return 0;
+                        return statusA === 'admitted' ? -1 : 1;
+                    default:
+                        return 0;
+                }
+            });
+
+            items.forEach(item => container.appendChild(item));
         }
-    });
     </script>
 
-    <!-- Edit Admission Modal (no toast here) -->
     <script>
-               // Edit Admission Modal (fixed controller path)
         const editModal = document.getElementById('editAdmissionModal');
         editModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
@@ -241,7 +345,6 @@
         });
     </script>
 
-    <!-- TempData Toasts after full-page reload -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const successMessage = '@TempData["SuccessMessage"]';

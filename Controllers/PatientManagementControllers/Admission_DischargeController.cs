@@ -10,7 +10,6 @@ using Wellness_Wardens_Project.ViewModels.PatientManagementSubsystem;
 
 namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 {
-
     public class Admission_DischargeController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -124,10 +123,17 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         public IActionResult SelectPatient()
         {
             var patients = _context.Patients
-                .Where(p => !p.IsDeleted)
-                .Select(p => new { p.PatientId, FullName = p.FirstName + " " + p.LastName })
-                .ToList();
-            ViewBag.Patients = new SelectList(patients, "PatientId", "FullName");
+     .Where(p => !p.IsDeleted && !_context.PatientAdmissions
+         .Any(pa => pa.PatientId == p.PatientId && !pa.Discharges.Any()))
+     .Select(p => new {
+         p.PatientId,
+         FullName = p.FirstName + " " + p.LastName,
+         p.IdentityNumber
+     })
+     .OrderBy(p => p.FullName)
+     .ToList();
+
+            ViewData["Patients"] = patients;
 
             var wards = _context.Wards
                 .Where(w => !w.IsDeleted)
@@ -158,18 +164,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
 
             return View(vm);
         }
-
-        [HttpGet]
-        public async Task<IActionResult> CheckActiveAdmission(int patientId)
-        {
-            bool isAdmitted = await _context.PatientAdmissions
-                .AnyAsync(a => a.PatientId == patientId && !a.Discharges.Any());
-
-            return Json(new { isAdmitted });
-        }
-
-
-
 
         // POST: Patient selected, show admit section
         [HttpPost]
@@ -344,7 +338,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
             int wardId = admission.Bed?.Room?.WardId ?? 0;
             int roomId = admission.Bed?.RoomId ?? 0;
 
-            // Get available beds + current bed (even if occupied)
             var bedsQuery = _context.Beds
                 .Where(b => b.RoomId == roomId &&
                            !b.IsDeleted &&
@@ -409,10 +402,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                     return RedirectToAction("Admissions");
                 }
 
-                // Update bed status if changed
                 if (admission.BedId != model.BedId)
                 {
-                    // Free up the old bed
                     var oldBed = await _context.Beds.FindAsync(admission.BedId);
                     if (oldBed != null)
                     {
@@ -420,7 +411,6 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                         _context.Beds.Update(oldBed);
                     }
 
-                    // Occupy the new bed
                     var newBed = await _context.Beds.FindAsync(model.BedId);
                     if (newBed != null)
                     {
@@ -457,8 +447,8 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
                         .ThenInclude(r => r.Ward)
                 .Include(a => a.AssignedEmployee)
                 .Include(a => a.Discharges)
-                .Where(a => a.Discharges.Any()) // Only discharged
-                .OrderByDescending(a => a.Discharges.Max(d => d.DischargeDate)) // Latest first
+                .Where(a => a.Discharges.Any()) 
+                .OrderByDescending(a => a.Discharges.Max(d => d.DischargeDate)) 
                 .ToListAsync();
 
             return View(dischargedPatients);
@@ -468,13 +458,14 @@ namespace Wellness_Wardens_Project.Controllers.PatientManagementControllers
         {
             var occupiedBeds = await _context.Beds
                 .Where(b => !b.IsDeleted &&
-                            b.PatientAdmissions.Any(pa => !pa.Discharges.Any())) // Only beds with active admissions
+                            b.PatientAdmissions.Any(pa => !pa.Discharges.Any())) 
                 .Include(b => b.Room)
                     .ThenInclude(r => r.Ward)
                 .Include(b => b.PatientAdmissions)
-                    .ThenInclude(pa => pa.Patient) // Include patient info
+                    .ThenInclude(pa => pa.Patient)
                 .Include(b => b.PatientAdmissions)
-                    .ThenInclude(pa => pa.AssignedEmployee) // Include assigned staff
+                    .ThenInclude(pa => pa.AssignedEmployee)
+                .OrderBy(b => b.BedNumber)
                 .ToListAsync();
 
             return View(occupiedBeds);

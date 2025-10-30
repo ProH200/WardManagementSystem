@@ -21,11 +21,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         [Authorize(Roles = "Admin")]
         public IActionResult Dashboard()
         {
-        //    if (!User.IsInRole("Admin"))
-        //    {
-        //        ViewBag.ErrorMessage = "Unauthorized access denied.";
-        //        return View("Unauthorized");
-        //    }
 
             var model = new DashboardViewModel
             {
@@ -71,7 +66,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
         {
             var recentActivities = new List<RecentActivity>();
 
-            // Get recent admissions (last 7 days)
             var recentAdmissions = await _context.PatientAdmissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed)
@@ -94,7 +88,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Get recent discharges (last 7 days)
             var recentDischarges = await _context.Discharges
                 .Include(d => d.PatientAdmission)
                     .ThenInclude(a => a.Patient)
@@ -114,26 +107,23 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Get recent patient registrations (last 7 days) - Add CreatedDate to Patient model for real data
             var recentPatients = await _context.Patients
-                .Where(p => !p.IsDeleted && p.PatientId > 0) // You might need to add a CreatedDate field
+                .Where(p => !p.IsDeleted && p.PatientId > 0) 
                 .OrderByDescending(p => p.PatientId)
                 .Take(1)
                 .ToListAsync();
 
             foreach (var patient in recentPatients)
             {
-                // If you add a CreatedDate field to Patient model, use that instead
                 recentActivities.Add(new RecentActivity
                 {
                     Type = "Registration",
                     Title = "New Patient Registered",
                     Description = $"{patient.FirstName} {patient.LastName} added to the system",
-                    Timestamp = DateTime.Now.AddDays(-new Random().Next(0, 3)) // Use actual CreatedDate when available
+                    Timestamp = DateTime.Now.AddDays(-new Random().Next(0, 3))
                 });
             }
 
-            // Get recent bed transfers/movements
             var recentMovements = await _context.PatientMovements
                 .Include(pm => pm.PatientAdmission)
                     .ThenInclude(pa => pa.Patient)
@@ -156,7 +146,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Get recent medication assignments
             var recentMedications = await _context.PatientMedications
                 .Include(pm => pm.Patient)
                 .Include(pm => pm.Medication)
@@ -177,7 +166,6 @@ namespace Wellness_Wardens_Project.Controllers.AdminControllers
                 });
             }
 
-            // Sort all activities by timestamp and take the most recent 5
             return recentActivities
                 .OrderByDescending(a => a.Timestamp)
                 .Take(5)
