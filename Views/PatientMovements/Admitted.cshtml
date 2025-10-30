@@ -28,6 +28,14 @@
     .btn-custom {
         border-radius: 50px;
     }
+
+    .list-view .admission-card {
+        margin-bottom: 1rem;
+    }
+
+    .grid-view .col-md-6 {
+        margin-bottom: 1rem;
+    }
 </style>
 
 <div class="container mt-5">
@@ -41,19 +49,57 @@
         </a>
     </div>
 
-    <!-- Search bar -->
-    <div class="input-group mb-4 shadow" style="background-color:#CAD5E2;">
-        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
-        <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
-               placeholder="Search patients by name, ward, room, or bed..." />
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group shadow" style="background-color:#CAD5E2;">
+                <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
+                       placeholder="Search patients by name, ward, room, or bed..." />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end gap-2">
+                <!-- Sort Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-alpha-down me-1"></i> Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-asc">Patient Name (A-Z)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-desc">Patient Name (Z-A)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="admission-desc">Admission Date (Newest First)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="admission-asc">Admission Date (Oldest First)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="ward-asc">Ward Name (A-Z)</a></li>
+                    </ul>
+                </div>
+
+                <!-- View Toggle -->
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="viewMode" id="gridView" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="gridView" title="Grid View">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="viewMode" id="listView" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="listView" title="List View">
+                        <i class="bi bi-list-ul"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if (Model != null && Model.Any())
     {
-        <div id="admissionsGrid" class="row g-4">
+        <div id="admissionsContainer" class="row g-4 grid-view">
             @foreach (var admission in Model)
             {
-                <div class="col-md-6 col-lg-4 admission-card-wrapper">
+                <div class="col-md-6 col-lg-4 admission-card-wrapper"
+                     data-name="@admission.Patient?.FirstName?.ToLower() @admission.Patient?.LastName?.ToLower()"
+                     data-admission="@admission.AdmissionDate?.ToString("yyyyMMdd")"
+                     data-ward="@admission.Bed?.Room?.Ward?.Name?.ToLower()"
+                     data-room="@admission.Bed?.Room?.RoomNumber"
+                     data-bed="@admission.Bed?.BedNumber">
                     <div class="admission-card">
                         <h5>@($"{admission.Patient.FirstName} {admission.Patient.LastName}")</h5>
                         <p class="mb-1"><strong>Admission Date:</strong> @admission.AdmissionDate.Value.ToString("yyyy-MM-dd")</p>
@@ -74,7 +120,7 @@
                     </div>
                 </div>
 
-                <!-- Movement Modal (server-side populated) -->
+                <!-- Movement Modal-->
                 <div class="modal fade" id="movementModal-@admission.AdmissionId" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
@@ -178,25 +224,95 @@
 </div>
 
 @section Scripts {
-    <!-- Include SweetAlert2 for toast notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Live search
         const searchInput = document.getElementById('searchInput');
         const admissionCards = document.querySelectorAll('.admission-card-wrapper');
+        const admissionsContainer = document.getElementById('admissionsContainer');
 
+        // Search functionality
         searchInput.addEventListener('keyup', function () {
             const query = this.value.toLowerCase();
+            let matchFound = false;
+
             admissionCards.forEach(cardWrapper => {
                 const text = cardWrapper.textContent.toLowerCase();
-                cardWrapper.style.display = text.includes(query) ? '' : 'none';
+                const isMatch = text.includes(query);
+                cardWrapper.style.display = isMatch ? '' : 'none';
+                if (isMatch) matchFound = true;
+            });
+
+            if (!matchFound && query.trim() !== "") {
+                showToast('warning', 'No patients found matching your search.');
+            }
+        });
+
+        // View mode toggle
+        document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.id === 'listView') {
+                    admissionsContainer.classList.remove('row', 'g-4', 'grid-view');
+                    admissionsContainer.classList.add('list-view');
+                    admissionsContainer.querySelectorAll('.admission-card-wrapper').forEach(item => {
+                        item.classList.remove('col-md-6', 'col-lg-4');
+                        item.classList.add('col-12');
+                    });
+                } else {
+                    admissionsContainer.classList.add('row', 'g-4', 'grid-view');
+                    admissionsContainer.classList.remove('list-view');
+                    admissionsContainer.querySelectorAll('.admission-card-wrapper').forEach(item => {
+                        item.classList.add('col-md-6', 'col-lg-4');
+                        item.classList.remove('col-12');
+                    });
+                }
             });
         });
+
+        // Sorting functionality
+        document.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortType = this.getAttribute('data-sort');
+                sortAdmissions(sortType);
+
+                // Update dropdown button text
+                const dropdownButton = document.getElementById('sortDropdown');
+                const icon = dropdownButton.querySelector('i');
+                dropdownButton.innerHTML = icon.outerHTML + ' ' + this.textContent;
+            });
+        });
+
+        function sortAdmissions(sortType) {
+            const items = Array.from(admissionsContainer.querySelectorAll('.admission-card-wrapper'));
+
+            items.sort((a, b) => {
+                switch(sortType) {
+                    case 'name-asc':
+                        return (a.getAttribute('data-name') || '').localeCompare(b.getAttribute('data-name') || '');
+                    case 'name-desc':
+                        return (b.getAttribute('data-name') || '').localeCompare(a.getAttribute('data-name') || '');
+                    case 'admission-desc':
+                        return (b.getAttribute('data-admission') || '').localeCompare(a.getAttribute('data-admission') || '');
+                    case 'admission-asc':
+                        return (a.getAttribute('data-admission') || '').localeCompare(b.getAttribute('data-admission') || '');
+                    case 'ward-asc':
+                        return (a.getAttribute('data-ward') || '').localeCompare(b.getAttribute('data-ward') || '');
+                    case 'room-asc':
+                        return parseInt(a.getAttribute('data-room') || 0) - parseInt(b.getAttribute('data-room') || 0);
+                    case 'bed-asc':
+                        return parseInt(a.getAttribute('data-bed') || 0) - parseInt(b.getAttribute('data-bed') || 0);
+                    default:
+                        return 0;
+                }
+            });
+
+            items.forEach(item => admissionsContainer.appendChild(item));
+        }
     </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Apply filtering to each modal individually
             document.querySelectorAll('.modal').forEach(modal => {
                 const wardSelect = modal.querySelector('select[name="WardId"]');
                 const roomSelect = modal.querySelector('select[name="RoomId"]');
@@ -208,11 +324,10 @@
                         const roomOptions = roomSelect.querySelectorAll('option');
 
                         roomOptions.forEach(opt => {
-                            if (!opt.value) return; // keep default option
+                            if (!opt.value) return;
                             opt.style.display = opt.dataset.ward === wardId ? '' : 'none';
                         });
 
-                        // Reset room and bed selections when ward changes
                         roomSelect.value = '';
                         bedSelect.value = '';
                         filterBeds();
@@ -223,21 +338,18 @@
                         const bedOptions = bedSelect.querySelectorAll('option');
 
                         bedOptions.forEach(opt => {
-                            if (!opt.value) return; // keep default option
+                            if (!opt.value) return;
                             opt.style.display = opt.dataset.room === roomId ? '' : 'none';
                         });
 
-                        // Reset bed selection when room changes
                         if (!roomId) {
                             bedSelect.value = '';
                         }
                     }
 
-                    // Add event listeners for this specific modal
                     wardSelect.addEventListener('change', filterRooms);
                     roomSelect.addEventListener('change', filterBeds);
 
-                    // Initialize filtering
                     filterRooms();
                     filterBeds();
                 }
@@ -279,25 +391,5 @@
         if (errorMessage) {
             showToast('error', errorMessage);
         }
-
-        // Show search warnings
-        const searchInput = document.getElementById('searchInput');
-        const patientCards = document.querySelectorAll('.admission-card-wrapper');
-
-        searchInput.addEventListener('keyup', function () {
-            const query = this.value.toLowerCase();
-            let matchFound = false;
-
-            patientCards.forEach(card => {
-                const text = card.textContent.toLowerCase();
-                const isMatch = text.includes(query);
-                card.style.display = isMatch ? '' : 'none';
-                if (isMatch) matchFound = true;
-            });
-
-            if (!matchFound && query.trim() !== "") {
-                showToast('warning', 'No patients found matching your search.');
-            }
-        });
     </script>
 }
