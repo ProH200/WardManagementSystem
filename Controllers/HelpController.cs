@@ -9,7 +9,7 @@ namespace Wellness_Wardens_Project.Controllers
         public IActionResult Help()
         {
             return View();
-        }9
+        }
 
         [Route("FAQ")]
         public IActionResult FAQ()
