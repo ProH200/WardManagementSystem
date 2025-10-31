@@ -134,5 +134,190 @@ namespace Wellness_Wardens_Project.Controllers
 
             return View("~/Views/Doctor/PrescriptionDetails.cshtml", prescription); // FIXED: Full path
         }
+
+        // GET: Edit prescription
+        public async Task<IActionResult> EditPrescription(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var prescription = await _context.Prescriptions
+                .Include(p => p.Patient)
+                .Include(p => p.PrescriptionMedications)
+                    .ThenInclude(pm => pm.Medication)
+                .FirstOrDefaultAsync(p => p.PrescriptionId == id &&
+                                        p.EmployeeId == doctor.Id &&
+                                        !p.IsDeleted);
+
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription not found or you don't have permission to edit it.";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+
+            // Get patients assigned to this doctor
+            var patients = await _context.PatientAdmissions
+                .Include(pa => pa.Patient)
+                .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                           !pa.IsDeleted &&
+                           !pa.Patient.IsDeleted &&
+                           !pa.Discharges.Any(d => !d.IsDeleted))
+                .Select(pa => pa.Patient)
+                .Distinct()
+                .ToListAsync();
+
+            // Get available medications
+            var medications = await _context.Medications
+                .Where(m => !m.IsDeleted && m.QuantityAvailable > 0)
+                .OrderBy(m => m.Name)
+                .ToListAsync();
+
+            ViewBag.Patients = patients;
+            ViewBag.Medications = medications;
+
+            return View("~/Views/Doctor/EditPrescription.cshtml", prescription);
+        }
+
+        // POST: Update prescription (Use same approach as Create)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPrescription(int id, int[] selectedMedications, string[] dosages)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var existingPrescription = await _context.Prescriptions
+                .Include(p => p.PrescriptionMedications)
+                .FirstOrDefaultAsync(p => p.PrescriptionId == id &&
+                                        p.EmployeeId == doctor.Id &&
+                                        !p.IsDeleted);
+
+            if (existingPrescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription not found or you don't have permission to edit it.";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+
+            try
+            {
+                // Update basic fields from form
+                existingPrescription.PatientId = int.Parse(Request.Form["PatientId"]);
+                existingPrescription.DateWritten = DateTime.Parse(Request.Form["DateWritten"]);
+
+                // Clear existing medications
+                existingPrescription.PrescriptionMedications.Clear();
+
+                // Add updated medications
+                if (selectedMedications != null && selectedMedications.Length > 0)
+                {
+                    for (int i = 0; i < selectedMedications.Length; i++)
+                    {
+                        var prescriptionMedication = new PrescriptionMedication
+                        {
+                            MedicationId = selectedMedications[i],
+                            Dosage = dosages?[i] ?? "As directed"
+                        };
+                        existingPrescription.PrescriptionMedications.Add(prescriptionMedication);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Prescription updated successfully!";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating prescription: {ex.Message}";
+
+                // Reload data and return to view
+                var patients = await _context.PatientAdmissions
+                    .Include(pa => pa.Patient)
+                    .Where(pa => pa.AssignedEmployeeId == doctor.Id &&
+                               !pa.IsDeleted &&
+                               !pa.Patient.IsDeleted &&
+                               !pa.Discharges.Any(d => !d.IsDeleted))
+                    .Select(pa => pa.Patient)
+                    .Distinct()
+                    .ToListAsync();
+
+                var medications = await _context.Medications
+                    .Where(m => !m.IsDeleted && m.QuantityAvailable > 0)
+                    .OrderBy(m => m.Name)
+                    .ToListAsync();
+
+                ViewBag.Patients = patients;
+                ViewBag.Medications = medications;
+
+                return View("~/Views/Doctor/EditPrescription.cshtml", existingPrescription);
+            }
+        }
+
+
+        // GET: Delete prescription confirmation
+        public async Task<IActionResult> DeletePrescriptionConfirmation(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null) return Unauthorized();
+
+            var prescription = await _context.Prescriptions
+                .Include(p => p.Patient)
+                .Include(p => p.Employee)
+                .Include(p => p.PrescriptionMedications)
+                    .ThenInclude(pm => pm.Medication)
+                .FirstOrDefaultAsync(p => p.PrescriptionId == id &&
+                                        p.EmployeeId == doctor.Id &&
+                                        !p.IsDeleted);
+
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription not found or you don't have permission to delete it.";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+
+            return View("~/Views/Doctor/DeletePrescriptionConfirmation.cshtml", prescription);
+        }
+
+        // POST: Delete prescription
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePrescription(int id)
+        {
+            var doctor = await _userManager.GetUserAsync(User);
+            if (doctor == null)
+            {
+                TempData["ErrorMessage"] = "Unauthorized access.";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+
+            var prescription = await _context.Prescriptions
+                .Include(p => p.Patient)
+                .Include(p => p.PrescriptionMedications)
+                .FirstOrDefaultAsync(p => p.PrescriptionId == id &&
+                                        p.EmployeeId == doctor.Id &&
+                                        !p.IsDeleted);
+
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription not found or you don't have permission to delete it.";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+
+            try
+            {
+                // Soft delete
+                prescription.IsDeleted = true;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Prescription for {prescription.Patient?.FirstName} {prescription.Patient?.LastName} deleted successfully!";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting prescription: {ex.Message}";
+                return RedirectToAction("Prescriptions", "DoctorPrescription");
+            }
+        }
     }
 }

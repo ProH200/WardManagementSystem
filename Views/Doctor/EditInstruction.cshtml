@@ -1,0 +1,185 @@
+﻿@model Wellness_Wardens_Project.Models.PatientCareSubsystem.Instruction
+
+@{
+    ViewData["Title"] = "Edit Instruction";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-warning">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Instruction
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Instructions" asp-controller="DoctorInstructions">Instructions</a></li>
+                            <li class="breadcrumb-item"><a asp-action="InstructionDetails" asp-controller="DoctorInstructions" asp-route-id="@Model.InstructionId">View Details</a></li>
+                            <li class="breadcrumb-item active">Edit Instruction</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a asp-action="Instructions" asp-controller="DoctorInstructions" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Instruction Form -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form asp-action="EditInstruction" asp-controller="DoctorInstructions" asp-route-id="@Model.InstructionId" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="InstructionId" />
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="PatientId" class="form-label fw-bold">Patient (Optional)</label>
+                                    <select asp-for="PatientId" class="form-select">
+                                        <option value="">-- General Instruction --</option>
+                                        @if (ViewBag.Patients != null)
+                                        {
+                                            @foreach (var patient in ViewBag.Patients)
+                                            {
+                                                <option value="@patient.PatientId">@patient.FirstName @patient.LastName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <small class="form-text text-muted">Leave empty for general instructions to the nursing team.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="InstructionType" class="form-label fw-bold">Instruction Type *</label>
+                                    <select asp-for="InstructionType" class="form-select" required>
+                                        <option value="General">General Message</option>
+                                        <option value="PatientSpecific">Patient-Specific</option>
+                                        <option value="ShiftNote">Shift Note</option>
+                                        <option value="Medication">Medication Instruction</option>
+                                        <option value="Procedure">Procedure</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label asp-for="Title" class="form-label fw-bold">Title *</label>
+                                    <input asp-for="Title" class="form-control"
+                                           placeholder="Enter a clear title for this instruction"
+                                           required />
+                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="Priority" class="form-label fw-bold">Priority *</label>
+                                    <select asp-for="Priority" class="form-select" required>
+                                        <option value="Low">Low</option>
+                                        <option value="Normal">Normal</option>
+                                        <option value="High">High</option>
+                                        <option value="Critical">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label asp-for="Content" class="form-label fw-bold">Instructions *</label>
+                            <textarea asp-for="Content" class="form-control" rows="6"
+                                      placeholder="Provide clear instructions for the nursing team..."
+                                      required></textarea>
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="ExpiryDate" class="form-label fw-bold">Expiry Date (Optional)</label>
+                                    <input asp-for="ExpiryDate" class="form-control" type="datetime-local" />
+                                    <small class="form-text text-muted">Set for time-sensitive instructions.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a asp-action="InstructionDetails" asp-controller="DoctorInstructions" asp-route-id="@Model.InstructionId" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-warning text-white">
+                                <i class="bi bi-check-circle me-1"></i>Update Instruction
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set selected patient
+            const patientId = '@Model.PatientId';
+            if (patientId) {
+                const patientSelect = document.querySelector('select[name="PatientId"]');
+                if (patientSelect) {
+                    patientSelect.value = patientId;
+                }
+            }
+
+            // Set selected instruction type
+            const instructionType = '@Model.InstructionType';
+            if (instructionType) {
+                const typeSelect = document.querySelector('select[name="InstructionType"]');
+                if (typeSelect) {
+                    typeSelect.value = instructionType;
+                }
+            }
+
+            // Set selected priority
+            const priority = '@Model.Priority';
+            if (priority) {
+                const prioritySelect = document.querySelector('select[name="Priority"]');
+                if (prioritySelect) {
+                    prioritySelect.value = priority;
+                }
+            }
+
+            // Format ExpiryDate for datetime-local input
+            const expiryDate = '@Model.ExpiryDate?.ToString("yyyy-MM-ddTHH:mm")';
+            if (expiryDate && expiryDate !== '') {
+                const expiryDateInput = document.querySelector('input[name="ExpiryDate"]');
+                if (expiryDateInput) {
+                    expiryDateInput.value = expiryDate;
+                }
+            }
+        });
+    </script>
+}
+
+@if (TempData["ToastMessage"] != null)
+{
+    <div class="toast align-items-center text-white bg-@(TempData["ToastType"] ?? "info") border-0 show position-fixed top-0 end-0 m-3"
+         role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 1050;">
+        <div class="d-flex">
+            <div class="toast-body">
+                @TempData["ToastMessage"]
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var toastEl = document.querySelector('.toast');
+            if (toastEl) {
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        });
+    </script>
+}

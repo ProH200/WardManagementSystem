@@ -51,15 +51,17 @@
     <div class="card shadow-sm p-4">
         <h3 class="mb-4">Patient Admission</h3>
 
-        <!-- Step 1: Select Patient -->
+        <!-- Select Patient -->
         <div id="selectPatientStep">
             <div class="mb-3 position-relative">
                 <label class="form-label fw-bold required">Select Patient</label>
                 <select id="patientSelect" class="form-select" required>
                     <option value="">-- Select Patient --</option>
-                    @foreach (var patient in ViewBag.Patients)
+                    @foreach (var patient in ViewData["Patients"] as IEnumerable<dynamic>)
                     {
-                        <option value="@patient.Value" data-name="@patient.Text">@patient.Text</option>
+                        <option value="@patient.PatientId" data-name="@patient.FullName" data-idnumber="@patient.IdentityNumber">
+                            @patient.FullName - @patient.IdentityNumber
+                        </option>
                     }
                 </select>
                 <div class="invalid-feedback">
@@ -72,7 +74,7 @@
             </div>
         </div>
 
-        <!-- Step 2: Admission Form -->
+        <!-- Admission Form -->
         <div id="admissionFormStep" style="display:none; margin-top:20px;">
             <h5 class="mb-3">Admit Patient: <span id="selectedPatientName"></span></h5>
             <form asp-action="AdmitPatient" method="post" id="admitPatientForm" class="needs-validation" novalidate>
@@ -161,7 +163,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
-            // Initialize form validation
             (function () {
                 'use strict';
                 const forms = document.querySelectorAll('.needs-validation');
@@ -176,40 +177,32 @@
                 });
             })();
 
-            // Real-time validation for form fields
             function setupFormValidation() {
-                // Ward validation
                 $('#wardSelect').on('change input', function() {
                     validateSelectField(this, 'Please select a ward.');
                 });
 
-                // Room validation
                 $('#roomSelect').on('change input', function() {
                     validateSelectField(this, 'Please select a room.');
                 });
 
-                // Bed validation
                 $('#bedSelect').on('change input', function() {
                     validateSelectField(this, 'Please select a bed.');
                 });
 
-                // Employee validation
                 $('#EmployeeId').on('change input', function() {
                     validateSelectField(this, 'Please select a doctor or nurse.');
                 });
 
-                // Admission date validation
                 $('input[name="AdmissionDate"]').on('change input', function() {
                     validateDateField(this);
                 });
 
-                // Reason validation
                 $('textarea[name="Reason"]').on('input', function() {
                     validateReasonField(this);
                 });
             }
 
-            // Validation functions
             function validateSelectField(field, message) {
                 const value = $(field).val();
                 if (!value) {
@@ -266,7 +259,7 @@
                 }
             }
 
-            // Step 1: Next button → Check admission status
+            // Next button → Show admission form directly
             $('#nextStepBtn').click(function () {
                 var selectedOption = $('#patientSelect option:selected');
                 var patientId = selectedOption.val();
@@ -281,7 +274,6 @@
                         showConfirmButton: false,
                         timer: 3000
                     });
-                    // Trigger validation
                     $('#patientSelect')[0].setCustomValidity('Please select a patient.');
                     updateValidationState($('#patientSelect')[0]);
                     return;
@@ -290,57 +282,26 @@
                     updateValidationState($('#patientSelect')[0]);
                 }
 
-                // Call backend check
-                $.getJSON('@Url.Action("CheckActiveAdmission", "Admission_Discharge")', { patientId: patientId })
-                            .done(function (response) {
-                        if (response.isAdmitted) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: '⚠️ Patient is already admitted and not discharged!',
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false,
-                                timer: 3000
-                            });
-                            return;
-                        }
+                $('#PatientId').val(patientId);
+                $('#selectedPatientName').text(patientName);
+                $('#admissionFormStep').slideDown();
+                $('#selectPatientStep').slideUp();
 
-                        // Passed → Show admission form
-                        $('#PatientId').val(patientId);
-                        $('#selectedPatientName').text(patientName);
-                        $('#admissionFormStep').slideDown();
-                        $('#selectPatientStep').slideUp();
-
-                        // Initialize form validation for step 2
-                        setupFormValidation();
-                    })
-                    .fail(function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: '❌ Error checking patient admission status.',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-                    });
+                setupFormValidation();
             });
 
-            // Cancel button → back to select
             $('#cancelBtn').click(function () {
                 $('#admissionFormStep').slideUp();
                 $('#selectPatientStep').slideDown();
                 $('#admitPatientForm')[0].reset();
                 $('#admitPatientForm').removeClass('was-validated');
 
-                // Clear validation states
                 $('#admitPatientForm').find('select, input, textarea').each(function() {
                     $(this).removeClass('is-valid is-invalid');
                     this.setCustomValidity('');
                 });
             });
 
-            // Ward → Room → Bed cascading
             $('#wardSelect').change(function () {
                 var wardId = $(this).val();
                 if (!wardId) {
@@ -357,7 +318,6 @@
                     });
                     $('#bedSelect').empty().append('<option value="">-- Select Bed --</option>');
 
-                    // Trigger validation
                     validateSelectField(roomSelect[0], 'Please select a room.');
                 });
             });
@@ -376,12 +336,10 @@
                         bedSelect.append('<option value="' + bed.bedId + '">' + bed.bedNumber + '</option>');
                     });
 
-                    // Trigger validation
                     validateSelectField(bedSelect[0], 'Please select a bed.');
                 });
             });
 
-            // TempData success handling
             var successMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"] ?? null));
             if (successMessage) {
                 Swal.fire({

@@ -4,6 +4,17 @@
 @{
     ViewData["Title"] = "Manage Patients";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var totalPatients = Model?.Count() ?? 0;
+    var currentPage = Context.Request.Query["page"].ToString() != "" ? int.Parse(Context.Request.Query["page"]) : 1;
+    var viewMode = Context.Request.Query["view"].ToString() != "" ? Context.Request.Query["view"].ToString() : "grid";
+
+    var gridPageSize = 12;
+    var listPageSize = 6;
+    var currentPageSize = viewMode == "list" ? listPageSize : gridPageSize;
+
+    var totalPages = (int)Math.Ceiling((double)totalPatients / currentPageSize);
+    var pagedPatients = Model?.Skip((currentPage - 1) * currentPageSize).Take(currentPageSize);
 }
 <link href="~/css/wardadmin.css" rel="stylesheet" />
 
@@ -20,24 +31,73 @@
         </div>
     </div>
 
-    <p class="text-danger">Click Patient to view more info.</p>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <!-- Search bar -->
+            <div class="input-group shadow" style="background-color:#CAD5E2;">
+                <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
+                       placeholder="Search patients by name, phone, or email..." />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end gap-2">
+                <!-- Sort Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-alpha-down me-1"></i> Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-asc">Name (A-Z)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="name-desc">Name (Z-A)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="id-asc">ID Number (Ascending)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="id-desc">ID Number (Descending)</a></li>
+                    </ul>
+                </div>
 
-    <!-- Search bar -->
-    <div class="input-group mb-4 shadow" style="background-color:#CAD5E2;">
-        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
-        <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
-               placeholder="Search patients by name, phone, or email..." />
+                <!-- View Toggle -->
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="viewMode" id="gridView" autocomplete="off"
+                           @(viewMode == "grid" ? "checked" : "") data-view="grid">
+                    <label class="btn btn-outline-primary" for="gridView" title="Grid View">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="viewMode" id="listView" autocomplete="off"
+                           @(viewMode == "list" ? "checked" : "") data-view="list">
+                    <label class="btn btn-outline-primary" for="listView" title="List View">
+                        <i class="bi bi-list-ul"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="patientsGrid" class="row g-4">
-        @if (Model != null && Model.Any())
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        Showing @((currentPage - 1) * currentPageSize + 1) to @Math.Min(currentPage * currentPageSize, totalPatients) of @totalPatients patients
+        @if (viewMode == "grid")
         {
-            foreach (var patient in Model)
+            <span>(Grid View - 12 per page)</span>
+        }
+        else
+        {
+            <span>(List View - 6 per page)</span>
+        }
+    </div>
+
+    <p class="text-danger">Click Patient to view more info.</p>
+
+    <!-- Patients Grid/List -->
+    <div id="patientsContainer" class="@(pagedPatients?.Any() == true ? (viewMode == "grid" ? "row g-4 grid-view" : "list-view") : "")">
+        @if (pagedPatients != null && pagedPatients.Any())
+        {
+            foreach (var patient in pagedPatients)
             {
-                <div class="col-md-6 col-lg-4 patient-card">
-                    <div class="card shadow border-1 h-000 rounded-3" style="background-color:#CAD5E2; cursor:pointer;">
+                <div class="@(viewMode == "grid" ? "col-md-6 col-lg-4" : "col-12 mb-3") patient-card" data-name="@patient.FullName.ToLower()"
+                     data-idnumber="@patient.IdentityNumber" data-sortable>
+                    <div class="card shadow border-1 h-100 rounded-3" style="background-color:#CAD5E2; cursor:pointer;">
                         <div class="card-body">
-                            <!-- Compact Header (clickable for collapse) -->
                             <div class="d-flex align-items-center mb-0"
                                  data-bs-toggle="collapse" data-bs-target="#patientDetails-@patient.PatientId">
                                 <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px;">
@@ -74,18 +134,18 @@
                                     }
 
                                     <div class="d-flex justify-content mt-3">
-                                        <a asp-controller="Patient" asp-action="GetHistory" asp-route-patientId="@patient.PatientId" class="btn btn-sm btn-outline-info">
+                                        <a asp-controller="Patient" asp-action="GetHistory" asp-route-patientId="@patient.PatientId" class="btn btn-sm btn-outline-info text-black">
                                             Medical History
                                         </a>
-                                        <button class="btn btn-sm btn-outline-warning ms-2"
+                                        <button class="btn btn-sm btn-outline-warning ms-2 text-black"
                                                 onclick="openAssignConditionsModal(@patient.PatientId)">
-                                                Conditions
+                                            Conditions
                                         </button>
                                         <a asp-action="EditPatient" asp-route-id="@patient.PatientId" class="btn btn-sm btn-outline-primary ms-2">
                                             Edit
                                         </a>
                                         <button class="btn btn-sm btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal-@patient.PatientId">
-                                           Delete
+                                            Delete
                                         </button>
                                     </div>
                                 </div>
@@ -135,6 +195,33 @@
             </div>
         }
     </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Patient pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" href="?page=@(currentPage - 1)&view=@viewMode" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link" href="?page=@i&view=@viewMode">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" href="?page=@(currentPage + 1)&view=@viewMode" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
 </div>
 
 @section Scripts {
@@ -153,6 +240,7 @@
             });
         }
 
+        // Search functionality
         const searchInput = document.getElementById('searchInput');
         const patientCards = document.querySelectorAll('.patient-card');
 
@@ -172,6 +260,46 @@
             }
         });
 
+        // View mode toggle with page reload
+        document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const viewMode = this.getAttribute('data-view');
+                // Reload page with new view mode and reset to page 1
+                window.location.href = `?page=1&view=${viewMode}`;
+            });
+        });
+
+        // Sorting functionality
+        document.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortType = this.getAttribute('data-sort');
+                sortPatients(sortType);
+            });
+        });
+
+        function sortPatients(sortType) {
+            const container = document.getElementById('patientsContainer');
+            const cards = Array.from(container.querySelectorAll('.patient-card[data-sortable]'));
+
+            cards.sort((a, b) => {
+                switch(sortType) {
+                    case 'name-asc':
+                        return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                    case 'name-desc':
+                        return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+                    case 'id-asc':
+                        return (a.getAttribute('data-idnumber') || '').localeCompare(b.getAttribute('data-idnumber') || '');
+                    case 'id-desc':
+                        return (b.getAttribute('data-idnumber') || '').localeCompare(a.getAttribute('data-idnumber') || '');
+                    default:
+                        return 0;
+                }
+            });
+
+            cards.forEach(card => container.appendChild(card));
+        }
+
         var successMessage = @Html.Raw(Json.Serialize(TempData["SuccessMessage"] ?? ""));
         if (successMessage) {
             showToast('success', successMessage);
@@ -187,6 +315,7 @@
                 }
         }
     </script>
+
     <script>
         function openAssignConditionsModal(patientId) {
             $.get('@Url.Action("GetAssignConditionsModal")', { patientId: patientId }, function (data) {
@@ -200,4 +329,3 @@
         }
     </script>
 }
-

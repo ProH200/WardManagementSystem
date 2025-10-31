@@ -377,9 +377,12 @@
     <div class="help-widget">
         <button id="helpToggle" class="help-button" title="Help">?</button>
         <div id="helpMenu" class="help-menu hidden">
-            <a href="/Help/FAQ">FAQ?</a>
-            <a href="/Help/Support">Support</a>
-            <a href="/Help/Help">Help</a>
+            @{
+                var basePath = Context.Request.PathBase;
+            }
+            <a href="@basePath/Help/FAQ">FAQ?</a>
+            <a href="@basePath/Help/Support">Support</a>
+            <a href="@basePath/Help/Help">Help</a>
         </div>
     </div>
 

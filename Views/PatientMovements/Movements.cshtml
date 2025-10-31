@@ -34,6 +34,14 @@
     .btn-custom {
         border-radius: 50px;
     }
+
+    .list-view .movement-card {
+        margin-bottom: 1rem;
+    }
+
+    .grid-view .col-md-6 {
+        margin-bottom: 1rem;
+    }
 </style>
 
 <div class="container mt-5">
@@ -47,12 +55,54 @@
         </a>
     </div>
 
-    @if (Model != null && Model.Any())
-    {
-        <div class="row g-3">
-            @foreach (var movement in Model)
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group shadow" style="background-color:#CAD5E2;">
+                <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="movementSearch" class="form-control border-0 bg-transparent"
+                       placeholder="Search movements by location, reason, or date..." />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end gap-2">
+                <!-- Sort Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-alpha-down me-1"></i> Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="date-desc">Date (Newest First)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="date-asc">Date (Oldest First)</a></li>
+                    </ul>
+                </div>
+
+                <!-- View Toggle -->
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="viewMode" id="gridView" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="gridView" title="Grid View">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="viewMode" id="listView" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="listView" title="List View">
+                        <i class="bi bi-list-ul"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movements Container -->
+    <div id="movementsContainer" class="row g-3 grid-view">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var movement in Model)
             {
-                <div class="col-md-6">
+                <div class="col-md-6 movement-item"
+                     data-date="@movement.Date.ToString("yyyyMMdd")"
+                     data-from="@movement.FromLocation?.ToLower()"
+                     data-to="@movement.ToLocation?.ToLower()"
+                     data-reason="@movement.Reason?.ToLower()">
                     <div class="movement-card">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
@@ -79,14 +129,16 @@
                     </div>
                 </div>
             }
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-info shadow-sm text-center mt-4">
-            <i class="bi bi-info-circle me-2"></i> No patient movements found.
-        </div>
-    }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="alert alert-info shadow-sm text-center mt-4">
+                    <i class="bi bi-info-circle me-2"></i> No patient movements found.
+                </div>
+            </div>
+        }
+    </div>
 </div>
 
 <!-- Update Movement Modal -->
@@ -98,7 +150,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="updateMovementModalBody">
-                <!-- Content will be loaded dynamically -->
                 <div class="text-center">
                     <div class="spinner-border" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -118,7 +169,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="deleteMovementModalBody">
-                <!-- Content will be loaded dynamically -->
                 <div class="text-center">
                     <div class="spinner-border" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -130,10 +180,13 @@
 </div>
 
 @section Scripts {
-    <!-- Include SweetAlert2 for toast notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        const movementItems = document.querySelectorAll('.movement-item');
+        const searchInput = document.getElementById('movementSearch');
+        const movementsContainer = document.getElementById('movementsContainer');
+
         function loadMovementForm(movementId) {
             fetch(`/PatientMovements/EditMovementForm?movementId=${movementId}`)
                 .then(res => {
@@ -188,7 +241,83 @@
             });
         }
 
-        // Show success/error messages from TempData
+        // Search functionality
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase().trim();
+            let matchFound = false;
+
+            movementItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const isMatch = text.includes(query);
+                item.style.display = isMatch ? '' : 'none';
+                if (isMatch) matchFound = true;
+            });
+
+            if (!matchFound && query !== "") {
+                showToast('warning', 'No movements found matching your search.');
+            }
+        });
+
+        // View mode toggle
+        document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.id === 'listView') {
+                    movementsContainer.classList.remove('row', 'g-3', 'grid-view');
+                    movementsContainer.classList.add('list-view');
+                    movementsContainer.querySelectorAll('.movement-item').forEach(item => {
+                        item.classList.remove('col-md-6');
+                        item.classList.add('col-12');
+                    });
+                } else {
+                    movementsContainer.classList.add('row', 'g-3', 'grid-view');
+                    movementsContainer.classList.remove('list-view');
+                    movementsContainer.querySelectorAll('.movement-item').forEach(item => {
+                        item.classList.add('col-md-6');
+                        item.classList.remove('col-12');
+                    });
+                }
+            });
+        });
+
+        // Sorting functionality
+        document.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortType = this.getAttribute('data-sort');
+                sortMovements(sortType);
+
+                const dropdownButton = document.getElementById('sortDropdown');
+                const icon = dropdownButton.querySelector('i');
+                dropdownButton.innerHTML = icon.outerHTML + ' ' + this.textContent;
+            });
+        });
+
+        function sortMovements(sortType) {
+            const items = Array.from(movementsContainer.querySelectorAll('.movement-item'));
+
+            items.sort((a, b) => {
+                switch(sortType) {
+                    case 'date-desc':
+                        return (b.getAttribute('data-date') || '').localeCompare(a.getAttribute('data-date') || '');
+                    case 'date-asc':
+                        return (a.getAttribute('data-date') || '').localeCompare(b.getAttribute('data-date') || '');
+                    case 'from-asc':
+                        return (a.getAttribute('data-from') || '').localeCompare(b.getAttribute('data-from') || '');
+                    case 'from-desc':
+                        return (b.getAttribute('data-from') || '').localeCompare(a.getAttribute('data-from') || '');
+                    case 'to-asc':
+                        return (a.getAttribute('data-to') || '').localeCompare(b.getAttribute('data-to') || '');
+                    case 'to-desc':
+                        return (b.getAttribute('data-to') || '').localeCompare(a.getAttribute('data-to') || '');
+                    default:
+                        return 0;
+                }
+            });
+
+            items.forEach(item => movementsContainer.appendChild(item));
+        }
+
+        // Show successs/error messages from TempData
         var successMessage = '@Html.Raw(TempData["Success"] ?? "")';
         if (successMessage) {
             showToast('success', successMessage);
