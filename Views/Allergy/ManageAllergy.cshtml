@@ -25,6 +25,14 @@
                 <div class="col-md-6">
                     <input type="text" id="allergySearch" class="form-control" placeholder="Search allergies by name or description...">
                 </div>
+                <div class="col-md-4">
+                    <select id="sortSelect" class="form-select">
+                        <option value="name-asc">Sort by: Name (A-Z)</option>
+                        <option value="name-desc">Sort by: Name (Z-A)</option>
+                        <option value="description-asc">Sort by: Description (A-Z)</option>
+                        <option value="description-desc">Sort by: Description (Z-A)</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Table -->
@@ -37,10 +45,10 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="allergyTable">
+                    <tbody id="allergyTableBody">
                         @foreach (var allergy in Model)
                         {
-                            <tr>
+                            <tr class="allergy-row">
                                 <td>
                                     <strong>@allergy.Name</strong>
                                 </td>
@@ -69,7 +77,7 @@
                             <div class="modal fade" id="deleteModal-@allergy.AllergyId" tabindex="-1" aria-labelledby="deleteModalLabel-@allergy.AllergyId" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
-                                       
+
                                         <form asp-controller="Allergy" asp-action="DeleteAllergy" asp-route-id="@allergy.AllergyId" method="post">
                                             @Html.AntiForgeryToken()
 
@@ -120,6 +128,9 @@
                         }
                     </tbody>
                 </table>
+
+                <!-- Pagination Container -->
+                <div class="mt-3" id="allergyPagination"></div>
 
                 @if (!Model.Any())
                 {
@@ -205,17 +216,29 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Simple search filter
-        document.getElementById("allergySearch").addEventListener("keyup", function () {
-            let filter = this.value.toLowerCase();
-            let rows = document.querySelectorAll("#allergyTable tr");
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-            rows.forEach(row => {
-                let text = row.textContent.toLowerCase();
-                row.style.display = text.includes(filter) ? "" : "none";
+    <!-- Search Filter -->
+    <script>
+        const allergySearchInput = document.getElementById('allergySearch');
+        const allergyTableBody = document.getElementById('allergyTableBody');
+        let allAllergyRows = Array.from(allergyTableBody.querySelectorAll('.allergy-row'));
+        let filteredAllergyRows = [...allAllergyRows];
+
+        function performSearch() {
+            const query = allergySearchInput.value.toLowerCase();
+
+            filteredAllergyRows = allAllergyRows.filter(row => {
+                const nameText = row.children[0].textContent.toLowerCase();
+                const descText = row.children[1].textContent.toLowerCase();
+                return nameText.includes(query) || descText.includes(query);
             });
-        });
+
+            displayPage(1);
+        }
+
+        allergySearchInput.addEventListener('keyup', performSearch);
 
         // Auto-focus search box
         document.addEventListener('DOMContentLoaded', function() {
@@ -226,37 +249,138 @@
         });
     </script>
 
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            allAllergyRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredAllergyRows.forEach((allergyRow, index) => {
+                if (index >= start && index < end) {
+                    allergyRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('allergyPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredAllergyRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredAllergyRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'description':
+                        aValue = a.children[1].textContent.trim().toLowerCase();
+                        bValue = b.children[1].textContent.trim().toLowerCase();
+                        // Handle "No description" text
+                        if (aValue === 'no description') aValue = '';
+                        if (bValue === 'no description') bValue = '';
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            filteredAllergyRows.forEach(allergyRow => {
+                allergyTableBody.appendChild(allergyRow);
+            });
+
+            displayPage(1);
+        }
+
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        sortTable('name-asc');
+        displayPage(1);
+    </script>
+
     <!-- SweetAlert2 Toast -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         @if (TempData["SuccessMessage"] != null)
         {
-            <text>
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: '@TempData["SuccessMessage"]',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
-            </text>
+                <text>
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: '@TempData["SuccessMessage"]',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                </text>
         }
 
         @if (TempData["ErrorMessage"] != null)
         {
-            <text>
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'error',
-                        title: '@TempData["ErrorMessage"]',
-                        showConfirmButton: false,
-                        timer: 4000,
-                        timerProgressBar: true
-                    });
-            </text>
+                <text>
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'error',
+                            title: '@TempData["ErrorMessage"]',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true
+                        });
+                </text>
         }
     </script>
 }

@@ -28,17 +28,7 @@ namespace Wellness_Wardens_Project
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // Add this before building
-            builder.Services.AddHttpContextAccessor();
-
             var app = builder.Build();
-
-            // Add base path middleware (add this early in pipeline)
-            app.Use(async (context, next) =>
-            {
-                context.Request.PathBase = new PathString("/grp-03-20");
-                await next();
-            });
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

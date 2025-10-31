@@ -83,8 +83,22 @@
         </div>
     </div>
 
-    <!-- Search -->
-    <input type="text" class="search-box" placeholder="Search visit notes..." id="searchInput">
+    <!-- Search and Sort -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input type="text" class="search-box" placeholder="Search visit notes..." id="searchInput">
+        </div>
+        <div class="col-md-4">
+            <select id="sortSelect" class="form-select">
+                <option value="patient-asc">Sort by: Patient (A-Z)</option>
+                <option value="patient-desc">Sort by: Patient (Z-A)</option>
+                <option value="visitdate-asc">Sort by: Visit Date (Oldest First)</option>
+                <option value="visitdate-desc">Sort by: Visit Date (Newest First)</option>
+                <option value="created-asc">Sort by: Created (Oldest First)</option>
+                <option value="created-desc">Sort by: Created (Newest First)</option>
+            </select>
+        </div>
+    </div>
 
     <div class="visit-table-card">
         @if (!Model.Any())
@@ -111,22 +125,19 @@
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="visitNotesGrid">
+                    <tbody id="visitNotesTableBody">
                         @foreach (var note in Model)
                         {
-                            <tr>
-                                <td class="patient-name">@note.Patient?.FirstName @note.Patient?.LastName <br/>
+                            <tr class="visitnote-row">
+                                <td class="patient-name">
+                                    @note.Patient?.FirstName @note.Patient?.LastName <br />
                                     <small class="text-muted">ID: @note.Patient.IdentityNumber</small>
-
-                                
-                            </td>
-
+                                </td>
                                 <td>@note.VisitDate.ToString("dd MMM yyyy")</td>
                                 <td>
                                     @if (note.Assessment.Length > 50)
                                     {
                                         @note.Assessment.Substring(0, 50)
-
                                         <text>...</text>
                                     }
                                     else
@@ -168,6 +179,9 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination Container -->
+            <div class="mt-3" id="visitNotesPagination"></div>
         }
     </div>
 </div>
@@ -180,6 +194,143 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Search Filter -->
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const visitNotesTableBody = document.getElementById('visitNotesTableBody');
+        let allVisitNoteRows = Array.from(visitNotesTableBody.querySelectorAll('.visitnote-row'));
+        let filteredVisitNoteRows = [...allVisitNoteRows];
+
+        function performSearch() {
+            const query = searchInput.value.toLowerCase();
+
+            filteredVisitNoteRows = allVisitNoteRows.filter(row => {
+                const patientText = row.children[0].textContent.toLowerCase();
+                const visitDateText = row.children[1].textContent.toLowerCase();
+                const assessmentText = row.children[2].textContent.toLowerCase();
+                const createdText = row.children[3].textContent.toLowerCase();
+                return patientText.includes(query) || visitDateText.includes(query) ||
+                       assessmentText.includes(query) || createdText.includes(query);
+            });
+
+            displayPage(1);
+        }
+
+        searchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allVisitNoteRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredVisitNoteRows.forEach((visitNoteRow, index) => {
+                if (index >= start && index < end) {
+                    visitNoteRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('visitNotesPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredVisitNoteRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredVisitNoteRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'patient':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'visitdate':
+                        // Parse date for proper sorting (assuming format: "dd MMM yyyy")
+                        aValue = new Date(a.children[1].textContent.trim());
+                        bValue = new Date(b.children[1].textContent.trim());
+                        break;
+                    case 'created':
+                        // Parse date for proper sorting (assuming format: "dd MMM yyyy")
+                        aValue = new Date(a.children[3].textContent.trim());
+                        bValue = new Date(b.children[3].textContent.trim());
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Reorder DOM elements
+            filteredVisitNoteRows.forEach(visitNoteRow => {
+                visitNotesTableBody.appendChild(visitNoteRow);
+            });
+
+            displayPage(1);
+        }
+
+        // Initialize sort dropdown
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        // Initialize display
+        sortTable('visitdate-desc');
+        displayPage(1);
+    </script>
+
+    <!-- Existing JavaScript Functions -->
     <script>
         // Function to show success toast
         function showSuccessToast(message) {
@@ -221,7 +372,6 @@
             });
         }
 
-        // Simple working delete with form submission
         function setupDeleteButtons() {
             document.querySelectorAll('.delete-visitnote-btn').forEach(button => {
                 button.addEventListener('click', function() {
@@ -277,25 +427,6 @@
             @if (TempData["ErrorMessage"] != null)
             {
                     <text>showErrorToast('@TempData["ErrorMessage"]');</text>
-            }
-
-            // Search functionality
-            const searchInput = document.getElementById('searchInput');
-            const rows = document.querySelectorAll('#visitNotesGrid tr');
-
-            if (searchInput && rows.length > 0) {
-                searchInput.addEventListener('input', function () {
-                    const term = this.value.toLowerCase();
-
-                    rows.forEach(row => {
-                        const text = row.textContent.toLowerCase();
-                        if (text.includes(term)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-                });
             }
         });
     </script>

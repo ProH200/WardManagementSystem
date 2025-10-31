@@ -27,7 +27,7 @@
         }
     </div>
 
-    <!-- Live Search -->
+    <!-- Search and Sort -->
     @if (Model.Any())
     {
         <div class="row mb-3">
@@ -38,6 +38,22 @@
                     </span>
                     <input type="text" id="instructionSearch" class="form-control" placeholder="Search by title, patient, type, or priority...">
                 </div>
+            </div>
+            <div class="col-md-4">
+                <select id="sortSelect" class="form-select">
+                    <option value="title-asc">Sort by: Title (A-Z)</option>
+                    <option value="title-desc">Sort by: Title (Z-A)</option>
+                    <option value="patient-asc">Sort by: Patient (A-Z)</option>
+                    <option value="patient-desc">Sort by: Patient (Z-A)</option>
+                    <option value="type-asc">Sort by: Type (A-Z)</option>
+                    <option value="type-desc">Sort by: Type (Z-A)</option>
+                    <option value="priority-asc">Sort by: Priority (Low to High)</option>
+                    <option value="priority-desc">Sort by: Priority (High to Low)</option>
+                    <option value="date-asc">Sort by: Date (Oldest First)</option>
+                    <option value="date-desc">Sort by: Date (Newest First)</option>
+                    <option value="status-asc">Sort by: Status (Pending First)</option>
+                    <option value="status-desc">Sort by: Status (Completed First)</option>
+                </select>
             </div>
         </div>
     }
@@ -82,7 +98,8 @@
                                     data-patient="@(instruction.Patient != null ? $"{instruction.Patient.FirstName} {instruction.Patient.LastName}".ToLower() : "general")"
                                     data-type="@instruction.InstructionType.ToLower()"
                                     data-priority="@instruction.Priority.ToLower()"
-                                    data-status="@(instruction.IsCompleted ? "completed" : "pending")">
+                                    data-status="@(instruction.IsCompleted ? "completed" : "pending")"
+                                    data-date="@instruction.CreatedDate.ToString("yyyy-MM-dd")">
                                     <td>
                                         <strong>@instruction.Title</strong>
                                         @if (instruction.ExpiryDate.HasValue && instruction.ExpiryDate < DateTime.Now)
@@ -173,6 +190,9 @@
                     </table>
                 </div>
 
+                <!-- Pagination Container -->
+                <div class="mt-3" id="instructionsPagination"></div>
+
                 <div id="noResults" class="text-center py-4 d-none">
                     <i class="bi bi-search display-4 text-muted mb-3"></i>
                     <h5 class="text-muted">No Instructions Found</h5>
@@ -203,6 +223,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Include jQuery Validation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <style>
         body {
@@ -226,15 +247,173 @@
             }
     </style>
 
+    <!-- Search Filter -->
+    <script>
+        const searchInput = document.getElementById('instructionSearch');
+        const instructionsTableBody = document.getElementById('instructionsTableBody');
+        let allInstructionRows = Array.from(instructionsTableBody.querySelectorAll('.instruction-row'));
+        let filteredInstructionRows = [...allInstructionRows];
+
+        function performSearch() {
+            const query = searchInput.value.toLowerCase();
+
+            filteredInstructionRows = allInstructionRows.filter(row => {
+                const title = row.getAttribute('data-title');
+                const patient = row.getAttribute('data-patient');
+                const type = row.getAttribute('data-type');
+                const priority = row.getAttribute('data-priority');
+                const status = row.getAttribute('data-status');
+                const date = row.getAttribute('data-date');
+
+                return title.includes(query) || patient.includes(query) ||
+                       type.includes(query) || priority.includes(query) ||
+                       status.includes(query) || date.includes(query);
+            });
+
+            displayPage(1);
+        }
+
+        searchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allInstructionRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredInstructionRows.forEach((instructionRow, index) => {
+                if (index >= start && index < end) {
+                    instructionRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('instructionsPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredInstructionRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredInstructionRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'title':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'patient':
+                        aValue = a.children[1].textContent.trim().toLowerCase();
+                        bValue = b.children[1].textContent.trim().toLowerCase();
+                        // Handle "General" patient
+                        if (aValue === 'general') aValue = '';
+                        if (bValue === 'general') bValue = '';
+                        break;
+                    case 'type':
+                        aValue = a.children[2].textContent.trim().toLowerCase();
+                        bValue = b.children[2].textContent.trim().toLowerCase();
+                        break;
+                    case 'priority':
+                        // Priority order: Critical (1), High (2), Medium (3), Low (4)
+                        const priorityOrder = {
+                            'critical': 1,
+                            'high': 2,
+                            'medium': 3,
+                            'low': 4
+                        };
+                        aValue = priorityOrder[a.getAttribute('data-priority')] || 5;
+                        bValue = priorityOrder[b.getAttribute('data-priority')] || 5;
+                        break;
+                    case 'date':
+                        // Parse date for proper sorting (using data attribute for consistent format)
+                        aValue = new Date(a.getAttribute('data-date'));
+                        bValue = new Date(b.getAttribute('data-date'));
+                        break;
+                    case 'status':
+                        // Status priority: Pending (1), Completed (2)
+                        aValue = a.getAttribute('data-status') === 'pending' ? 1 : 2;
+                        bValue = b.getAttribute('data-status') === 'pending' ? 1 : 2;
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Reorder DOM elements
+            filteredInstructionRows.forEach(instructionRow => {
+                instructionsTableBody.appendChild(instructionRow);
+            });
+
+            displayPage(1);
+        }
+
+        // Initialize sort dropdown
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        // Initialize display
+        sortTable('date-desc');
+        displayPage(1);
+    </script>
+
+    <!-- Existing JavaScript Functions -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             console.log("DOM loaded - initializing instructions page");
 
             // Initialize tooltips
             initializeTooltips();
-
-            // Setup live search
-            setupLiveSearch();
 
             // Setup action buttons
             setupActionButtons();
@@ -248,50 +427,6 @@
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
-        }
-
-        function setupLiveSearch() {
-            const searchInput = document.getElementById('instructionSearch');
-            const instructionRows = document.querySelectorAll('.instruction-row');
-            const noResults = document.getElementById('noResults');
-            const tableBody = document.getElementById('instructionsTableBody');
-
-            if (searchInput && instructionRows.length > 0) {
-                searchInput.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase().trim();
-                    let visibleCount = 0;
-
-                    instructionRows.forEach(row => {
-                        const title = row.getAttribute('data-title');
-                        const patient = row.getAttribute('data-patient');
-                        const type = row.getAttribute('data-type');
-                        const priority = row.getAttribute('data-priority');
-                        const status = row.getAttribute('data-status');
-
-                        const matches = title.includes(searchTerm) ||
-                                       patient.includes(searchTerm) ||
-                                       type.includes(searchTerm) ||
-                                       priority.includes(searchTerm) ||
-                                       status.includes(searchTerm);
-
-                        if (matches || searchTerm === '') {
-                            row.classList.remove('d-none');
-                            visibleCount++;
-                        } else {
-                            row.classList.add('d-none');
-                        }
-                    });
-
-                    // Show/hide no results message
-                    if (visibleCount === 0 && searchTerm !== '') {
-                        noResults.classList.remove('d-none');
-                        tableBody.classList.add('d-none');
-                    } else {
-                        noResults.classList.add('d-none');
-                        tableBody.classList.remove('d-none');
-                    }
-                });
-            }
         }
 
         function setupActionButtons() {
@@ -557,8 +692,8 @@
             {
                     var toastType = TempData["ToastType"]?.ToString() ?? "info";
                     var icon = toastType == "success" ? "success" :
-                                        toastType == "error" ? "error" :
-                                        toastType == "warning" ? "warning" : "info";
+                                                            toastType == "error" ? "error" :
+                                                            toastType == "warning" ? "warning" : "info";
 
                     <text>
                     Swal.fire({
@@ -578,7 +713,6 @@
             }
         }
 
-        // Debug function - you can call this in browser console to test
         window.debugEditModal = function(instructionId) {
             console.log('Debug: Testing modal with ID', instructionId);
             openEditInstructionModal(instructionId);

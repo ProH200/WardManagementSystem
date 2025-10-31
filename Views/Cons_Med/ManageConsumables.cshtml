@@ -20,7 +20,21 @@
         </div>
     </div>
 
-    <input class="form-control mb-3" id="searchInput" placeholder="Search consumables..." />
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input class="form-control" id="searchInput" placeholder="Search consumables..." />
+        </div>
+        <div class="col-md-4">
+            <select id="sortSelect" class="form-select">
+                <option value="name-asc">Sort by: Name (A-Z)</option>
+                <option value="name-desc">Sort by: Name (Z-A)</option>
+                <option value="quantity-asc">Sort by: Quantity (Low to High)</option>
+                <option value="quantity-desc">Sort by: Quantity (High to Low)</option>
+                <option value="ward-asc">Sort by: Ward (A-Z)</option>
+                <option value="ward-desc">Sort by: Ward (Z-A)</option>
+            </select>
+        </div>
+    </div>
 
     <div class="table-responsive">
         <table class="table table-hover align-middle text-center">
@@ -32,10 +46,10 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="consumablesTable">
+            <tbody id="consumablesTableBody">
                 @foreach (var item in Model)
                 {
-                    <tr>
+                    <tr class="consumable-row">
                         <td>@item.Name</td>
                         <td>@item.QuantityAvailable</td>
                         <td>@item.Ward?.Name</td>
@@ -90,9 +104,10 @@
                     </div>
                 }
             </tbody>
-
         </table>
     </div>
+
+    <div class="mt-3" id="consumablesPagination"></div>
 </div>
 
 <!-- Add Consumable Modal -->
@@ -107,7 +122,6 @@
                 <form id="addConsumableForm" asp-action="AddConsumable" asp-controller="Cons_Med" method="post" class="needs-validation" novalidate>
                     @Html.AntiForgeryToken()
 
-                    <!-- Name Field -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Name:</label>
                         <input type="text" name="Name" id="newConsumableName" class="form-control"
@@ -121,7 +135,6 @@
                         </div>
                     </div>
 
-                    <!-- Quantity Field -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Quantity:</label>
                         <input type="number" name="QuantityAvailable" id="newConsumableQuantity" class="form-control"
@@ -134,7 +147,6 @@
                         </div>
                     </div>
 
-                    <!-- Ward Field -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Ward:</label>
                         <select name="WardId" class="form-select" id="newConsumableWard" required>
@@ -208,9 +220,7 @@
     </div>
 </div>
 
-
 <div id="doctor-note" role="alert" aria-live="polite" aria-atomic="true" title="Need help? Click the '?' on the bottom right.">
-    <!-- Simple cartoon doctor SVG -->
     <svg xmlns="http://www.w3.org/2000/svg" fill="#0d6efd" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
         <circle cx="32" cy="14" r="12" fill="#0d6efd" />
         <rect x="18" y="26" width="28" height="30" rx="8" ry="8" fill="#0d6efd" />
@@ -222,22 +232,132 @@
     <p>If you are unsure about anything,<br>please click the small '?' bellow.</p>
 </div>
 
-
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Search Filter -->
     <script>
         const searchInput = document.getElementById('searchInput');
-        const tableRows = document.querySelectorAll('#consumablesTable tr');
+        const consumablesTableBody = document.getElementById('consumablesTableBody');
+        let allConsumableRows = Array.from(consumablesTableBody.querySelectorAll('.consumable-row'));
+        let filteredConsumableRows = [...allConsumableRows];
 
-        searchInput.addEventListener('keyup', function () {
-            const query = this.value.toLowerCase();
-            tableRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const match = Array.from(cells).some(td => td.textContent.toLowerCase().includes(query));
-                row.style.display = match ? '' : 'none';
+        function performSearch() {
+            const query = searchInput.value.toLowerCase();
+
+            filteredConsumableRows = allConsumableRows.filter(row => {
+                const nameText = row.children[0].textContent.toLowerCase();
+                const quantityText = row.children[1].textContent.toLowerCase();
+                const wardText = row.children[2].textContent.toLowerCase();
+                return nameText.includes(query) || quantityText.includes(query) || wardText.includes(query);
             });
-        });
+
+            displayPage(1);
+        }
+
+        searchInput.addEventListener('keyup', performSearch);
     </script>
 
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            allConsumableRows.forEach(row => row.style.display = 'none');
+
+            filteredConsumableRows.forEach((consumableRow, index) => {
+                if (index >= start && index < end) {
+                    consumableRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('consumablesPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredConsumableRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredConsumableRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'quantity':
+                        aValue = parseInt(a.children[1].textContent) || 0;
+                        bValue = parseInt(b.children[1].textContent) || 0;
+                        break;
+                    case 'ward':
+                        aValue = a.children[2].textContent.trim().toLowerCase();
+                        bValue = b.children[2].textContent.trim().toLowerCase();
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            filteredConsumableRows.forEach(consumableRow => {
+                consumablesTableBody.appendChild(consumableRow);
+            });
+
+            displayPage(1);
+        }
+
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        sortTable('name-asc');
+        displayPage(1);
+    </script>
+
+    <!-- Modal Scripts -->
     <script>
         var editModal = document.getElementById('editConsumableModal');
         editModal.addEventListener('show.bs.modal', function (event) {
@@ -255,7 +375,7 @@
         });
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Toast Messages -->
     <script>
         function showToast(type, message) {
             if (!message) return;
@@ -284,12 +404,12 @@
                 }
         }
     </script>
+
+    <!-- Add Consumable Modal Validation -->
     <script>
-                // Add Consumable Modal Validation
         (function () {
             'use strict';
 
-            // Initialize when modal is shown
             const addConsumableModal = document.getElementById('addConsumableModal');
             if (addConsumableModal) {
                 addConsumableModal.addEventListener('show.bs.modal', function () {

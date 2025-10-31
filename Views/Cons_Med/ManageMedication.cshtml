@@ -19,8 +19,21 @@
         </div>
     </div>
 
-    <!-- Search -->
-    <input class="form-control mb-3" id="searchInput" placeholder="Search medication..." />
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input class="form-control" id="searchInput" placeholder="Search medication..." />
+        </div>
+        <div class="col-md-4">
+            <select id="sortSelect" class="form-select">
+                <option value="name-asc">Sort by: Name (A-Z)</option>
+                <option value="name-desc">Sort by: Name (Z-A)</option>
+                <option value="quantity-asc">Sort by: Quantity (Low to High)</option>
+                <option value="quantity-desc">Sort by: Quantity (High to Low)</option>
+                <option value="scheduled-asc">Sort by: Scheduled (No to Yes)</option>
+                <option value="scheduled-desc">Sort by: Scheduled (Yes to No)</option>
+            </select>
+        </div>
+    </div>
 
     <!-- Medication Table -->
     <div class="table-responsive">
@@ -33,12 +46,12 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="medicationTableBody">
                 @if (Model != null && Model.Any())
                 {
                     foreach (var med in Model)
                     {
-                        <tr>
+                        <tr class="medication-row">
                             <td>@med.Name</td>
                             <td>@med.QuantityAvailable</td>
                             <td>@(med.IsScheduledMedication ? "Yes" : "No")</td>
@@ -81,8 +94,8 @@
                                                 <input name="QuantityAvailable" type="number" class="form-control" value="@med.QuantityAvailable" required />
                                             </div>
                                             <div class="form-check mb-3">
-                                                <input name="IsScheduledMedication" type="checkbox" class="form-check-input" id="isScheduled" value="true" />
-                                                <label class="form-check-label" for="isScheduled">Scheduled Medication</label>
+                                                <input name="IsScheduledMedication" type="checkbox" class="form-check-input" id="isScheduled-@med.MedicationId" value="true" @(med.IsScheduledMedication ? "checked" : "") />
+                                                <label class="form-check-label" for="isScheduled-@med.MedicationId">Scheduled Medication</label>
                                             </div>
                                         </div>
 
@@ -139,6 +152,9 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination Container -->
+    <div class="mt-3" id="medicationPagination"></div>
 </div>
 
 <!-- Add Medication Modal -->
@@ -178,6 +194,138 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Search Filter -->
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const medicationTableBody = document.getElementById('medicationTableBody');
+        let allMedicationRows = Array.from(medicationTableBody.querySelectorAll('.medication-row'));
+        let filteredMedicationRows = [...allMedicationRows];
+
+        function performSearch() {
+            const query = searchInput.value.toLowerCase();
+
+            filteredMedicationRows = allMedicationRows.filter(row => {
+                const nameText = row.children[0].textContent.toLowerCase();
+                const quantityText = row.children[1].textContent.toLowerCase();
+                const scheduledText = row.children[2].textContent.toLowerCase();
+                return nameText.includes(query) || quantityText.includes(query) || scheduledText.includes(query);
+            });
+
+            displayPage(1);
+        }
+
+        searchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allMedicationRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredMedicationRows.forEach((medicationRow, index) => {
+                if (index >= start && index < end) {
+                    medicationRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('medicationPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredMedicationRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredMedicationRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'quantity':
+                        aValue = parseInt(a.children[1].textContent) || 0;
+                        bValue = parseInt(b.children[1].textContent) || 0;
+                        break;
+                    case 'scheduled':
+                        aValue = a.children[2].textContent.trim().toLowerCase();
+                        bValue = b.children[2].textContent.trim().toLowerCase();
+                        // Convert "yes"/"no" to boolean for proper sorting
+                        aValue = aValue === 'yes' ? 1 : 0;
+                        bValue = bValue === 'yes' ? 1 : 0;
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            filteredMedicationRows.forEach(medicationRow => {
+                medicationTableBody.appendChild(medicationRow);
+            });
+
+            displayPage(1);
+        }
+
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        sortTable('name-asc');
+        displayPage(1);
+    </script>
+
+    <!-- Toast Messages -->
     <script>
         function showToast(type, message) {
             if (!message) return;
@@ -198,18 +346,18 @@
         // Error message
         var errorMessage = @Html.Raw(Json.Serialize(TempData["ErrorMessage"] ?? ""));
         if (errorMessage) showToast('error', errorMessage);
-    </script>
-    <script>
-        const searchInput = document.getElementById('searchInput');
-        const tableRows = document.querySelectorAll('#medicationTable tbody tr');
 
-        searchInput.addEventListener('keyup', function () {
-            const query = this.value.toLowerCase();
-            tableRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const match = Array.from(cells).some(td => td.textContent.toLowerCase().includes(query));
-                row.style.display = match ? '' : 'none';
-            });
-        });
+        @if (!ViewData.ModelState.IsValid)
+        {
+                foreach (var modelState in ViewData.ModelState.Values)
+                {
+                        foreach (var error in modelState.Errors)
+                        {
+                                <text>
+                                    showToast('error', '@error.ErrorMessage');
+                                </text>
+                        }
+                }
+        }
     </script>
 }

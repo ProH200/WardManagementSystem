@@ -18,8 +18,18 @@
     </div>
 </div>
 
-<div class="mb-3">
-    <input type="text" id="conditionSearch" class="form-control" placeholder="Search medical conditions by name or description...">
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" id="conditionSearch" class="form-control" placeholder="Search medical conditions by name or description...">
+    </div>
+    <div class="col-md-4">
+        <select id="sortSelect" class="form-select">
+            <option value="name-asc">Sort by: Name (A-Z)</option>
+            <option value="name-desc">Sort by: Name (Z-A)</option>
+            <option value="description-asc">Sort by: Description (A-Z)</option>
+            <option value="description-desc">Sort by: Description (Z-A)</option>
+        </select>
+    </div>
 </div>
 
 <div class="table-responsive shadow-sm rounded">
@@ -31,10 +41,10 @@
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="conditionTableBody">
             @foreach (var condition in Model)
             {
-                <tr>
+                <tr class="condition-row">
                     <td class="text-primary fw-bold">@condition.Name</td>
                     <td>@(string.IsNullOrEmpty(condition.Description) ? "No description" : condition.Description)</td>
                     <td>
@@ -84,53 +94,174 @@
             }
         </tbody>
     </table>
+
+    <!-- Pagination Container -->
+    <div class="mt-3" id="conditionPagination"></div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Search Filter -->
     <script>
-        // Search functionality
-        $(document).ready(function () {
-            $("#conditionSearch").on("keyup", function () {
-                var value = $(this).val().toLowerCase();
-                $("#conditionTable tbody tr").filter(function () {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-                });
+        const conditionSearchInput = document.getElementById('conditionSearch');
+        const conditionTableBody = document.getElementById('conditionTableBody');
+        let allConditionRows = Array.from(conditionTableBody.querySelectorAll('.condition-row'));
+        let filteredConditionRows = [...allConditionRows];
+
+        function performSearch() {
+            const query = conditionSearchInput.value.toLowerCase();
+
+            filteredConditionRows = allConditionRows.filter(row => {
+                const nameText = row.children[0].textContent.toLowerCase();
+                const descText = row.children[1].textContent.toLowerCase();
+                return nameText.includes(query) || descText.includes(query);
             });
+
+            displayPage(1);
+        }
+
+        conditionSearchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allConditionRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredConditionRows.forEach((conditionRow, index) => {
+                if (index >= start && index < end) {
+                    conditionRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('conditionPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredConditionRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredConditionRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'description':
+                        aValue = a.children[1].textContent.trim().toLowerCase();
+                        bValue = b.children[1].textContent.trim().toLowerCase();
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Reorder DOM elements
+            filteredConditionRows.forEach(conditionRow => {
+                conditionTableBody.appendChild(conditionRow);
+            });
+
+            displayPage(1);
+        }
+
+        // Initialize sort dropdown
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
         });
 
+        // Initialize display
+        sortTable('name-asc');
+        displayPage(1);
+    </script>
+
+    <!-- Toast Messages -->
+    <script>
         @if (TempData["SuccessMessage"] != null)
         {
-            <text>
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: '@TempData["SuccessMessage"]',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
-            </text>
+                <text>
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: '@TempData["SuccessMessage"]',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                </text>
         }
 
         @if (!ViewData.ModelState.IsValid)
         {
-            foreach (var modelState in ViewData.ModelState.Values)
-            {
-                foreach (var error in modelState.Errors)
+                foreach (var modelState in ViewData.ModelState.Values)
                 {
-                    <text>
-                                Swal.fire({
-                                    toast: true,
-                                    position: 'top-end',
-                                    icon: 'error',
-                                    title: '@error.ErrorMessage',
-                                    showConfirmButton: false,
-                                    timer: 3000
-                                });
-                    </text>
+                        foreach (var error in modelState.Errors)
+                        {
+                                <text>
+                                    Swal.fire({
+                                        toast: true,
+                                        position: 'top-end',
+                                        icon: 'error',
+                                        title: '@error.ErrorMessage',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                </text>
+                        }
                 }
-            }
         }
     </script>
 }

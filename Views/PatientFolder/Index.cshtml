@@ -51,8 +51,105 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
 
+    .patient-list-item {
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+    }
+
+        .patient-list-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            background-color: #f8f9fa;
+        }
+
     .hidden {
         display: none;
+    }
+
+    .sort-dropdown {
+        min-width: 180px;
+    }
+
+    .pagination-container {
+        display: none;
+    }
+
+    .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .view-toggle-btn {
+        border: 1px solid #dee2e6;
+        background: white;
+        padding: 0.375rem 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+        .view-toggle-btn:first-child {
+            border-radius: 6px 0 0 6px;
+            border-right: none;
+        }
+
+        .view-toggle-btn:last-child {
+            border-radius: 0 6px 6px 0;
+            border-left: none;
+        }
+
+        .view-toggle-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+
+        .view-toggle-btn:not(.active):hover {
+            background-color: #f8f9fa;
+        }
+
+    .list-view-content {
+        display: none;
+    }
+
+    .grid-view-content {
+        display: block;
+    }
+
+    /* List view specific styles */
+    .list-patient-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd, #6f42c1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .list-patient-info {
+        flex: 1;
+    }
+
+    .list-patient-actions {
+        min-width: 120px;
+    }
+
+    /* Grid view specific styles */
+    .grid-patient-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd, #6f42c1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 2rem;
+        margin: 0 auto 1rem auto;
     }
 </style>
 
@@ -72,11 +169,41 @@
         }
     </div>
 
-    <!-- Compact Live Search Box -->
-    <div class="search-container">
-        <i class="bi bi-search search-icon"></i>
-        <input type="text" id="patientSearch" class="form-control search-input"
-               placeholder="Search patients by name, ID, or DOB...">
+    <!-- Search, Sort and View Controls -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <!-- Compact Live Search Box -->
+        <div class="search-container">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" id="patientSearch" class="form-control search-input"
+                   placeholder="Search patients by name, ID, or DOB...">
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- View Toggle -->
+            <div class="btn-group me-2" role="group" aria-label="View toggle">
+                <button type="button" class="btn view-toggle-btn active" id="gridViewBtn" data-view="grid">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                </button>
+                <button type="button" class="btn view-toggle-btn" id="listViewBtn" data-view="list">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+            </div>
+
+            <!-- Sort Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle sort-dropdown" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-sort-down me-1"></i>Sort by
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="name-asc">Name (A-Z)</a></li>
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="name-desc">Name (Z-A)</a></li>
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="id-asc">ID (Low-High)</a></li>
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="id-desc">ID (High-Low)</a></li>
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="dob-asc">DOB (Old-New)</a></li>
+                    <li><a class="dropdown-item sort-option" href="#" data-sort="dob-desc">DOB (New-Old)</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     @if (!Model.Any())
@@ -89,29 +216,88 @@
     }
     else
     {
-        <div class="row g-3" id="patientGrid">
-            @foreach (var patient in Model)
-            {
-                <div class="col-md-4 patient-item"
-                     data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
-                     data-id="@patient.IdentityNumber"
-                     data-dob="@patient.DateOfBirth.ToString("dd MMM yyyy").ToLower()">
-                    <div class="card shadow-sm border-0 h-100 patient-card">
-                        <div class="card-body text-center">
-                            <i class="bi bi-person-fill text-success mb-2" style="font-size: 2rem;"></i>
-                            <h6 class="patient-name">@patient.FirstName @patient.LastName</h6>
-                            <p class="text-muted small mb-1 patient-id">ID: @patient.IdentityNumber</p>
-                            <p class="text-muted small patient-dob">DOB: @patient.DateOfBirth.ToString("dd MMM yyyy")</p>
+        <!-- Grid View -->
+        <div id="gridView" class="grid-view-content">
+            <div class="row g-3" id="patientGrid">
+                @foreach (var patient in Model)
+                {
+                    <div class="col-md-4 patient-item"
+                         data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
+                         data-id="@patient.IdentityNumber"
+                         data-dob="@patient.DateOfBirth.ToString("yyyy-MM-dd")"
+                         data-display-dob="@patient.DateOfBirth.ToString("dd MMM yyyy").ToLower()"
+                         data-initials="@(patient.FirstName[0].ToString() + patient.LastName[0].ToString())">
+                        <div class="card shadow-sm border-0 h-100 patient-card">
+                            <div class="card-body text-center">
+                                <div class="grid-patient-avatar">
+                                    @(patient.FirstName[0].ToString() + patient.LastName[0].ToString())
+                                </div>
+                                <h6 class="patient-name fw-bold">@patient.FirstName @patient.LastName</h6>
+                                <p class="text-muted small mb-1 patient-id">ID: @patient.IdentityNumber</p>
+                                <p class="text-muted small patient-dob">DOB: @patient.DateOfBirth.ToString("dd MMM yyyy")</p>
 
-                            <a asp-action="Details" asp-controller="PatientFolder"
-                               asp-route-id="@patient.PatientId"
-                               class="btn btn-outline-primary btn-sm w-100">
-                                Open Folder
-                            </a>
+                                <a asp-action="Details" asp-controller="PatientFolder"
+                                   asp-route-id="@patient.PatientId"
+                                   class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    <i class="bi bi-folder-open me-1"></i>Open Folder
+                                </a>
+                            </div>
                         </div>
                     </div>
+                }
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="list-view-content">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div id="patientList">
+                        @foreach (var patient in Model)
+                        {
+                            <div class="patient-item list-patient-item p-3 border-bottom"
+                                 data-name="@patient.FirstName.ToLower() @patient.LastName.ToLower()"
+                                 data-id="@patient.IdentityNumber"
+                                 data-dob="@patient.DateOfBirth.ToString("yyyy-MM-dd")"
+                                 data-display-dob="@patient.DateOfBirth.ToString("dd MMM yyyy").ToLower()"
+                                 data-initials="@(patient.FirstName[0].ToString() + patient.LastName[0].ToString())">
+                                <div class="d-flex align-items-center">
+                                    <div class="list-patient-avatar me-3">
+                                        @(patient.FirstName[0].ToString() + patient.LastName[0].ToString())
+                                    </div>
+                                    <div class="list-patient-info">
+                                        <h6 class="mb-1 fw-bold patient-name">@patient.FirstName @patient.LastName</h6>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            <span class="text-muted small patient-id">
+                                                <i class="bi bi-person-badge me-1"></i>ID: @patient.IdentityNumber
+                                            </span>
+                                            <span class="text-muted small patient-dob">
+                                                <i class="bi bi-calendar3 me-1"></i>DOB: @patient.DateOfBirth.ToString("dd MMM yyyy")
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="list-patient-actions">
+                                        <a asp-action="Details" asp-controller="PatientFolder"
+                                           asp-route-id="@patient.PatientId"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder-open me-1"></i>Open
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
-            }
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="paginationContainer" class="pagination-container mt-4">
+            <nav aria-label="Patient pagination">
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination buttons will be generated here -->
+                </ul>
+            </nav>
         </div>
 
         <div id="noResults" class="alert alert-warning text-center py-3 hidden">
@@ -128,37 +314,197 @@
             const patientItems = document.querySelectorAll('.patient-item');
             const noResults = document.getElementById('noResults');
             const patientGrid = document.getElementById('patientGrid');
+            const patientList = document.getElementById('patientList');
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pagination = document.getElementById('pagination');
+            const sortOptions = document.querySelectorAll('.sort-option');
+            const gridViewBtn = document.getElementById('gridViewBtn');
+            const listViewBtn = document.getElementById('listViewBtn');
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
 
+            let currentPage = 1;
+            const patientsPerPage = 9;
+            let currentSort = 'name-asc';
+            let currentView = 'grid';
+            let filteredPatients = Array.from(patientItems);
+
+            // Initialize
+            initializePagination();
+            applySorting('name-asc');
+
+            // Search
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase().trim();
-                let visibleCount = 0;
 
-                patientItems.forEach(item => {
+                filteredPatients = Array.from(patientItems).filter(item => {
                     const name = item.getAttribute('data-name');
                     const id = item.getAttribute('data-id');
-                    const dob = item.getAttribute('data-dob');
+                    const displayDob = item.getAttribute('data-display-dob');
 
-                    const matches = name.includes(searchTerm) ||
-                                   id.includes(searchTerm) ||
-                                   dob.includes(searchTerm);
+                    return name.includes(searchTerm) ||
+                           id.includes(searchTerm) ||
+                           displayDob.includes(searchTerm);
+                });
 
-                    if (matches || searchTerm === '') {
-                        item.classList.remove('hidden');
-                        visibleCount++;
-                    } else {
-                        item.classList.add('hidden');
+                currentPage = 1;
+                updateDisplay();
+            });
+
+            // Sort functionality
+            sortOptions.forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentSort = this.getAttribute('data-sort');
+                    applySorting(currentSort);
+                    updateDisplay();
+
+                    // Update dropdown button text
+                    const dropdownButton = document.getElementById('sortDropdown');
+                    const icon = dropdownButton.querySelector('i');
+                    dropdownButton.innerHTML = icon.outerHTML + ' ' + this.textContent;
+                });
+            });
+
+            // View toggle functionality
+            gridViewBtn.addEventListener('click', function() {
+                setActiveView('grid');
+            });
+
+            listViewBtn.addEventListener('click', function() {
+                setActiveView('list');
+            });
+
+            function setActiveView(view) {
+                currentView = view;
+
+                // Update button states
+                gridViewBtn.classList.toggle('active', view === 'grid');
+                listViewBtn.classList.toggle('active', view === 'list');
+
+                // Show/hide views
+                if (view === 'grid') {
+                    gridView.style.display = 'block';
+                    listView.style.display = 'none';
+                } else {
+                    gridView.style.display = 'none';
+                    listView.style.display = 'block';
+                }
+
+                updateDisplay();
+            }
+
+            function applySorting(sortType) {
+                filteredPatients.sort((a, b) => {
+                    switch(sortType) {
+                        case 'name-asc':
+                            return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                        case 'name-desc':
+                            return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+                        case 'id-asc':
+                            return a.getAttribute('data-id').localeCompare(b.getAttribute('data-id'));
+                        case 'id-desc':
+                            return b.getAttribute('data-id').localeCompare(a.getAttribute('data-id'));
+                        case 'dob-asc':
+                            return new Date(a.getAttribute('data-dob')) - new Date(b.getAttribute('data-dob'));
+                        case 'dob-desc':
+                            return new Date(b.getAttribute('data-dob')) - new Date(a.getAttribute('data-dob'));
+                        default:
+                            return 0;
                     }
+                });
+            }
+
+            function initializePagination() {
+                if (patientItems.length > patientsPerPage) {
+                    paginationContainer.style.display = 'block';
+                    createPaginationButtons();
+                }
+            }
+
+            function createPaginationButtons() {
+                const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
+                pagination.innerHTML = '';
+
+                // Previous button
+                const prevLi = document.createElement('li');
+                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>`;
+                prevLi.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) {
+                        currentPage--;
+                        updateDisplay();
+                    }
+                });
+                pagination.appendChild(prevLi);
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageLi = document.createElement('li');
+                    pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                    pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                    pageLi.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        currentPage = i;
+                        updateDisplay();
+                    });
+                    pagination.appendChild(pageLi);
+                }
+
+                // Next button
+                const nextLi = document.createElement('li');
+                nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+                nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>`;
+                nextLi.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        updateDisplay();
+                    }
+                });
+                pagination.appendChild(nextLi);
+            }
+
+            function updateDisplay() {
+                const startIndex = (currentPage - 1) * patientsPerPage;
+                const endIndex = startIndex + patientsPerPage;
+                const patientsToShow = filteredPatients.slice(startIndex, endIndex);
+
+                // Hide all patients first
+                patientItems.forEach(item => {
+                    item.classList.add('hidden');
+                });
+
+                // Show filtered and paginated patients
+                patientsToShow.forEach(item => {
+                    item.classList.remove('hidden');
                 });
 
                 // Show/hide no results message
-                if (visibleCount === 0 && searchTerm !== '') {
+                if (filteredPatients.length === 0) {
                     noResults.classList.remove('hidden');
                     patientGrid.classList.add('hidden');
+                    patientList.classList.add('hidden');
+                    paginationContainer.style.display = 'none';
                 } else {
                     noResults.classList.add('hidden');
                     patientGrid.classList.remove('hidden');
+                    patientList.classList.remove('hidden');
+
+                    // Update pagination if needed
+                    if (filteredPatients.length > patientsPerPage) {
+                        paginationContainer.style.display = 'block';
+                        createPaginationButtons();
+                    } else {
+                        paginationContainer.style.display = 'none';
+                    }
                 }
-            });
+            }
 
             // Clear search on page refresh
             searchInput.value = '';
