@@ -185,6 +185,32 @@
         }
         else
         {
+            <!-- Search and Sort -->
+            <div class="row mb-4 fade-in">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" id="dischargeSearch" class="form-control" placeholder="Search by patient name, ID, ward, or notes...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select id="sortSelect" class="form-select">
+                        <option value="patient-asc">Sort by: Patient (A-Z)</option>
+                        <option value="patient-desc">Sort by: Patient (Z-A)</option>
+                        <option value="dischargedate-asc">Sort by: Discharge Date (Oldest First)</option>
+                        <option value="dischargedate-desc">Sort by: Discharge Date (Newest First)</option>
+                        <option value="admissiondate-asc">Sort by: Admission Date (Oldest First)</option>
+                        <option value="admissiondate-desc">Sort by: Admission Date (Newest First)</option>
+                        <option value="days-asc">Sort by: Stay Duration (Shortest First)</option>
+                        <option value="days-desc">Sort by: Stay Duration (Longest First)</option>
+                        <option value="ward-asc">Sort by: Ward (A-Z)</option>
+                        <option value="ward-desc">Sort by: Ward (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Summary Statistics Cards -->
             <div class="row mb-4 fade-in">
                 <div class="col-md-3 mb-3">
@@ -263,14 +289,21 @@
                                             <th class="pe-4 py-3" style="border-radius: 0 16px 0 0;">Discharge Notes</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        @foreach (var discharge in Model.OrderByDescending(d => d.DischargeDate))
+                                    <tbody id="dischargesTableBody">
+                                        @foreach (var discharge in Model)
                                         {
                                             var daysStayed = discharge.PatientAdmission.AdmissionDate.HasValue
                                             ? (discharge.DischargeDate - discharge.PatientAdmission.AdmissionDate.Value.Date).Days
                                             : 0;
 
-                                            <tr class="table-row">
+                                            <tr class="table-row discharge-row"
+                                                data-patient="@($"{discharge.Patient?.FirstName} {discharge.Patient?.LastName}".ToLower())"
+                                                data-id="@discharge.Patient?.IdentityNumber?.ToLower()"
+                                                data-ward="@discharge.PatientAdmission.Bed?.Room?.Ward?.Name?.ToLower()"
+                                                data-notes="@discharge.Description?.ToLower()"
+                                                data-admission="@discharge.PatientAdmission.AdmissionDate?.ToString("yyyy-MM-dd")"
+                                                data-discharge="@discharge.DischargeDate.ToString("yyyy-MM-dd")"
+                                                data-days="@daysStayed">
                                                 <td class="ps-4 py-3">
                                                     <div class="d-flex align-items-center">
                                                         <div class="patient-avatar me-3">
@@ -335,6 +368,9 @@
                 </div>
             </div>
 
+            <!-- Pagination Container -->
+            <div class="mt-3" id="dischargesPagination"></div>
+
             <!-- Enhanced Summary Footer -->
             <div class="row mt-4 fade-in">
                 <div class="col-12">
@@ -374,46 +410,186 @@
     </div>
 </div>
 
-<script>
-    // Add smooth animations and interactions
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add loading animation to table rows
-        const tableRows = document.querySelectorAll('.table-row');
-        tableRows.forEach((row, index) => {
-            row.style.animationDelay = `${index * 0.1}s`;
-        });
-
-        // Add hover effects to stats cards
-        const statsCards = document.querySelectorAll('.stats-card');
-        statsCards.forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-8px) scale(1.02)';
-            });
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Add click animation to back button
-        const backButton = document.querySelector('.floating-btn');
-        if (backButton) {
-            backButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    window.location.href = this.href;
-                }, 200);
-            });
-        }
-    });
-</script>
-
-<!--Toast-->
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Search Filter -->
+    <script>
+        const dischargeSearchInput = document.getElementById('dischargeSearch');
+        const dischargesTableBody = document.getElementById('dischargesTableBody');
+        let allDischargeRows = Array.from(dischargesTableBody.querySelectorAll('.discharge-row'));
+        let filteredDischargeRows = [...allDischargeRows];
+
+        function performSearch() {
+            const query = dischargeSearchInput.value.toLowerCase();
+
+            filteredDischargeRows = allDischargeRows.filter(row => {
+                const patient = row.getAttribute('data-patient');
+                const id = row.getAttribute('data-id');
+                const ward = row.getAttribute('data-ward');
+                const notes = row.getAttribute('data-notes');
+
+                return patient.includes(query) || id.includes(query) ||
+                       (ward && ward.includes(query)) ||
+                       (notes && notes.includes(query));
+            });
+
+            displayPage(1);
+        }
+
+        dischargeSearchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allDischargeRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredDischargeRows.forEach((dischargeRow, index) => {
+                if (index >= start && index < end) {
+                    dischargeRow.style.display = '';
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('dischargesPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredDischargeRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredDischargeRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'patient':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'dischargedate':
+                        // Parse discharge date for proper sorting
+                        aValue = new Date(a.getAttribute('data-discharge'));
+                        bValue = new Date(b.getAttribute('data-discharge'));
+                        break;
+                    case 'admissiondate':
+                        // Parse admission date for proper sorting
+                        aValue = new Date(a.getAttribute('data-admission'));
+                        bValue = new Date(b.getAttribute('data-admission'));
+                        break;
+                    case 'days':
+                        // Sort by stay duration (numeric)
+                        aValue = parseInt(a.getAttribute('data-days')) || 0;
+                        bValue = parseInt(b.getAttribute('data-days')) || 0;
+                        break;
+                    case 'ward':
+                        aValue = a.children[4].textContent.trim().toLowerCase();
+                        bValue = b.children[4].textContent.trim().toLowerCase();
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Reorder DOM elements
+            filteredDischargeRows.forEach(dischargeRow => {
+                dischargesTableBody.appendChild(dischargeRow);
+            });
+
+            displayPage(1);
+        }
+
+        // Initialize sort dropdown
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        // Initialize display
+        sortTable('dischargedate-desc');
+        displayPage(1);
+    </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth animations and interactions
+            const tableRows = document.querySelectorAll('.table-row');
+            tableRows.forEach((row, index) => {
+                row.style.animationDelay = `${index * 0.1}s`;
+            });
+
+            // Add hover effects to stats cards
+            const statsCards = document.querySelectorAll('.stats-card');
+            statsCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Add click animation to back button
+            const backButton = document.querySelector('.floating-btn');
+            if (backButton) {
+                backButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        window.location.href = this.href;
+                    }, 200);
+                });
+            }
+
             @if (TempData["ToastMessage"] != null)
             {
                     <text>

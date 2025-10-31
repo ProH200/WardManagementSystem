@@ -4,6 +4,7 @@
     ViewData["Title"] = "Manage Wards";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
 <link href="~/css/admin.css" rel="stylesheet" />
 <link href="~/css/helpanimation.css" rel="stylesheet" />
 
@@ -19,10 +20,24 @@
     </div>
 </div>
 
-<div class="mb-3">
-    <input type="text" id="wardSearch" class="form-control" placeholder="Search Wards by Name or Description...">
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" id="wardSearch" class="form-control" placeholder="Search Wards by Name or Description...">
+    </div>
+    <div class="col-md-4">
+        <select id="sortSelect" class="form-select">
+            <option value="name-asc">Sort by: Name (A-Z)</option>
+            <option value="name-desc">Sort by: Name (Z-A)</option>
+            <option value="description-asc">Sort by: Description (A-Z)</option>
+            <option value="description-desc">Sort by: Description (Z-A)</option>
+            <option value="rooms-asc">Sort by: Rooms (Low to High)</option>
+            <option value="rooms-desc">Sort by: Rooms (High to Low)</option>
+        </select>
+    </div>
 </div>
+
 <p style="color: red">Click ward name to view rooms in that ward.</p>
+
 <div class="table-responsive shadow-sm rounded">
     <table class="table table-hover align-middle text-center" id="wardTable">
         <thead class="table-primary">
@@ -33,10 +48,10 @@
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="wardTableBody">
             @foreach (var wrd in Model)
             {
-                <tr>
+                <tr class="ward-row">
                     <td class="text-primary fw-bold"
                         data-bs-toggle="collapse"
                         data-bs-target="#rooms-@wrd.WardId"
@@ -45,7 +60,6 @@
                         style="cursor: pointer;">
                         @wrd.Name
                     </td>
-
                     <td>@wrd.Description</td>
                     <td>@wrd.Rooms?.Count()</td>
                     <td>
@@ -64,8 +78,7 @@
                     </td>
                 </tr>
 
-                <!-- Collapsible row for Rooms -->
-                <tr class="collapse bg-light" id="rooms-@wrd.WardId">
+                <tr class="collapse bg-light room-row" id="rooms-@wrd.WardId">
                     <td colspan="4" class="text-start">
                         @if (wrd.Rooms != null && wrd.Rooms.Any())
                         {
@@ -122,120 +135,254 @@
         </tbody>
     </table>
 
-    <!-- Add Ward Modal -->
-    <div class="modal fade" id="addWardModal" tabindex="-1" aria-labelledby="addWardModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content rounded-4">
-                <div class="modal-header text-white" style="background-color: #008A00;">
-                    <h5 class="modal-title" id="addWardModalLabel"><i class="bi bi-hospital me-2"></i>Add Ward</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form id="addWardForm" asp-action="AddWard" method="post" class="needs-validation" novalidate>
-                        @Html.AntiForgeryToken()
+    <div class="mt-3" id="wardPagination"></div>
+</div>
 
-                        <div class="mb-3 position-relative">
-                            <label class="form-label fw-bold">Ward Name</label>
-                            <input type="text" name="Name" class="form-control"
-                                   placeholder="Enter ward name"
-                                   pattern="^[A-Za-z0-9\s\-&.,()]+$"
-                                   minlength="2"
-                                   maxlength="100"
-                                   required />
-                            <div class="invalid-feedback">
-                                Please enter a valid ward name.
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <input type="text" name="Description" class="form-control"
-                                   placeholder="Enter ward description (optional)"
-                                   maxlength="500" />
-                            <div class="form-text">Optional description (max 500 characters)</div>
-                        </div>
-
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> Cancel
-                            </button>
-                            <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
-                                <i class="bi bi-check2-circle me-1"></i> Save Ward
-                            </button>
-                        </div>
-                    </form>
-                </div>
+<!-- Add Ward Modal -->
+<div class="modal fade" id="addWardModal" tabindex="-1" aria-labelledby="addWardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header text-white" style="background-color: #008A00;">
+                <h5 class="modal-title" id="addWardModalLabel"><i class="bi bi-hospital me-2"></i>Add Ward</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
+            <div class="modal-body p-4">
+                <form id="addWardForm" asp-action="AddWard" method="post" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3 position-relative">
+                        <label class="form-label fw-bold">Ward Name</label>
+                        <input type="text" name="Name" class="form-control"
+                               placeholder="Enter ward name"
+                               pattern="^[A-Za-z0-9\s\-&.,()]+$"
+                               minlength="2"
+                               maxlength="100"
+                               required />
+                        <div class="invalid-feedback">
+                            Please enter a valid ward name.
+                        </div>
+                    </div>
 
-    <!-- Edit Ward Modal -->
-    <div class="modal fade" id="editWardModal" tabindex="-1" aria-labelledby="editWardModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content rounded-4">
-                <div class="modal-header text-white" style="background-color: #008A00;">
-                    <h5 class="modal-title" id="editWardModalLabel"><i class="bi bi-hospital me-2"></i>Edit Ward</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form asp-action="EditWard" method="post" novalidate>
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" id="editWardId" name="WardId" />
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Ward Name</label>
-                            <input id="editWardName" name="Name" class="form-control" placeholder="Enter ward name" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <input id="editWardDescription" name="Description" class="form-control" placeholder="Enter ward description" />
-                        </div>
-                        <div class="text-end">
-                            <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
-                                <i class="bi bi-check2-circle me-1"></i> Save Changes
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <input type="text" name="Description" class="form-control"
+                               placeholder="Enter ward description"
+                               maxlength="500" />
+                        <div class="form-text">Optional description (max 500 characters)</div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
+                            <i class="bi bi-check2-circle me-1"></i> Save Ward
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
-<div id="doctor-note" role="alert" aria-live="polite" aria-atomic="true" title="Need help? Click the '?' on the bottom right.">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="#0d6efd" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <circle cx="32" cy="14" r="12" fill="#0d6efd" />
-        <rect x="18" y="26" width="28" height="30" rx="8" ry="8" fill="#0d6efd" />
-        <rect x="28" y="34" width="8" height="12" fill="#f8f9fa" />
-        <line x1="32" y1="20" x2="32" y2="14" stroke="#f8f9fa" stroke-width="2" />
-        <line x1="28" y1="24" x2="36" y2="24" stroke="#f8f9fa" stroke-width="2" />
-    </svg>
-
-    <p>If you are unsure about anything,<br>please click the small '?' bellow.</p>
+<!-- Edit Ward Modal -->
+<div class="modal fade" id="editWardModal" tabindex="-1" aria-labelledby="editWardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header text-white" style="background-color: #008A00;">
+                <h5 class="modal-title" id="editWardModalLabel"><i class="bi bi-hospital me-2"></i>Edit Ward</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form asp-action="EditWard" method="post" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="editWardId" name="WardId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ward Name</label>
+                        <input id="editWardName" name="Name" class="form-control" placeholder="Enter ward name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <input id="editWardDescription" name="Description" class="form-control" placeholder="Enter ward description" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn text-white shadow-sm" style="background-color: #008A00;">
+                            <i class="bi bi-check2-circle me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
-
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/toast.js"></script>
+
+    <!-- Search Filter -->
     <script>
         const wardSearchInput = document.getElementById('wardSearch');
-        const wardTableRows = document.querySelectorAll('#wardTable tbody tr');
+        const wardTableBody = document.getElementById('wardTableBody');
+        let allWardRows = Array.from(wardTableBody.querySelectorAll('.ward-row'));
+        let allRoomRows = Array.from(wardTableBody.querySelectorAll('.room-row'));
+        let filteredWardRows = [...allWardRows];
+        let filteredRoomRows = [...allRoomRows];
 
-        wardSearchInput.addEventListener('keyup', function () {
-            const query = this.value.toLowerCase();
+        function performSearch() {
+            const query = wardSearchInput.value.toLowerCase();
 
-            wardTableRows.forEach(row => {
-                const nameCell = row.querySelector('td:nth-child(1)');
-                const descCell = row.querySelector('td:nth-child(2)');
-
-                const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
-                const descText = descCell ? descCell.textContent.toLowerCase() : '';
-
-                row.style.display = (nameText.includes(query) || descText.includes(query)) ? '' : 'none';
+            filteredWardRows = allWardRows.filter(row => {
+                const nameText = row.children[0].textContent.toLowerCase();
+                const descText = row.children[1].textContent.toLowerCase();
+                return nameText.includes(query) || descText.includes(query);
             });
-        });
+
+            // Update room rows to match filtered ward rows
+            filteredRoomRows = [];
+            filteredWardRows.forEach(wardRow => {
+                const collapseTarget = wardRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const roomRow = document.querySelector(collapseTarget);
+                if (roomRow) {
+                    filteredRoomRows.push(roomRow);
+                }
+            });
+
+            displayPage(1);
+        }
+
+        wardSearchInput.addEventListener('keyup', performSearch);
     </script>
 
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allWardRows.forEach(row => row.style.display = 'none');
+            allRoomRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredWardRows.forEach((wardRow, index) => {
+                if (index >= start && index < end) {
+                    wardRow.style.display = '';
+                    // Show corresponding room row
+                    const collapseTarget = wardRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                    const roomRow = document.querySelector(collapseTarget);
+                    if (roomRow) {
+                        roomRow.style.display = '';
+                    }
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('wardPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredWardRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredWardRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'description':
+                        aValue = a.children[1].textContent.trim().toLowerCase();
+                        bValue = b.children[1].textContent.trim().toLowerCase();
+                        break;
+                    case 'rooms':
+                        aValue = parseInt(a.children[2].textContent) || 0;
+                        bValue = parseInt(b.children[2].textContent) || 0;
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            filteredRoomRows = [];
+            filteredWardRows.forEach(wardRow => {
+                const collapseTarget = wardRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const roomRow = document.querySelector(collapseTarget);
+                if (roomRow) {
+                    filteredRoomRows.push(roomRow);
+                }
+            });
+
+            filteredWardRows.forEach(wardRow => {
+                wardTableBody.appendChild(wardRow);
+                const collapseTarget = wardRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const roomRow = document.querySelector(collapseTarget);
+                if (roomRow) {
+                    wardTableBody.appendChild(roomRow);
+                    roomRow.classList.remove('show'); // Close all collapsed rows after sorting
+                    const bsCollapse = new bootstrap.Collapse(roomRow, { toggle: false });
+                    bsCollapse.hide();
+                    roomRow.style.display = 'none'; // Hide room rows initially
+                }
+            });
+
+            displayPage(1);
+        }
+
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
+        });
+
+        sortTable('name-asc');
+        displayPage(1);
+    </script>
+
+    <!-- Edit Modal Data -->
     <script>
         var editWardModal = document.getElementById('editWardModal');
         editWardModal.addEventListener('show.bs.modal', function (event) {
@@ -250,32 +397,27 @@
         });
     </script>
 
+    <!-- Toast Messages -->
     <script>
         var successMessage = '@TempData["SuccessMessage"]';
-        if (successMessage) {
-            showToast('success', successMessage);
-        }
+        if (successMessage) showToast('success', successMessage);
 
         @foreach (var modelState in ViewData.ModelState.Values)
         {
-                    foreach (var error in modelState.Errors)
-                    {
-                                <text>
-                                    showToast('error', '@error.ErrorMessage');
-                                </text>
-                    }
+                foreach (var error in modelState.Errors)
+                {
+                        <text>showToast('error', '@error.ErrorMessage');</text>
+                }
         }
     </script>
+
+    <!-- Add Ward Modal Validation -->
     <script>
-                // Add Ward Modal Validation - Ward Name Only
         (function () {
             'use strict';
-
-            // Initialize when modal is shown
             const addWardModal = document.getElementById('addWardModal');
             if (addWardModal) {
                 addWardModal.addEventListener('show.bs.modal', function () {
-                    // Add real-time validation for ward name only
                     const wardNameInput = document.querySelector('#addWardForm input[name="Name"]');
                     if (wardNameInput) {
                         wardNameInput.addEventListener('input', validateWardName);
@@ -283,15 +425,11 @@
                     }
                 });
 
-                // Clear validation when modal is hidden
                 addWardModal.addEventListener('hidden.bs.modal', function () {
                     const form = document.getElementById('addWardForm');
-                    if (form) {
-                        form.classList.remove('was-validated');
-                        form.reset();
-                    }
+                    if (form) form.classList.remove('was-validated');
+                    form.reset();
 
-                    // Remove event listeners
                     const wardNameInput = document.querySelector('#addWardForm input[name="Name"]');
                     if (wardNameInput) {
                         wardNameInput.removeEventListener('input', validateWardName);
@@ -301,41 +439,21 @@
                 });
             }
 
-            // Ward name validation function
             function validateWardName() {
                 const input = this;
                 const value = input.value.trim();
                 const pattern = /^[A-Za-z0-9\s\-&.,()]+$/;
 
-                if (value.length < 2) {
-                    input.setCustomValidity('Ward name must be at least 2 characters long.');
-                } else if (value.length > 100) {
-                    input.setCustomValidity('Ward name cannot exceed 100 characters.');
-                } else if (!pattern.test(value)) {
-                    input.setCustomValidity('Ward name can only contain letters, numbers, spaces, hyphens, &, ., ,, ().');
-                } else {
-                    input.setCustomValidity('');
-                }
+                if (value.length < 2) input.setCustomValidity('Ward name must be at least 2 characters long.');
+                else if (value.length > 100) input.setCustomValidity('Ward name cannot exceed 100 characters.');
+                else if (!pattern.test(value)) input.setCustomValidity('Ward name can only contain letters, numbers, spaces, hyphens, &, ., ,, ().');
+                else input.setCustomValidity('');
 
-                // Update visual validation state
-                updateValidationState(input);
-            }
-
-            function updateValidationState(input) {
                 const isValid = input.checkValidity();
-
-                if (input.value.trim() === '') {
-                    input.classList.remove('is-valid', 'is-invalid');
-                } else if (isValid) {
-                    input.classList.remove('is-invalid');
-                    input.classList.add('is-valid');
-                } else {
-                    input.classList.remove('is-valid');
-                    input.classList.add('is-invalid');
-                }
+                input.classList.remove('is-valid', 'is-invalid');
+                if (input.value.trim() !== '') input.classList.add(isValid ? 'is-valid' : 'is-invalid');
             }
 
-            // Add to your existing form validation
             const forms = document.querySelectorAll('.needs-validation');
             Array.from(forms).forEach(form => {
                 form.addEventListener('submit', event => {
@@ -349,4 +467,3 @@
         })();
     </script>
 }
-
