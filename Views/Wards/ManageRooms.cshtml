@@ -4,7 +4,6 @@
     ViewData["Title"] = "Manage Rooms";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // Ensure Wards are passed from controller
     var wards = ViewBag.Wards as IEnumerable<Wellness_Wardens_Project.Models.AdministrationSubsystem.Ward>;
 }
 
@@ -23,10 +22,25 @@
     </div>
 </div>
 
-<div class="mb-3">
-    <input type="text" id="roomSearch" class="form-control"
-           placeholder="🔍 Search rooms by number, type, or ward..." />
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" id="roomSearch" class="form-control"
+               placeholder="🔍 Search rooms by number, type, or ward..." />
+    </div>
+    <div class="col-md-4">
+        <select id="sortSelect" class="form-select">
+            <option value="number-asc">Sort by: Room Number (A-Z)</option>
+            <option value="number-desc">Sort by: Room Number (Z-A)</option>
+            <option value="type-asc">Sort by: Room Type (A-Z)</option>
+            <option value="type-desc">Sort by: Room Type (Z-A)</option>
+            <option value="beds-asc">Sort by: Beds (Low to High)</option>
+            <option value="beds-desc">Sort by: Beds (High to Low)</option>
+            <option value="ward-asc">Sort by: Ward (A-Z)</option>
+            <option value="ward-desc">Sort by: Ward (Z-A)</option>
+        </select>
+    </div>
 </div>
+
 <p style="color: red">Click room number to view beds in that room.</p>
 
 <div class="table-responsive shadow-sm rounded">
@@ -40,10 +54,10 @@
                 <th style="width:25%;">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="roomsTableBody">
             @foreach (var room in Model)
             {
-                <tr>
+                <tr class="room-row">
                     <td data-bs-toggle="collapse" data-bs-target="#beds-@room.RoomId" class="text-primary fw-bold" style="cursor: pointer;">
                         <i class="bi bi-door-open-fill me-1"></i>@room.RoomNumber
                     </td>
@@ -73,7 +87,7 @@
                 </tr>
 
                 <!-- Collapsible beds row -->
-                <tr class="collapse bg-light" id="beds-@room.RoomId">
+                <tr class="collapse bg-light bed-row" id="beds-@room.RoomId">
                     <td colspan="5" class="p-3 text-start">
                         <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-hospital-bed me-1"></i>Beds in Room @room.RoomNumber</h6>
                         @if (room.Beds != null && room.Beds.Any())
@@ -134,6 +148,8 @@
             }
         </tbody>
     </table>
+
+    <div class="mt-3" id="roomsPagination"></div>
 </div>
 
 <!-- Add Room Modal -->
@@ -148,7 +164,6 @@
                 <form asp-action="AddRoom" method="post" class="needs-validation" novalidate>
                     @Html.AntiForgeryToken()
 
-                    <!-- Room Number -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Room Number:</label>
                         <input type="text" name="RoomNumber" class="form-control" placeholder="R001" value="R" pattern="^R\d{1,3}$" required />
@@ -156,7 +171,6 @@
                         <div class="invalid-feedback">Room number must start with 'R' followed by digits (e.g., R01, R002).</div>
                     </div>
 
-                    <!-- Room Type -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Room Type:</label>
                         <select name="RoomType" class="form-select" required>
@@ -184,7 +198,6 @@
                         <div class="invalid-feedback">Please select a room type.</div>
                     </div>
 
-                    <!-- Ward -->
                     <div class="mb-3 position-relative">
                         <label class="form-label fw-bold">Ward:</label>
                         <select name="WardId" class="form-select" required>
@@ -318,17 +331,178 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Search Filter -->
     <script>
-        // Live search
-        document.getElementById("roomSearch").addEventListener("keyup", function () {
-            let searchValue = this.value.toLowerCase();
-            document.querySelectorAll("#roomsTable tbody tr").forEach(function (row) {
-                let text = row.innerText.toLowerCase();
-                row.style.display = text.includes(searchValue) ? "" : "none";
+        const roomSearchInput = document.getElementById('roomSearch');
+        const roomsTableBody = document.getElementById('roomsTableBody');
+        let allRoomRows = Array.from(roomsTableBody.querySelectorAll('.room-row'));
+        let allBedRows = Array.from(roomsTableBody.querySelectorAll('.bed-row'));
+        let filteredRoomRows = [...allRoomRows];
+        let filteredBedRows = [...allBedRows];
+
+        function performSearch() {
+            const query = roomSearchInput.value.toLowerCase();
+
+            filteredRoomRows = allRoomRows.filter(row => {
+                const numberText = row.children[0].textContent.toLowerCase();
+                const typeText = row.children[1].textContent.toLowerCase();
+                const wardText = row.children[3].textContent.toLowerCase();
+                return numberText.includes(query) || typeText.includes(query) || wardText.includes(query);
             });
+
+            // Update bed rows to match filtered room rows
+            filteredBedRows = [];
+            filteredRoomRows.forEach(roomRow => {
+                const collapseTarget = roomRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const bedRow = document.querySelector(collapseTarget);
+                if (bedRow) {
+                    filteredBedRows.push(bedRow);
+                }
+            });
+
+            displayPage(1);
+        }
+
+        roomSearchInput.addEventListener('keyup', performSearch);
+    </script>
+
+    <!-- Sorting + Pagination -->
+    <script>
+        const sortSelect = document.getElementById('sortSelect');
+        const rowsPerPage = 9;
+        let currentPage = 1;
+
+        function displayPage(page) {
+            currentPage = page;
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Hide all rows first
+            allRoomRows.forEach(row => row.style.display = 'none');
+            allBedRows.forEach(row => row.style.display = 'none');
+
+            // Show only filtered rows for current page
+            filteredRoomRows.forEach((roomRow, index) => {
+                if (index >= start && index < end) {
+                    roomRow.style.display = '';
+                    const collapseTarget = roomRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                    const bedRow = document.querySelector(collapseTarget);
+                    if (bedRow) {
+                        bedRow.style.display = '';
+                    }
+                }
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('roomsPagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredRoomRows.length / rowsPerPage);
+
+            if (totalPages > 1) {
+                // Previous button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+                    prevBtn.addEventListener('click', () => displayPage(currentPage - 1));
+                    paginationContainer.appendChild(prevBtn);
+                }
+
+                // Page buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm me-1 ' + (i === currentPage ? 'btn-primary' : 'btn-outline-primary');
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => displayPage(i));
+                    paginationContainer.appendChild(btn);
+                }
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'btn btn-sm btn-outline-primary me-1';
+                    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => displayPage(currentPage + 1));
+                    paginationContainer.appendChild(nextBtn);
+                }
+            }
+        }
+
+        function sortTable(sortValue) {
+            const [column, direction] = sortValue.split('-');
+            const isAsc = direction === 'asc';
+
+            filteredRoomRows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'number':
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'type':
+                        aValue = a.children[1].textContent.trim().toLowerCase();
+                        bValue = b.children[1].textContent.trim().toLowerCase();
+                        break;
+                    case 'beds':
+                        aValue = parseInt(a.children[2].textContent) || 0;
+                        bValue = parseInt(b.children[2].textContent) || 0;
+                        break;
+                    case 'ward':
+                        aValue = a.children[3].textContent.trim().toLowerCase();
+                        bValue = b.children[3].textContent.trim().toLowerCase();
+                        break;
+                    default:
+                        aValue = a.children[0].textContent.trim().toLowerCase();
+                        bValue = b.children[0].textContent.trim().toLowerCase();
+                }
+
+                if (aValue < bValue) return isAsc ? -1 : 1;
+                if (aValue > bValue) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Rebuild bed rows array to match sorted room rows
+            filteredBedRows = [];
+            filteredRoomRows.forEach(roomRow => {
+                const collapseTarget = roomRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const bedRow = document.querySelector(collapseTarget);
+                if (bedRow) {
+                    filteredBedRows.push(bedRow);
+                }
+            });
+
+            // Reorder DOM elements
+            filteredRoomRows.forEach(roomRow => {
+                roomsTableBody.appendChild(roomRow);
+                const collapseTarget = roomRow.querySelector('td[data-bs-target]').getAttribute('data-bs-target');
+                const bedRow = document.querySelector(collapseTarget);
+                if (bedRow) {
+                    roomsTableBody.appendChild(bedRow);
+                    bedRow.classList.remove('show'); 
+                    const bsCollapse = new bootstrap.Collapse(bedRow, { toggle: false });
+                    bsCollapse.hide();
+                    bedRow.style.display = 'none';
+                }
+            });
+
+            displayPage(1);
+        }
+
+        sortSelect.addEventListener('change', function() {
+            sortTable(this.value);
         });
 
-        // Add Bed Modal: set RoomId
+        sortTable('number-asc');
+        displayPage(1);
+    </script>
+
+    <!-- Modal Scripts -->
+    <script>
+        // Add Bed Modal
         var addBedModal = document.getElementById('addBedModal');
         addBedModal.addEventListener('show.bs.modal', function (event) {
             var button = event.relatedTarget;
@@ -336,7 +510,7 @@
             document.getElementById('bedRoomId').value = roomId;
         });
 
-        // Edit Room Modal: populate values
+        // Edit Room Modal
         var editRoomModal = document.getElementById('editRoomModal');
         editRoomModal.addEventListener('show.bs.modal', function (event) {
             var button = event.relatedTarget;
@@ -375,6 +549,7 @@
         }
     </script>
 
+    <!-- Form Validation -->
     <script>
         (function () {
             'use strict';
