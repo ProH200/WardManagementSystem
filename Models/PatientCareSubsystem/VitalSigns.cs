@@ -11,7 +11,7 @@ namespace Wellness_Wardens_Project.Models.PatientCareSubsystem
         public int VitalId { get; set; }
 
         [Required(ErrorMessage = "This field is required.")]
-        public double Tempareture { get; set; }
+        public double Temperature { get; set; }
 
         [Required(ErrorMessage = "This field is required.")]
         public int HeartRate { get; set; }

@@ -17,7 +17,7 @@ namespace Wellness_Wardens_Project.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -291,7 +291,7 @@ namespace Wellness_Wardens_Project.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.PrimitiveCollection<string>("AvailableRoles")
+                    b.Property<string>("AvailableRoles")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -579,7 +579,8 @@ namespace Wellness_Wardens_Project.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("MedicationId")
+                    b.Property<int?>("MedicationId")
+                        .IsRequired()
                         .HasColumnType("int");
 
                     b.Property<int>("TreatmentId")
@@ -850,7 +851,7 @@ namespace Wellness_Wardens_Project.Migrations
                     b.Property<DateTime>("RecordedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<double>("Tempareture")
+                    b.Property<double>("Temperature")
                         .HasColumnType("float");
 
                     b.HasKey("VitalId");
@@ -971,7 +972,8 @@ namespace Wellness_Wardens_Project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdmissionId"));
 
-                    b.Property<DateTime>("AdmissionDate")
+                    b.Property<DateTime?>("AdmissionDate")
+                        .IsRequired()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("AssignedEmployeeId")
@@ -1087,7 +1089,8 @@ namespace Wellness_Wardens_Project.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("PatientId")
+                    b.Property<int?>("PatientId")
+                        .IsRequired()
                         .HasColumnType("int");
 
                     b.HasKey("Id");

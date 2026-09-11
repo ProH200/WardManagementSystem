@@ -1,0 +1,2941 @@
+﻿@model Wellness_Wardens_Project.ViewModels.PatientManagementDashboardViewModel
+@using Wellness_Wardens_Project.Models.PatientManagementSubsystem
+@using Wellness_Wardens_Project.Models.PatientCareSubsystem
+@using Wellness_Wardens_Project.Models.AdministrationSubsystem
+@using Wellness_Wardens_Project.Models.DoctorPatientSubsystem
+
+@{
+    ViewData["Title"] = "Patient Management Dashboard";
+    var userRole = User.IsInRole("Nursing Sister") ? "Nursing Sister" :
+                   User.IsInRole("Nurse") ? "Nurse" :
+                   User.IsInRole("Doctor") ? "Doctor" : "Other";
+    var today = DateTime.Now;
+}
+
+<!-- Dashboard Header - Professional & Clean -->
+<div class="dashboard-header mb-4">
+    <div class="dashboard-header-top">
+        <div class="header-left">
+            <div class="header-title-wrapper">
+                <div class="header-icon">
+                    <i class="fas fa-hospital-user"></i>
+                </div>
+                <div>
+                    <h1 class="dashboard-title">Patient Management Dashboard</h1>
+                    <div class="dashboard-meta">
+                        <span class="badge role-badge">
+                            <i class="fas fa-user-tag me-1"></i> @userRole
+                        </span>
+                        <span class="meta-separator">|</span>
+                        <span class="meta-date">
+                            <i class="fas fa-calendar-alt me-1"></i> @today.ToString("dddd, MMMM dd, yyyy")
+                        </span>
+                        <span class="meta-separator">|</span>
+                        <span class="meta-time">
+                            <i class="fas fa-clock me-1"></i> @today.ToString("HH:mm")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="search-box">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="patientSearch" class="form-control search-input" placeholder="Search by ID, Name, or Surname...">
+                </div>
+                <button class="btn btn-primary search-btn" onclick="searchPatients()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+           @*  <button class="btn btn-success add-patient-btn" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                <i class="fas fa-plus me-1"></i> Add Patient
+            </button> *@
+        </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="quick-actions-bar">
+        <div class="quick-actions-wrapper">
+            <span class="quick-actions-label">Quick Actions:</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="openAddVital()">
+                <i class="fas fa-heartbeat me-1"></i> Record Vitals
+            </button>
+            <button class="btn btn-sm btn-outline-success" onclick="openAddTreatment()">
+                <i class="fas fa-stethoscope me-1"></i> Add Treatment
+            </button>
+            <button class="btn btn-sm btn-outline-info" onclick="openAssignMedication()">
+                <i class="fas fa-pills me-1"></i> Assign Medication
+            </button>
+            <button class="btn btn-sm btn-outline-warning" onclick="openAddVisit()">
+                <i class="fas fa-user-md me-1"></i> Record Visit
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+@* <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-primary text-white">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-number" id="totalPatients">@Model.TotalPatients</div>
+            <div class="stat-label">Total Patients</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-info text-white">
+            <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="stat-number" id="todayVisits">@Model.TodayVisits</div>
+            <div class="stat-label">Today's Visits</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-success text-white">
+            <div class="stat-icon"><i class="fas fa-pills"></i></div>
+            <div class="stat-number" id="activeMeds">@Model.ActiveMedications</div>
+            <div class="stat-label">Active Medications</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-warning text-white">
+            <div class="stat-icon"><i class="fas fa-stethoscope"></i></div>
+            <div class="stat-number" id="pendingTreatments">@Model.PendingTreatments</div>
+            <div class="stat-label">Treatments</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-danger text-white">
+            <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+            <div class="stat-number" id="newPatients">@Model.NewPatientsThisWeek</div>
+            <div class="stat-label">New Patients (Week)</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+        <div class="stat-card bg-purple text-white">
+            <div class="stat-icon"><i class="fas fa-heartbeat"></i></div>
+            <div class="stat-number" id="vitalsDue">@Model.VitalsDueToday</div>
+            <div class="stat-label">Vitals Due Today</div>
+        </div>
+    </div>
+</div> *@
+
+<!-- Main Dashboard with Top Tabs -->
+<div class="dashboard-container">
+    <ul class="nav nav-tabs dashboard-tabs" id="dashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patients" type="button" role="tab">
+                <i class="fas fa-users me-2"></i> Patients
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="vitals-tab" data-bs-toggle="tab" data-bs-target="#vitals" type="button" role="tab">
+                <i class="fas fa-heartbeat me-2"></i> Vital Signs
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="treatments-tab" data-bs-toggle="tab" data-bs-target="#treatments" type="button" role="tab">
+                <i class="fas fa-stethoscope me-2"></i> Treatments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="medications-tab" data-bs-toggle="tab" data-bs-target="#medications" type="button" role="tab">
+                <i class="fas fa-pills me-2"></i> Medications
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="prescriptions-tab" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button" role="tab">
+                <i class="fas fa-prescription me-2"></i> Prescriptions
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="visits-tab" data-bs-toggle="tab" data-bs-target="#visits" type="button" role="tab">
+                <i class="fas fa-user-md me-2"></i> Doctor Visits
+            </button>
+        </li>
+        <!-- NEW HISTORY TAB -->
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                <i class="fas fa-history me-2"></i> History
+            </button>
+        </li>
+
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content dashboard-tab-content" id="dashboardTabsContent">
+
+        <!-- ============================================================ -->
+        <!-- PATIENTS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade show active" id="patients" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-users me-2"></i>Patient List</h4>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 250px;">
+                        <input type="text" id="patientTableSearch" class="form-control" placeholder="Filter patients..." onkeyup="filterPatientTable()">
+                        <span class="input-group-text"><i class="fas fa-filter"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="patientTable">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>ID Number</th>
+                                    <th>Name</th>
+                                    <th>Gender</th>
+                                    <th>Date of Birth / Age</th>
+                                    <th>Phone</th>
+                                    <th>Last Visit</th>
+                                    <th>Status</th>
+                                    <th style="width: 200px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patientTableBody">
+                                @if (Model.Patients.Any())
+                                {
+                                    foreach (var patient in Model.Patients)
+                                    {
+                                        <tr>
+                                            <td><strong>@patient.IdentityNumber</strong></td>
+                                            <td>@patient.FirstName @patient.LastName</td>
+                                            <td>@patient.Gender</td>
+                                            <td>
+                                                @patient.DateOfBirth.ToString("MMM dd, yyyy")
+                                                <br /><small class="text-muted">(@patient.Age years)</small>
+                                            </td>
+                                            <td>@patient.PhoneNumber</td>
+                                            <td>@(patient.LastVisit?.ToString("MMM dd, yyyy") ?? "Never")</td>
+                                            <td>
+                                                <span class="status-badge status-active">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-primary" onclick="viewPatient(@patient.PatientId)" title="View Profile">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-success" onclick="openAddVital(@patient.PatientId)" title="Add Vitals">
+                                                        <i class="fas fa-heartbeat"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" onclick="editPatient(@patient.PatientId)" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deletePatient(@patient.PatientId)" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">No patients found</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VITAL SIGNS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade" id="vitals" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-heartbeat me-2"></i>Vital Signs</h4>
+                <button class="btn btn-primary" onclick="openAddVital()">
+                    <i class="fas fa-plus me-2"></i> Record Vital Signs
+                </button>
+            </div>
+
+            <!-- Patient Selector for Vitals -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Patient</label>
+                            <select class="form-select" id="vitalPatientSelect" onchange="loadVitalRecords()">
+                                <option value="">-- Select Patient --</option>
+                                @foreach (var p in Model.PatientSelectList)
+                                {
+                                    <option value="@p.PatientId">@p.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date Range</label>
+                            <input type="date" class="form-control" id="vitalDateFilter" onchange="loadVitalRecords()">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary w-100" onclick="loadVitalRecords()">
+                                <i class="fas fa-sync me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="vitalTable">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Date & Time</th>
+                                    <th>Temperature</th>
+                                    <th>Heart Rate</th>
+                                    <th>Blood Pressure</th>
+                                    <th>Recorded By</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vitalTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Select a patient to view vital signs</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TREATMENTS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade" id="treatments" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-stethoscope me-2"></i>Treatments</h4>
+                <button class="btn btn-primary" onclick="openAddTreatment()">
+                    <i class="fas fa-plus me-2"></i> Record Treatment
+                </button>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Patient</label>
+                            <select class="form-select" id="treatmentPatientSelect" onchange="loadTreatmentRecords()">
+                                <option value="">-- Select Patient --</option>
+                                @foreach (var p in Model.PatientSelectList)
+                                {
+                                    <option value="@p.PatientId">@p.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Treatment Type</label>
+                            <select class="form-select" id="treatmentTypeFilter" onchange="loadTreatmentRecords()">
+                                <option value="">All Types</option>
+                                @foreach (var type in Model.TreatmentTypes)
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary w-100" onclick="loadTreatmentRecords()">
+                                <i class="fas fa-sync me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="treatmentTable">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Treatment Type</th>
+                                    <th>Date Performed</th>
+                                    <th>Status</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="treatmentTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Select a patient to view treatments</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- MEDICATIONS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade" id="medications" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-pills me-2"></i>Medications</h4>
+                <div class="d-flex gap-2">
+                    @if (User.IsInRole("Nurse") || User.IsInRole("Nursing Sister") || User.IsInRole("Doctor"))
+                    {
+                        <button class="btn btn-primary" onclick="openAssignMedication()">
+                            <i class="fas fa-prescription me-2"></i> Assign Medication
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Medication Sub Tabs -->
+            <ul class="nav nav-tabs mb-3" id="medicationSubTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="nonScheduledMeds-tab" data-bs-toggle="tab" data-bs-target="#nonScheduledMeds" type="button" role="tab">
+                        <i class="fas fa-pills me-1"></i> Non-Scheduled (Level 1-4)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scheduledMeds-tab" data-bs-toggle="tab" data-bs-target="#scheduledMeds" type="button" role="tab">
+                        <i class="fas fa-prescription-bottle-alt me-1"></i> Scheduled (Level 5-10)
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Non-Scheduled Medications -->
+                <div class="tab-pane fade show active" id="nonScheduledMeds" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Patient</th>
+                                            <th>Medication</th>
+                                            <th>Dosage</th>
+                                            <th>Frequency</th>
+                                            <th>Duration</th>
+                                            <th>Assigned Date</th>
+                                            <th>Status</th>
+                                            <th style="width: 100px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="nonScheduledMedsBody">
+                                        @{
+                                            var nonScheduled = Model.MedicationAssignments.Where(m => !m.IsScheduled).ToList();
+                                        }
+                                        @if (nonScheduled.Any())
+                                        {
+                                            foreach (var med in nonScheduled)
+                                            {
+                                                <tr>
+                                                    <td>@med.PatientName</td>
+                                                    <td><strong>@med.MedicationName</strong></td>
+                                                    <td>@med.Dosage</td>
+                                                    <td>@med.Frequency</td>
+                                                    <td>@med.DurationDays days</td>
+                                                    <td>@med.AssignmentDate.ToString("MMM dd, yyyy")</td>
+                                                    <td><span class="status-badge status-active">Active</span></td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button class="btn btn-outline-warning" onclick="editMedication(@med.PatientMedicationId)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-danger" onclick="deleteMedication(@med.PatientMedicationId)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted">No non-scheduled medications assigned</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduled Medications -->
+                <div class="tab-pane fade" id="scheduledMeds" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead style="background-color: #dc3545; color: white;">
+                                        <tr>
+                                            <th>Patient</th>
+                                            <th>Medication</th>
+                                            <th>Dosage</th>
+                                            <th>Frequency</th>
+                                            <th>Duration</th>
+                                            <th>Assigned Date</th>
+                                            <th>Level</th>
+                                            <th>Status</th>
+                                            <th style="width: 100px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scheduledMedsBody">
+                                        @{
+                                            var scheduled = Model.MedicationAssignments.Where(m => m.IsScheduled).ToList();
+                                        }
+                                        @if (scheduled.Any())
+                                        {
+                                            foreach (var med in scheduled)
+                                            {
+                                                var levelClass = med.ScheduleLevel > 7 ? "bg-danger" : med.ScheduleLevel > 4 ? "bg-warning text-dark" : "bg-secondary";
+                                                <tr>
+                                                    <td>@med.PatientName</td>
+                                                    <td><strong>@med.MedicationName</strong></td>
+                                                    <td>@med.Dosage</td>
+                                                    <td>@med.Frequency</td>
+                                                    <td>@med.DurationDays days</td>
+                                                    <td>@med.AssignmentDate.ToString("MMM dd, yyyy")</td>
+                                                    <td><span class="badge @levelClass">Level @med.ScheduleLevel</span></td>
+                                                    <td><span class="status-badge status-active">Active</span></td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button class="btn btn-outline-warning" onclick="editMedication(@med.PatientMedicationId)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-danger" onclick="deleteMedication(@med.PatientMedicationId)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="9" class="text-center text-muted">No scheduled medications assigned</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- PRESCRIPTIONS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade" id="prescriptions" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-prescription me-2"></i>Prescriptions</h4>
+                @if (User.IsInRole("Doctor"))
+                {
+                    <button class="btn btn-primary" onclick="openAddPrescription()">
+                        <i class="fas fa-plus me-2"></i> Create Prescription
+                    </button>
+                }
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="prescriptionTable">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Date Written</th>
+                                    <th>Doctor</th>
+                                    <th>Medications</th>
+                                    <th>Instructions</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prescriptionTableBody">
+                                @if (Model.Prescriptions.Any())
+                                {
+                                    foreach (var prescription in Model.Prescriptions)
+                                    {
+                                        <tr>
+                                            <td>@prescription.PatientName</td>
+                                            <td>@prescription.DateWritten.ToString("MMM dd, yyyy")</td>
+                                            <td>Dr. @prescription.DoctorName</td>
+                                            <td>
+                                                @foreach (var med in prescription.Medications)
+                                                {
+                                                    <span class="badge bg-primary me-1">@med.Name</span>
+                                                }
+                                            </td>
+                                            <td><small>@prescription.Instructions</small></td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick="viewPrescription(@prescription.PrescriptionId)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deletePrescription(@prescription.PrescriptionId)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">No prescriptions found</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DOCTOR VISITS TAB -->
+        <!-- ============================================================ -->
+        <div class="tab-pane fade" id="visits" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-user-md me-2"></i>Doctor Visits</h4>
+                <button class="btn btn-primary" onclick="openAddVisit()">
+                    <i class="fas fa-plus me-2"></i> Record Visit
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="visitTable">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Visit Date</th>
+                                    <th>Instructions</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitTableBody">
+                                @if (Model.DoctorVisits.Any())
+                                {
+                                    foreach (var visit in Model.DoctorVisits)
+                                    {
+                                        <tr>
+                                            <td>@visit.PatientName</td>
+                                            <td>@visit.VisitDate.ToString("MMM dd, yyyy HH:mm")</td>
+                                            <td><small>@visit.Instructions</small></td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-warning" onclick="editVisit(@visit.VisitId)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteVisit(@visit.VisitId)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No doctor visits recorded</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODALS -->
+<!-- ============================================================ -->
+<!-- Add Patient Modal -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New Patient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPatientForm">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Identity Number *</label>
+                                <input type="text" class="form-control" name="IdentityNumber" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Gender *</label>
+                                <select class="form-select" name="Gender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">First Name *</label>
+                                <input type="text" class="form-control" name="FirstName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" name="LastName" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Date of Birth *</label>
+                                <input type="date" class="form-control" name="DateOfBirth" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" name="PhoneNumber" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="Email">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Emergency Contact *</label>
+                                <input type="text" class="form-control" name="EmergencyContact" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Home Address *</label>
+                        <textarea class="form-control" name="HomeAddress" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Medical History</label>
+                        <textarea class="form-control" name="MedicalHistory" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Chronic Condition</label>
+                                <input type="text" class="form-control" name="ChronicCondition">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Chronic Medication</label>
+                                <input type="text" class="form-control" name="ChronicMedication">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePatient()">
+                    <i class="fas fa-save me-2"></i> Save Patient
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vital Signs Modal -->
+<!-- ============================================================ -->
+<!-- ADD VITAL SIGNS MODAL -->
+<!-- ============================================================ -->
+<div class="modal fade" id="addVitalModal" tabindex="-1" aria-labelledby="addVitalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addVitalModalLabel">
+                    <i class="fas fa-heartbeat me-2"></i>Record Vital Signs
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addVitalForm">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Patient Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-user me-1 text-primary"></i> Patient <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" name="PatientId" id="vitalPatientId" required>
+                            <option value="">-- Select Patient --</option>
+                            @foreach (var p in Model.PatientSelectList)
+                            {
+                                <option value="@p.PatientId">@p.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Recorded Date & Time -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-calendar-alt me-1 text-primary"></i> Recorded Date & Time <span class="text-danger">*</span>
+                        </label>
+                        <input type="datetime-local"
+                               class="form-control"
+                               name="RecordedDate"
+                               id="vitalRecordedDate"
+                               value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                               required>
+                    </div>
+
+                    <hr class="my-3">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-clipboard-list me-1"></i> Vital Measurements
+                    </h6>
+
+                    <!-- Temperature and Heart Rate -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-thermometer-half me-1 text-danger"></i> Temperature (°C) <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                      @*  step="0.1"
+                                       min="30"
+                                       max="45" *@
+                                       class="form-control"
+                                       name="Temperature"
+                                       id="vitalTemperature"
+                                       placeholder="e.g., 36.5"
+                                       required>
+                                <small class="text-muted">Normal: 36.1 - 37.2 °C</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-heartbeat me-1 text-danger"></i> Heart Rate (bpm) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       min="30"
+                                       max="250"
+                                       class="form-control"
+                                       name="HeartRate"
+                                       id="vitalHeartRate"
+                                       placeholder="e.g., 72"
+                                       required>
+                                <small class="text-muted">Normal: 60 - 100 bpm</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blood Pressure -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-tint me-1 text-danger"></i> Blood Pressure (mmHg) <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               name="BloodPressure"
+                               id="vitalBloodPressure"
+                               pattern="^\d{2,3}/\d{2,3}$"
+                               placeholder="e.g., 120/80"
+                               title="Enter blood pressure in format 120/80"
+                               required>
+                        <small class="text-muted">Format: Systolic/Diastolic (e.g., 120/80)</small>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="card bg-light border-0 mt-3" id="vitalPreview" style="display: none;">
+                        <div class="card-body py-2">
+                            <small class="text-muted d-block mb-2">
+                                <i class="fas fa-eye me-1"></i> Preview:
+                            </small>
+                            <div class="row text-center g-2">
+                                <div class="col-4">
+                                    <div class="badge bg-secondary w-100 py-2" id="previewTemp">--°C</div>
+                                    <small class="text-muted d-block mt-1">Temp</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="badge bg-secondary w-100 py-2" id="previewHR">--</div>
+                                    <small class="text-muted d-block mt-1">HR</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="badge bg-secondary w-100 py-2" id="previewBP">--/--</div>
+                                    <small class="text-muted d-block mt-1">BP</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveVitalBtn" onclick="saveVital()">
+                    <i class="fas fa-save me-1"></i> Save Vital Signs
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Treatment Modal -->
+<div class="modal fade" id="addTreatmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-stethoscope me-2"></i>Record Treatment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTreatmentForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Patient *</label>
+                        <select class="form-select" name="PatientId" id="treatmentPatientId" required>
+                            <option value="">Select Patient</option>
+                            @foreach (var p in Model.PatientSelectList)
+                            {
+                                <option value="@p.PatientId">@p.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Treatment Type *</label>
+                        <input type="text" class="form-control" name="TreatmentType" placeholder="e.g., Physiotherapy, Surgery, etc." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date Performed *</label>
+                        <input type="datetime-local" class="form-control" name="DatePerformed" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTreatment()">
+                    <i class="fas fa-save me-2"></i> Save Treatment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Medication Modal -->
+<div class="modal fade" id="assignMedicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-prescription me-2"></i>Assign Medication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignMedicationForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Patient *</label>
+                        <select class="form-select" name="PatientId" id="medicationPatientId" required>
+                            <option value="">Select Patient</option>
+                            @foreach (var p in Model.PatientSelectList)
+                            {
+                                <option value="@p.PatientId">@p.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Medication *</label>
+                        <select class="form-select" name="MedicationId" required>
+                            <option value="">Select Medication</option>
+                            @foreach (var m in Model.MedicationSelectList)
+                            {
+                                <option value="@m.MedicationId">@m.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Dosage *</label>
+                                <input type="text" class="form-control" name="Dosage" placeholder="e.g., 500mg" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Frequency *</label>
+                                <input type="text" class="form-control" name="Frequency" placeholder="e.g., Twice daily" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (Days)</label>
+                                <input type="number" class="form-control" name="DurationDays" min="0" value="0">
+                                <small class="text-muted">Set to 0 for single dose</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" name="QuantityAssigned" min="1" value="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Administration Notes</label>
+                        <textarea class="form-control" name="AdministrationNotes" rows="2" placeholder="Additional instructions or notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="assignMedication()">
+                    <i class="fas fa-prescription me-2"></i> Assign Medication
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Prescription Modal -->
+<div class="modal fade" id="addPrescriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-prescription me-2"></i>Create Prescription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPrescriptionForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Patient *</label>
+                        <select class="form-select" name="PatientId" required>
+                            <option value="">Select Patient</option>
+                            @foreach (var p in Model.PatientSelectList)
+                            {
+                                <option value="@p.PatientId">@p.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Instructions</label>
+                        <textarea class="form-control" name="Instructions" rows="3" placeholder="Prescription instructions..."></textarea>
+                    </div>
+                    <hr>
+                    <h6><i class="fas fa-pills me-2"></i>Medications</h6>
+                    <div id="prescriptionMedications">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <select class="form-select" name="MedicationIds">
+                                    <option value="">Select Medication</option>
+                                    @foreach (var m in Model.MedicationSelectList)
+                                    {
+                                        <option value="@m.MedicationId">@m.DisplayName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" name="Dosages" placeholder="Dosage">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removePrescriptionMedication(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addPrescriptionMedication()">
+                        <i class="fas fa-plus me-1"></i> Add Medication
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePrescription()">
+                    <i class="fas fa-save me-2"></i> Create Prescription
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Doctor Visit Modal -->
+<div class="modal fade" id="addVisitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-md me-2"></i>Record Doctor Visit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addVisitForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Patient *</label>
+                        <select class="form-select" name="PatientId" required>
+                            <option value="">Select Patient</option>
+                            @foreach (var p in Model.PatientSelectList)
+                            {
+                                <option value="@p.PatientId">@p.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Visit Date *</label>
+                        <input type="datetime-local" class="form-control" name="VisitDate" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Instructions</label>
+                        <textarea class="form-control" name="Instructions" rows="3" placeholder="Visit notes and instructions..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveVisit()">
+                    <i class="fas fa-save me-2"></i> Save Visit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- STYLES -->
+<!-- ============================================================ -->
+@section Styles {
+    <style>
+
+        /* Add this to your stylesheet */
+
+        .dashboard-tabs .nav-link {
+            color: #ffffff; /* White text for better contrast */
+            background-color: #6c757d; /* Gray background - button-like */
+            border: 1px solid #5a6268;
+            border-radius: 8px 8px 0 0;
+            padding: 0.75rem 1.25rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            margin-right: 0.25rem;
+            cursor: pointer;
+        }
+
+            .dashboard-tabs .nav-link i {
+                color: #ffffff; /* White icon color to match text */
+            }
+
+
+            /* Active tab */
+            .dashboard-tabs .nav-link.active {
+                color: #ffffff;
+                background-color: #005b96; /* Dark blue for active button */
+                border-color: #005b96;
+                box-shadow: 0 2px 8px rgba(0, 91, 150, 0.3);
+            }
+
+                .dashboard-tabs .nav-link.active i {
+                    color: #ffffff;
+                }
+
+
+            /* Hover state - keep consistent color */
+            .dashboard-tabs .nav-link:hover {
+                color: #ffffff; /* Text stays white */
+                background-color: #6c757d; /* Background stays gray (same as default) */
+                border-color: #5a6268;
+                transform: translateY(-2px); /* Slight lift effect only */
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+
+                .dashboard-tabs .nav-link:hover i {
+                    color: #ffffff;
+                } 
+        /* ============================================================
+           DASHBOARD HEADER STYLES
+           ============================================================ */
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .dashboard-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #005b96, #0077be);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2a3a;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .dashboard-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.25rem;
+        }
+
+        .role-badge {
+            background: linear-gradient(135deg, #005b96, #0077be);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        .meta-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .meta-date, .meta-time {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Search Box */
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+            .search-box:focus-within {
+                border-color: #005b96;
+                box-shadow: 0 0 0 3px rgba(0, 91, 150, 0.1);
+            }
+
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            color: #adb5bd;
+            font-size: 0.9rem;
+        }
+
+        .search-input {
+            border: none;
+            padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+            width: 250px;
+            background: transparent;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+            .search-input:focus {
+                box-shadow: none;
+            }
+
+        .search-btn {
+            border-radius: 0;
+            padding: 0.5rem 1rem;
+            border: none;
+            background: #005b96;
+            color: white;
+            transition: background 0.3s ease;
+        }
+
+            .search-btn:hover {
+                background: #004a7a;
+            }
+
+        .add-patient-btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions-bar {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .quick-actions-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-actions-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-actions-wrapper .btn {
+            border-radius: 8px;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.75rem;
+        }
+
+        /* ============================================================
+           STATS CARDS
+           ============================================================ */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+            }
+
+        .stat-card-primary::before {
+            background: linear-gradient(90deg, #005b96, #0077be);
+        }
+
+        .stat-card-info::before {
+            background: linear-gradient(90deg, #17a2b8, #0dcaf0);
+        }
+
+        .stat-card-success::before {
+            background: linear-gradient(90deg, #28a745, #34ce57);
+        }
+
+        .stat-card-warning::before {
+            background: linear-gradient(90deg, #ffc107, #ffda6a);
+        }
+
+        .stat-card-danger::before {
+            background: linear-gradient(90deg, #dc3545, #ff6b7a);
+        }
+
+        .stat-card-purple::before {
+            background: linear-gradient(90deg, #6f42c1, #9b6fd4);
+        }
+
+        .stat-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        /* .stat-card-primary .stat-card-icon {
+            background: rgba(0, 91, 150, 0.1);
+            color: #005b96;
+        }
+
+        .stat-card-info .stat-card-icon {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .stat-card-success .stat-card-icon {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .stat-card-warning .stat-card-icon {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .stat-card-danger .stat-card-icon {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .stat-card-purple .stat-card-icon {
+            background: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+        }
+
+        .stat-card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-card-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a2a3a;
+            line-height: 1.2;
+        }
+
+        .stat-card-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .stat-card-trend {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .trend-up {
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .trend-down {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .trend-neutral {
+            color: #6c757d;
+            background: rgba(108, 117, 125, 0.1);
+        }
+
+        /* ============================================================
+           RESPONSIVE DESIGN
+           ============================================================ */
+
+        @@media (max-width: 1200px) {
+            .stats-grid
+
+        {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        } */
+
+        @@media (max-width: 992px) {
+            .dashboard-header-top
+
+        {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .header-right {
+            justify-content: stretch;
+        }
+
+        .search-box {
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+        }
+
+        .add-patient-btn {
+            flex: 0 0 auto;
+        }
+
+        .quick-actions-wrapper {
+            justify-content: center;
+        }
+
+        }
+
+        @@media (max-width: 768px) {
+            .dashboard-header
+
+        {
+            padding: 1rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .stat-card {
+            padding: 0.75rem 1rem;
+        }
+
+        .header-title-wrapper {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
+
+        .dashboard-title {
+            font-size: 1.2rem;
+        }
+
+        .dashboard-meta {
+            font-size: 0.75rem;
+        }
+
+        .stat-card-number {
+            font-size: 1.25rem;
+        }
+
+        .stat-card-trend {
+            display: none;
+        }
+
+        .quick-actions-wrapper {
+            gap: 0.5rem;
+        }
+
+        .quick-actions-label {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+
+        }
+
+        @@media (max-width: 480px) {
+            .stats-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .header-right {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-box {
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+        }
+
+        .add-patient-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .quick-actions-wrapper .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        }
+        /* Dashboard Header */
+        .dashboard-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+            .search-box input {
+                border-radius: 8px 0 0 8px;
+                border-right: none;
+            }
+
+            .search-box button {
+                border-radius: 0 8px 8px 0;
+            }
+
+        /* Stats Cards */
+       /*  .stat-card {
+            padding: 1.25rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            cursor: default;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-3px);
+            }
+
+            .stat-card .stat-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .stat-card .stat-number {
+                font-size: 1.75rem;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+
+            .stat-card .stat-label {
+                font-size: 0.75rem;
+                opacity: 0.85;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        } */
+
+        /* Dashboard Tabs */
+        /* .dashboard-tabs {
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 1.5rem;
+            gap: 0.25rem;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+            .dashboard-tabs .nav-link {
+                border: none;
+                border-radius: 8px 8px 0 0;
+                padding: 0.75rem 1.25rem;
+                color: #6c757d;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            }
+
+                .dashboard-tabs .nav-link:hover {
+                    background-color: #f8f9fa;
+                    color: #005b96;
+                }
+
+                .dashboard-tabs .nav-link.active {
+                    background-color: #005b96;
+                    color: white;
+                    border-radius: 8px 8px 0 0;
+                }
+
+                .dashboard-tabs .nav-link i {
+                    font-size: 0.9rem;
+                }
+
+        .dashboard-tab-content {
+            padding: 1.5rem 0;
+        } */
+
+        /* Tables */
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .table-striped > tbody > tr:nth-of-type(odd) {
+            background-color: rgba(0, 91, 150, 0.03);
+        }
+
+        .table-hover > tbody > tr:hover {
+            background-color: rgba(0, 91, 150, 0.06);
+        }
+
+        .table thead th {
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .dashboard-header .d-flex {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+                .search-box input {
+                    width: 100% !important;
+                }
+
+            .dashboard-tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+
+                .dashboard-tabs .nav-link {
+                    padding: 0.5rem 0.75rem;
+                    font-size: 0.85rem;
+                }
+
+            .stat-card .stat-number {
+                font-size: 1.5rem;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .stat-card {
+                padding: 0.75rem;
+            }
+
+                .stat-card .stat-icon {
+                    font-size: 1.2rem;
+                }
+
+                .stat-card .stat-number {
+                    font-size: 1.25rem;
+                }
+
+                .stat-card .stat-label {
+                    font-size: 0.65rem;
+                }
+
+            .table {
+                font-size: 0.75rem;
+            }
+
+                .table th,
+                .table td {
+                    padding: 0.35rem;
+                }
+
+            .btn-group-sm .btn {
+                padding: 0.15rem 0.4rem;
+                font-size: 0.7rem;
+            }
+        }
+
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+    <script>
+        // ============================================================
+        // GLOBAL VARIABLES
+        // ============================================================
+        let allPatients = [];
+
+        // ============================================================
+        // DOCUMENT READY - Initialize everything
+        // ============================================================
+        $(document).ready(function() {
+            console.log('Dashboard initialized');
+
+            // Load initial data
+            loadPatientsData();
+            loadDashboardStats();
+            setupSearchAutocomplete();
+
+            // When vitals tab is shown, load vitals if patient selected
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+                const target = $(e.target).attr('href');
+                console.log('Tab shown:', target);
+                if (target === '#vitals') {
+                    const patientId = $('#vitalPatientSelect').val();
+                    if (patientId) {
+                        console.log('Loading vitals for patient:', patientId);
+                        loadVitalRecords();
+                    }
+                }
+            });
+
+            // Handle modal hidden event to reset forms
+            $('.modal').on('hidden.bs.modal', function() {
+                const form = $(this).find('form');
+                if (form.length) {
+                    form[0].reset();
+                }
+            });
+        });
+
+                // Add this temporary function to your scripts
+        function debugVitalData() {
+            const patientId = $('#vitalPatientSelect').val();
+            if (!patientId) {
+                Swal.fire('Info', 'Please select a patient first.', 'info');
+                return;
+            }
+
+            $.get(`/Patient/GetVitals/${patientId}`, function(data) {
+                console.log('=== FULL VITAL DATA ===');
+                console.log('Data type:', typeof data);
+                console.log('Is array:', Array.isArray(data));
+                console.log('Data length:', data.length);
+                console.log('Raw data:', JSON.stringify(data, null, 2));
+
+                // Check first record if exists
+                if (data.length > 0) {
+                    console.log('First record:', data[0]);
+                    console.log('Property names:', Object.keys(data[0]));
+                }
+
+                Swal.fire({
+                    title: 'Data Debug',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>Data Type:</strong> ${typeof data}</p>
+                            <p><strong>Is Array:</strong> ${Array.isArray(data)}</p>
+                            <p><strong>Record Count:</strong> ${data.length}</p>
+                            ${data.length > 0 ? `
+                                <p><strong>First Record:</strong></p>
+                                <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px; max-height: 200px; overflow: auto;">
+        ${JSON.stringify(data[0], null, 2)}
+                                </pre>
+                            ` : '<p>No records found</p>'}
+                        </div>
+                    `,
+                    width: 600
+                });
+            }).fail(function(xhr) {
+                console.error('Debug API Error:', xhr.responseText);
+                Swal.fire('Error', 'Failed to fetch data', 'error');
+            });
+        }
+
+        // ============================================================
+        // PATIENT DATA
+        // ============================================================
+        function loadPatientsData() {
+            $.get('/Patient/GetPatients', function(data) {
+                allPatients = data;
+                console.log('Patients loaded:', allPatients.length);
+            }).fail(function(error) {
+                console.error('Failed to load patient data:', error);
+            });
+        }
+
+        // ============================================================
+        // DASHBOARD STATS
+        // ============================================================
+        function loadDashboardStats() {
+            $.get('/Patient/GetDashboardStats', function(data) {
+                if (!data.error) {
+                    $('#totalPatients').text(data.totalPatients || 0);
+                    $('#todayVisits').text(data.todayVisits || 0);
+                    $('#activeMeds').text(data.activeMeds || 0);
+                    $('#pendingTreatments').text(data.pendingTreatments || 0);
+                    $('#newPatients').text(data.newPatients || 0);
+                    $('#vitalsDue').text(data.vitalsDue || 0);
+                }
+            }).fail(function() {
+                console.error('Failed to load dashboard stats');
+            });
+        }
+
+        // ============================================================
+        // SEARCH
+        // ============================================================
+        function setupSearchAutocomplete() {
+            $('#patientSearch').autocomplete({
+                source: function(request, response) {
+                    const term = request.term.toLowerCase();
+                    const results = allPatients.filter(p =>
+                        (p.firstName && p.firstName.toLowerCase().includes(term)) ||
+                        (p.lastName && p.lastName.toLowerCase().includes(term)) ||
+                        (p.identityNumber && p.identityNumber.includes(term))
+                    );
+                    response($.map(results.slice(0, 10), function(item) {
+                        return {
+                            label: `${item.firstName} ${item.lastName} (${item.identityNumber})`,
+                            value: item.patientId
+                        };
+                    }));
+                },
+                select: function(event, ui) {
+                    viewPatient(ui.item.value);
+                    $(this).val('');
+                    return false;
+                }
+            });
+        }
+
+        function searchPatients() {
+            const searchTerm = $('#patientSearch').val();
+            if (!searchTerm) {
+                Swal.fire('Info', 'Please enter a patient name or ID to search.', 'info');
+                return;
+            }
+
+            // Switch to patients tab
+            const patientsTab = document.querySelector('#patients-tab');
+            if (patientsTab) {
+                bootstrap.Tab.getInstance(patientsTab) || new bootstrap.Tab(patientsTab);
+                patientsTab.click();
+            }
+
+            // Filter the patient table
+            $('#patientTableSearch').val(searchTerm);
+            filterPatientTable();
+        }
+
+        function filterPatientTable() {
+            const searchTerm = $('#patientTableSearch').val().toLowerCase();
+            const rows = $('#patientTableBody tr');
+
+            rows.each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(searchTerm) > -1);
+            });
+        }
+
+        // ============================================================
+        // VIEW PATIENT
+        // ============================================================
+        function viewPatient(patientId) {
+            window.location.href = `/Patient/Folder/${patientId}`;
+        }
+
+        function editPatient(patientId) {
+            Swal.fire('Info', 'Edit patient functionality coming soon.', 'info');
+        }
+
+        function deletePatient(patientId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Patient/DeletePatient', { id: patientId }, function(response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', 'Patient has been deleted.', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error!', response.message || 'Failed to delete patient.', 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the patient.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // SAVE PATIENT
+        // ============================================================
+        function savePatient() {
+            const form = $('#addPatientForm');
+            const formData = form.serialize();
+
+            $.ajax({
+                url: '/Patient/CreatePatient',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Patient added successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#addPatientModal').modal('hide');
+                        form[0].reset();
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        Swal.fire('Error!', response.message || 'Failed to add patient.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'An error occurred while adding the patient.', 'error');
+                }
+            });
+        }
+
+        // ============================================================
+        // VITAL SIGNS - LOAD AND DISPLAY
+        // ============================================================
+
+                function loadVitalRecords() {
+            const patientId = $('#vitalPatientSelect').val();
+            console.log('[loadVitalRecords] patientId:', patientId);
+
+            if (!patientId) {
+                $('#vitalTableBody').html(`
+                    <tr><td colspan="7" class="text-center text-muted py-4">
+                        <i class="fas fa-user me-2"></i> Select a patient to view vital signs
+                    </td></tr>
+                `);
+                return;
+            }
+
+            $('#vitalTableBody').html(`
+                <tr><td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin me-2"></i> Loading vital signs...
+                </td></tr>
+            `);
+
+            const url = `/Patient/GetVitals/${patientId}`;
+            console.log('[loadVitalRecords] Fetching URL:', url);
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log('[loadVitalRecords] Response:', data);
+                    const tbody = $('#vitalTableBody');
+
+                    if (!data || data.length === 0) {
+                        tbody.html(`
+                            <tr><td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-heartbeat fa-2x mb-2 d-block"></i>
+                                No vital signs recorded for this patient
+                            </td></tr>
+                        `);
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach(function(v) {
+                        const tempClass = getTempClass(v.temperature);   // ✅ Renamed
+                        const hrClass = getHRClass(v.heartRate);
+                        const formattedDate = formatDateTime(v.recordedDate);
+
+                        html += `
+                            <tr>
+                                <td><strong>${v.patientName || 'N/A'}</strong></td>
+                                <td>${formattedDate}</td>
+                                <td><span class="badge ${tempClass}">${v.temperature}°C</span></td>
+                                <td><span class="badge ${hrClass}">${v.heartRate} bpm</span></td>
+                                <td>${v.bloodPressure || 'N/A'}</td>
+                                <td>${v.employeeName || 'N/A'}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" onclick="editVital(${v.vitalId})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteVital(${v.vitalId})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    tbody.html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('[loadVitalRecords] Error:', error, 'Status:', xhr.status);
+                    $('#vitalTableBody').html(`
+                        <tr><td colspan="7" class="text-center text-danger py-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Failed to load vital signs (Status: ${xhr.status})
+                        </td></tr>
+                    `);
+                }
+            });
+        }
+        // ============================================================
+        // VITAL SIGNS - HELPER FUNCTIONS
+        // ============================================================
+        function getTempClass(temp) {
+            if (!temp) return 'bg-secondary';
+            if (temp >= 36.1 && temp <= 37.2) return 'bg-success';
+            if (temp >= 37.3 && temp <= 38.0) return 'bg-warning text-dark';
+            return 'bg-danger';
+        }
+
+        function getHRClass(hr) {
+            if (!hr) return 'bg-secondary';
+            if (hr >= 60 && hr <= 100) return 'bg-success';
+            if ((hr >= 50 && hr <= 59) || (hr >= 101 && hr <= 110)) return 'bg-warning text-dark';
+            return 'bg-danger';
+        }
+
+        // ============================================================
+        // VITAL SIGNS - SAVE
+        // ============================================================
+        function saveVital() {
+            const form = $('#addVitalForm');
+            const formData = form.serialize();
+
+            console.log('Saving vital with data:', formData);
+
+            const modal = $('#addVitalModal');
+            const saveBtn = modal.find('.btn-primary');
+            const originalText = saveBtn.html();
+            saveBtn.prop('disabled', true);
+            saveBtn.html('<i class="fas fa-spinner fa-spin me-2"></i> Saving...');
+
+            $.ajax({
+                url: '/Patient/AddVital',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    console.log('Save response:', response);
+
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message || 'Vital signs recorded successfully.',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+
+                        modal.modal('hide');
+                        form[0].reset();
+
+                        // Refresh the vitals table
+                        const patientId = $('#vitalPatientSelect').val();
+                        if (patientId) {
+                            loadVitalRecords();
+                        }
+
+                        loadDashboardStats();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: response.message || 'Failed to record vital signs.',
+                            confirmButtonColor: '#005b96'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error saving vital:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'An error occurred while recording vital signs. Please try again.',
+                        confirmButtonColor: '#005b96'
+                    });
+                },
+                complete: function() {
+                    saveBtn.prop('disabled', false);
+                    saveBtn.html(originalText);
+                }
+            });
+        }
+
+        // ============================================================
+        // VITAL SIGNS - EDIT AND DELETE
+        // ============================================================
+        function editVital(vitalId) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Edit Vital Signs',
+                text: 'Edit functionality coming soon!',
+                confirmButtonColor: '#005b96'
+            });
+        }
+
+        function deleteVital(vitalId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete this vital sign record.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: '/Patient/DeleteVital',
+                        type: 'POST',
+                        data: { id: vitalId },
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: 'Vital sign deleted successfully.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                loadVitalRecords();
+                                loadDashboardStats();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: response.message || 'Failed to delete vital sign.'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'An error occurred while deleting the vital sign.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // OPEN MODALS
+        // ============================================================
+                // Open the modal (optionally pre-select a patient)
+        function openAddVital(patientId) {
+            // Reset form first
+            const form = document.getElementById('addVitalForm');
+            if (form) form.reset();
+
+            // Reset date to now
+            const dateInput = document.getElementById('vitalRecordedDate');
+            if (dateInput) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                dateInput.value = now.toISOString().slice(0, 16);
+            }
+
+            // Reset preview
+            const preview = document.getElementById('vitalPreview');
+            if (preview) preview.style.display = 'none';
+
+            // Pre-select patient if provided
+            if (patientId) {
+                const select = document.getElementById('vitalPatientId');
+                if (select) select.value = patientId;
+            }
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addVitalModal'));
+            modal.show();
+        }
+
+        // Live preview of vitals as user types
+        $(document).ready(function() {
+            $('#vitalTemperature, #vitalHeartRate, #vitalBloodPressure').on('input', function() {
+                updateVitalPreview();
+            });
+
+            function updateVitalPreview() {
+                const temp = parseFloat($('#vitalTemperature').val());
+                const hr = parseInt($('#vitalHeartRate').val());
+                const bp = $('#vitalBloodPressure').val();
+
+                const preview = $('#vitalPreview');
+
+                // Only show preview if at least one value is entered
+                if (!temp && !hr && !bp) {
+                    preview.hide();
+                    return;
+                }
+
+                preview.show();
+
+                // Temperature preview
+                if (temp) {
+                    const tempClass = getTempClass(temp);
+                    $('#previewTemp').removeClass().addClass(`badge ${tempClass} w-100 py-2`).text(temp + '°C');
+                } else {
+                    $('#previewTemp').removeClass().addClass('badge bg-secondary w-100 py-2').text('--°C');
+                }
+
+                // Heart Rate preview
+                if (hr) {
+                    const hrClass = getHRClass(hr);
+                    $('#previewHR').removeClass().addClass(`badge ${hrClass} w-100 py-2`).text(hr + ' bpm');
+                } else {
+                    $('#previewHR').removeClass().addClass('badge bg-secondary w-100 py-2').text('--');
+                }
+
+                // Blood Pressure preview
+                if (bp) {
+                    const bpClass = getBPClass(bp);
+                    $('#previewBP').removeClass().addClass(`badge ${bpClass} w-100 py-2`).text(bp);
+                } else {
+                    $('#previewBP').removeClass().addClass('badge bg-secondary w-100 py-2').text('--/--');
+                }
+            }
+        });
+
+        // Save vital signs
+        function saveVital() {
+            const form = $('#addVitalForm');
+
+            // Validate the form
+            if (!form[0].checkValidity()) {
+                form[0].reportValidity();
+                return;
+            }
+
+            // Get form data
+            const formData = form.serialize();
+            console.log('[saveVital] Submitting:', formData);
+
+            // Show loading state on the save button
+            const saveBtn = $('#saveVitalBtn');
+            const originalText = saveBtn.html();
+            saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+
+            $.ajax({
+                url: '/Patient/AddVital',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    console.log('[saveVital] Response:', response);
+
+                    if (response.success) {
+                        // Success toast
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message || 'Vital signs recorded successfully.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+
+                        // Close modal and reset form
+                        $('#addVitalModal').modal('hide');
+                        form[0].reset();
+                        $('#vitalPreview').hide();
+
+                        // Refresh the vitals table
+                        const selectedPatientId = $('#vitalPatientSelect').val();
+                        if (selectedPatientId) {
+                            loadVitalRecords();
+                        }
+
+                        // Refresh dashboard stats
+                        if (typeof loadDashboardStats === 'function') {
+                            loadDashboardStats();
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: response.message || 'Failed to record vital signs.',
+                            confirmButtonColor: '#005b96'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('[saveVital] Error:', error);
+                    console.error('[saveVital] Response:', xhr.responseText);
+
+                    let errorMsg = 'An error occurred while saving vital signs.';
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        if (resp.message) errorMsg = resp.message;
+                    } catch (e) {}
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: errorMsg,
+                        confirmButtonColor: '#005b96'
+                    });
+                },
+                complete: function() {
+                    saveBtn.prop('disabled', false).html(originalText);
+                }
+            });
+        }
+
+        // ============================================================
+        // COLOR HELPER FUNCTIONS
+        // ============================================================
+
+        function getTempClass(temp) {
+            if (!temp) return 'bg-secondary';
+            if (temp >= 36.1 && temp <= 37.2) return 'bg-success';
+            if (temp >= 37.3 && temp <= 38.0) return 'bg-warning text-dark';
+            return 'bg-danger';
+        }
+
+        function getHRClass(hr) {
+            if (!hr) return 'bg-secondary';
+            if (hr >= 60 && hr <= 100) return 'bg-success';
+            if ((hr >= 50 && hr <= 59) || (hr >= 101 && hr <= 110)) return 'bg-warning text-dark';
+            return 'bg-danger';
+        }
+
+        function getBPClass(bp) {
+            if (!bp || !bp.includes('/')) return 'bg-secondary';
+            const parts = bp.split('/');
+            if (parts.length !== 2) return 'bg-secondary';
+
+            const systolic = parseInt(parts[0]);
+            const diastolic = parseInt(parts[1]);
+
+            if (isNaN(systolic) || isNaN(diastolic)) return 'bg-secondary';
+
+            // Normal BP: <120/<80
+            if (systolic < 120 && diastolic < 80) return 'bg-success';
+            // Elevated: 120-129/<80
+            if (systolic >= 120 && systolic <= 129 && diastolic < 80) return 'bg-warning text-dark';
+            // High: >=130/>=80
+            if (systolic >= 130 || diastolic >= 80) return 'bg-danger';
+
+            return 'bg-secondary';
+        }
+
+        // Make functions global
+        window.openAddVital = openAddVital;
+        window.saveVital = saveVital;
+        window.getTempClass = getTempClass;
+        window.getHRClass = getHRClass;
+        window.getBPClass = getBPClass;
+
+        function openAddTreatment() {
+            $('#addTreatmentModal').modal('show');
+        }
+
+        function openAssignMedication() {
+            $('#assignMedicationModal').modal('show');
+        }
+
+        function openAddPrescription() {
+            $('#addPrescriptionModal').modal('show');
+        }
+
+        function openAddVisit() {
+            $('#addVisitModal').modal('show');
+        }
+
+        // ============================================================
+        // TREATMENTS
+        // ============================================================
+        function loadTreatmentRecords() {
+            const patientId = $('#treatmentPatientSelect').val();
+            if (!patientId) {
+                $('#treatmentTableBody').html(`<tr><td colspan="5" class="text-center text-muted">Select a patient to view treatments</td></tr>`);
+                return;
+            }
+
+            const typeFilter = $('#treatmentTypeFilter').val();
+            let url = `/Patient/GetTreatments/${patientId}`;
+            if (typeFilter) url += `?type=${typeFilter}`;
+
+            $.get(url, function(data) {
+                const tbody = $('#treatmentTableBody');
+                if (!data || data.length === 0) {
+                    tbody.html(`<tr><td colspan="5" class="text-center text-muted">No treatments recorded for this patient</td></tr>`);
+                    return;
+                }
+
+                let html = '';
+                data.forEach(function(t) {
+                    const status = t.isDeleted ?
+                        '<span class="status-badge status-inactive">Deleted</span>' :
+                        '<span class="status-badge status-active">Active</span>';
+                    html += `
+                        <tr>
+                            <td>${t.patientName}</td>
+                            <td><strong>${t.treatmentType}</strong></td>
+                            <td>${formatDateTime(t.datePerformed)}</td>
+                            <td>${status}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-warning" onclick="editTreatment(${t.treatmentId})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteTreatment(${t.treatmentId})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.html(html);
+            }).fail(function() {
+                console.error('Failed to load treatment records');
+            });
+        }
+
+        function saveTreatment() {
+            const form = $('#addTreatmentForm');
+            const formData = form.serialize();
+
+            $.ajax({
+                url: '/Patient/AddTreatment',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Treatment recorded successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#addTreatmentModal').modal('hide');
+                        form[0].reset();
+                        loadTreatmentRecords();
+                        loadDashboardStats();
+                    } else {
+                        Swal.fire('Error!', response.message || 'Failed to record treatment.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'An error occurred while recording the treatment.', 'error');
+                }
+            });
+        }
+
+        function editTreatment(treatmentId) {
+            Swal.fire('Info', 'Edit treatment functionality coming soon.', 'info');
+        }
+
+        function deleteTreatment(treatmentId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete this treatment record.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Patient/DeleteTreatment', { id: treatmentId }, function(response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', 'Treatment deleted successfully.', 'success');
+                            loadTreatmentRecords();
+                            loadDashboardStats();
+                        } else {
+                            Swal.fire('Error!', response.message || 'Failed to delete treatment.', 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the treatment.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // MEDICATIONS
+        // ============================================================
+        function assignMedication() {
+            const form = $('#assignMedicationForm');
+            const formData = form.serialize();
+
+            $.ajax({
+                url: '/Patient/AssignMedication',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Medication assigned successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#assignMedicationModal').modal('hide');
+                        form[0].reset();
+                        location.reload();
+                    } else {
+                        Swal.fire('Error!', response.message || 'Failed to assign medication.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'An error occurred while assigning the medication.', 'error');
+                }
+            });
+        }
+
+        function editMedication(patientMedicationId) {
+            Swal.fire('Info', 'Edit medication functionality coming soon.', 'info');
+        }
+
+        function deleteMedication(patientMedicationId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will remove the medication assignment and return quantity to inventory.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, remove it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Patient/SoftDeleteAssignedMedication', { patientMedicationId: patientMedicationId }, function(response) {
+                        if (response.success) {
+                            Swal.fire('Removed!', 'Medication assignment removed successfully.', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error!', response.message || 'Failed to remove medication assignment.', 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('Error!', 'An error occurred while removing the medication assignment.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // PRESCRIPTIONS
+        // ============================================================
+        function addPrescriptionMedication() {
+            const container = $('#prescriptionMedications');
+            const row = container.find('.row:last').clone();
+            row.find('input').val('');
+            row.find('select').val('');
+            container.append(row);
+        }
+
+        function removePrescriptionMedication(btn) {
+            const container = $('#prescriptionMedications');
+            if (container.find('.row').length > 1) {
+                $(btn).closest('.row').remove();
+            } else {
+                Swal.fire('Info', 'You must have at least one medication.', 'info');
+            }
+        }
+
+        function savePrescription() {
+            const medications = [];
+            $('#prescriptionMedications .row').each(function() {
+                const medId = $(this).find('select[name="MedicationIds"]').val();
+                const dosage = $(this).find('input[name="Dosages"]').val();
+                if (medId) {
+                    medications.push({ medicationId: medId, dosage: dosage });
+                }
+            });
+
+            if (medications.length === 0) {
+                Swal.fire('Error!', 'Please add at least one medication.', 'error');
+                return;
+            }
+
+            const form = $('#addPrescriptionForm');
+            const data = {
+                PatientId: form.find('select[name="PatientId"]').val(),
+                Instructions: form.find('textarea[name="Instructions"]').val(),
+                Medications: medications
+            };
+
+            $.ajax({
+                url: '/Patient/CreatePrescription',
+                type: 'POST',
+                data: data,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('Success!', 'Prescription created successfully.', 'success');
+                        $('#addPrescriptionModal').modal('hide');
+                        form[0].reset();
+                        location.reload();
+                    } else {
+                        Swal.fire('Error!', response.message || 'Failed to create prescription.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'An error occurred while creating the prescription.', 'error');
+                }
+            });
+        }
+
+        function viewPrescription(prescriptionId) {
+            Swal.fire('Info', 'View prescription functionality coming soon.', 'info');
+        }
+
+        function deletePrescription(prescriptionId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete this prescription.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Patient/DeletePrescription', { id: prescriptionId }, function(response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', 'Prescription deleted successfully.', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error!', response.message || 'Failed to delete prescription.', 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the prescription.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // DOCTOR VISITS
+        // ============================================================
+        function saveVisit() {
+            const form = $('#addVisitForm');
+            const formData = form.serialize();
+
+            $.ajax({
+                url: '/Patient/AddDoctorVisit',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Doctor visit recorded successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#addVisitModal').modal('hide');
+                        form[0].reset();
+                        location.reload();
+                    } else {
+                        Swal.fire('Error!', response.message || 'Failed to record doctor visit.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'An error occurred while recording the doctor visit.', 'error');
+                }
+            });
+        }
+
+        function editVisit(visitId) {
+            Swal.fire('Info', 'Edit doctor visit functionality coming soon.', 'info');
+        }
+
+        function deleteVisit(visitId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete this doctor visit record.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Patient/DeleteDoctorVisit', { id: visitId }, function(response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', 'Doctor visit deleted successfully.', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error!', response.message || 'Failed to delete doctor visit.', 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the doctor visit.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // HELPER FUNCTIONS
+        // ============================================================
+        function formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ============================================================
+        // MAKE FUNCTIONS GLOBAL (for onclick attributes)
+        // ============================================================
+        window.saveVital = saveVital;
+        window.saveTreatment = saveTreatment;
+        window.assignMedication = assignMedication;
+        window.saveVisit = saveVisit;
+        window.savePatient = savePatient;
+        window.loadVitalRecords = loadVitalRecords;
+        window.loadTreatmentRecords = loadTreatmentRecords;
+        window.editVital = editVital;
+        window.deleteVital = deleteVital;
+        window.editTreatment = editTreatment;
+        window.deleteTreatment = deleteTreatment;
+        window.editMedication = editMedication;
+        window.deleteMedication = deleteMedication;
+        window.viewPrescription = viewPrescription;
+        window.deletePrescription = deletePrescription;
+        window.editVisit = editVisit;
+        window.deleteVisit = deleteVisit;
+        window.openAddVital = openAddVital;
+        window.openAddTreatment = openAddTreatment;
+        window.openAssignMedication = openAssignMedication;
+        window.openAddPrescription = openAddPrescription;
+        window.openAddVisit = openAddVisit;
+        window.searchPatients = searchPatients;
+        window.viewPatient = viewPatient;
+        window.editPatient = editPatient;
+        window.deletePatient = deletePatient;
+        window.addPrescriptionMedication = addPrescriptionMedication;
+        window.removePrescriptionMedication = removePrescriptionMedication;
+        window.savePrescription = savePrescription;
+        window.filterPatientTable = filterPatientTable;
+
+        console.log('Dashboard scripts loaded successfully');
+    </script>
+}

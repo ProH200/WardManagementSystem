@@ -28,266 +28,811 @@ namespace Wellness_Wardens_Project.Controllers
 
         [Authorize(Roles = "Nurse,Nursing Sister")]
 
-        public async Task<IActionResult> Index()
-        {
-            var patients = await _context.Patients
-                .Where(p => !p.IsDeleted)
-                .ToListAsync();
-
-            return View(patients);
-        }
-
-        // ======================
-        // Folder View (Patient Details + VitalSigns + Treatments + DoctorVisits)
-        // ======================
-        public async Task<IActionResult> Folder(int id)
-        {
-            var patient = await _context.Patients
-                .Include(p => p.VitalSigns)
-                .Include(p => p.Treatments)
-                .Include(p => p.PatientAllergies)
-                    .ThenInclude(pa => pa.Allergy)
-                .Include(p => p.PatientMedicalConditions)
-                    .ThenInclude(pmc => pmc.MedicalCondition)
-                .Include(p => p.DoctorVisits)
-                .Include(p => p.Prescriptions)
-                    .ThenInclude(pr => pr.PrescriptionMedications)
-                    .ThenInclude(pm => pm.Medication)
-                .Include(p => p.Prescriptions)
-                    .ThenInclude(pr => pr.Employee)
-                // Add includes for medication assignments
-                .Include(p => p.PatientMedications)
-                    .ThenInclude(pm => pm.Medication)
-                .Include(p => p.PatientMedications)
-                    .ThenInclude(pm => pm.Employee)
-                .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.Employee)
-                .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.PatientMovements)
-                .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.Discharges)
-                .Include(p => p.PatientAdmissions)
-                    .ThenInclude(pa => pa.Bed)
-                        .ThenInclude(b => b.Room)
-                            .ThenInclude(r => r.Ward)
-                .FirstOrDefaultAsync(p => p.PatientId == id);
-
-            if (patient == null) return NotFound();
-
-            // Load VisitNotes separately
-            var visitNotes = await _context.VisitNotes
-                .Include(vn => vn.Doctor)
-                .Where(vn => vn.PatientId == id && !vn.IsDeleted)
-                .ToListAsync();
-
-            var allMedications = await _context.Medications.Where(m => !m.IsDeleted).ToListAsync();
-            var employees = await _context.Employees.ToListAsync();
-
-            // Get all prescriptions for the patient
-            var allPrescriptions = patient.Prescriptions?.Where(p => !p.IsDeleted).ToList() ?? new List<Prescription>();
-
-            // Filter prescriptions based on user role
-            List<Prescription> filteredPrescriptions;
-            Prescription recentPrescription;
-
-            if (User.IsInRole("Nurse"))
-            {
-                // Nurse sees only prescriptions with NO scheduled medications
-                filteredPrescriptions = allPrescriptions
-                    .Where(p => !p.PrescriptionMedications.Any(pm =>
-                        pm.Medication.IsScheduledMedication == true)) // Exclude if ANY medication is scheduled
-                    .ToList();
-
-                recentPrescription = filteredPrescriptions
-                    .OrderByDescending(p => p.DateWritten)
-                    .FirstOrDefault();
-            }
-            else if (User.IsInRole("Nursing Sister"))
-            {
-                // Nursing Sister sees only prescriptions WITH scheduled medications
-                filteredPrescriptions = allPrescriptions
-                    .Where(p => p.PrescriptionMedications.Any(pm =>
-                        pm.Medication.IsScheduledMedication == true)) // Include if ANY medication is scheduled
-                    .ToList();
-
-                recentPrescription = filteredPrescriptions
-                    .OrderByDescending(p => p.DateWritten)
-                    .FirstOrDefault();
-            }
-            else
-            {
-                // Other roles (Doctor, Admin, etc.) see all prescriptions
-                filteredPrescriptions = allPrescriptions;
-                recentPrescription = allPrescriptions
-                    .OrderByDescending(p => p.DateWritten)
-                    .FirstOrDefault();
-            }
-
-            // Separate prescriptions by medication schedule type (for other parts of the view)
-            var nonScheduledPrescriptions = allPrescriptions
-                .Where(p => p.PrescriptionMedications.All(pm =>
-                    pm.Medication.IsScheduledMedication == false)) // ALL medications are non-scheduled
-                .ToList();
-
-            var scheduledPrescriptions = allPrescriptions
-                .Where(p => p.PrescriptionMedications.Any(pm =>
-                    pm.Medication.IsScheduledMedication == true)) // ANY medication is scheduled
-                .ToList();
-
-            // Get active medication assignments (many-to-many)
-            var activeMedicationAssignments = patient.PatientMedications?
-                .Where(pm => !pm.IsDeleted && pm.IsActive)
-                .ToList() ?? new List<PatientMedication>();
-
-            // Separate assignments by schedule type
-            var nonScheduledAssignments = activeMedicationAssignments
-                .Where(pm => !pm.Medication.IsScheduledMedication)
-                .ToList();
-
-            var scheduledAssignments = activeMedicationAssignments
-                .Where(pm => pm.Medication.IsScheduledMedication)
-                .ToList();
-
-            // Separate medications by schedule type
-            var nonScheduledMeds = allMedications.Where(m => m.IsScheduledMedication == false).ToList();
-            var scheduledMeds = allMedications.Where(m => m.IsScheduledMedication == true).ToList();
-
-            // Populate ViewBag with medications based on role
-            if (User.IsInRole("Nurse"))
-            {
-                ViewBag.NonScheduledMedications = nonScheduledMeds;
-                ViewBag.ScheduledMedications = new List<Medication>(); // Empty for nurses
-            }
-            else if (User.IsInRole("Nursing Sister"))
-            {
-                ViewBag.NonScheduledMedications = new List<Medication>(); // Empty for nursing sisters
-                ViewBag.ScheduledMedications = scheduledMeds;
-            }
-            else
-            {
-                // Other roles see all medications
-                ViewBag.NonScheduledMedications = nonScheduledMeds;
-                ViewBag.ScheduledMedications = scheduledMeds;
-            }
-
-            // Get admissions data
-            var admissions = patient.PatientAdmissions?.Where(a => !a.IsDeleted).ToList() ?? new List<PatientAdmission>();
-
-            // Find current admission (not discharged) - using Discharges navigation property
-            var currentAdmission = admissions
-                .Where(a => !a.Discharges.Any(d => !d.IsDeleted))
-                .OrderByDescending(a => a.AdmissionDate)
-                .FirstOrDefault();
-
-            // Get allergies and medical conditions from junction tables
-            var allergies = patient.PatientAllergies?
-                .Where(pa => !pa.IsDeleted)
-                .Select(pa => pa.Allergy)
-                .ToList() ?? new List<Allergy>();
-
-            var medicalConditions = patient.PatientMedicalConditions?
-                .Where(pmc => !pmc.IsDeleted)
-                .Select(pmc => pmc.MedicalCondition)
-                .ToList() ?? new List<MedicalCondition>();
-
-            var model = new PatientFolderViewModel
-            {
-                Patient = patient,
-                Medications = allMedications,
-                ScheduledMedications = scheduledMeds,
-                // Add the new assignment collections
-                NonScheduledAssignments = nonScheduledAssignments,
-                ScheduledAssignments = scheduledAssignments,
-                VisitNotes = visitNotes,
-                VitalSigns = patient.VitalSigns.Where(v => !v.IsDeleted).ToList(),
-                Treatments = patient.Treatments.Where(t => !t.IsDeleted).ToList(),
-                DoctorVisits = patient.DoctorVisits.Where(d => !d.IsDeleted).ToList(),
-                Allergies = allergies,
-                MedicalConditions = medicalConditions,
-                Prescriptions = filteredPrescriptions, // Use filtered prescriptions based on role
-                RecentPrescription = recentPrescription,
-                HasPrescriptions = filteredPrescriptions.Any(), // Check filtered prescriptions
-                Admissions = admissions,
-                CurrentAdmission = currentAdmission,
-                IsCurrentlyAdmitted = currentAdmission != null,
-
-                NewVitalSign = new VitalSigns { PatientId = patient.PatientId },
-                NewTreatment = new Treatment { PatientId = patient.PatientId },
-                NewDoctorVisit = new DoctorVisit { PatientId = patient.PatientId },
-                NewPrescription = new Prescription { PatientId = patient.PatientId },
-                // Add new assignment form model
-                NewMedicationAssignment = new PatientMedication { PatientId = patient.PatientId },
-                NewAdmission = new PatientAdmission
-                {
-                    PatientId = patient.PatientId,
-                    AdmissionDate = DateTime.Today
-                }
-            };
-
-            ViewBag.PatientId = id;
-            ViewBag.Employees = employees;
-            ViewBag.UserRole = User.IsInRole("Nurse") ? "Nurse" :
-                              User.IsInRole("Nursing Sister") ? "NursingSister" : "Other";
-
-            // Add current location to ViewBag for easy access in the view
-            if (currentAdmission != null && currentAdmission.Bed != null)
-            {
-                ViewBag.CurrentWard = currentAdmission.Bed.Room?.Ward?.Name;
-                ViewBag.CurrentRoom = currentAdmission.Bed.Room?.RoomNumber;
-                ViewBag.CurrentBed = currentAdmission.Bed?.BedNumber;
-                ViewBag.CurrentLocation = $"{currentAdmission.Bed.Room?.Ward?.Name} - Room {currentAdmission.Bed.Room?.RoomNumber} - Bed {currentAdmission.Bed?.BedNumber}";
-            }
-            else
-            {
-                ViewBag.CurrentWard = "Not Admitted";
-                ViewBag.CurrentRoom = "N/A";
-                ViewBag.CurrentBed = "N/A";
-                ViewBag.CurrentLocation = "Not Currently Admitted";
-            }
-
-            return View(model);
-        }
-
-        // ======================
-        // ====================== VITAL SIGNS ======================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddVital(int patientId, double Tempareture, int HeartRate, string BloodPressure, DateTime recordedDate)
+        [Authorize(Roles = "Nurse,Nursing Sister,Doctor")]
+        public async Task<IActionResult> Dashboard()
         {
             try
             {
-                Console.WriteLine($"Received - PatientId: {patientId}, Temp: {Tempareture}, HR: {HeartRate}, BP: {BloodPressure}, Date: {recordedDate}");
+                var today = DateTime.Today;
+                var userRole = User.IsInRole("Nursing Sister") ? "NursingSister" :
+                              User.IsInRole("Nurse") ? "Nurse" :
+                              User.IsInRole("Doctor") ? "Doctor" : "Other";
 
-                // Validate patient exists
-                var patientExists = await _context.Patients.AnyAsync(p => p.PatientId == patientId);
-                if (!patientExists)
+                var model = new PatientManagementDashboardViewModel
                 {
-                    return BadRequest($"Patient with ID {patientId} does not exist.");
+                    TotalPatients = await _context.Patients.CountAsync(p => !p.IsDeleted),
+                    TodayVisits = await _context.DoctorVisits.CountAsync(v => v.VisitDate.Date == today && !v.IsDeleted),
+                    ActiveMedications = await _context.PatientMedications.CountAsync(pm => pm.IsActive && !pm.IsDeleted),
+                    PendingTreatments = await _context.Treatments.CountAsync(t => !t.IsDeleted),
+                    NewPatientsThisWeek = await _context.Patients.CountAsync(p => p.DateOfBirth >= DateOnly.FromDateTime(today.AddDays(-7)) && !p.IsDeleted),
+                    VitalsDueToday = 0,
+                };
+
+                // Load Patients
+                var patients = await _context.Patients
+                    .Where(p => !p.IsDeleted)
+                    .Include(p => p.DoctorVisits)
+                    .ToListAsync();
+
+                model.Patients = patients.Select(p => new PatientDashboardItemViewModel
+                {
+                    PatientId = p.PatientId,
+                    IdentityNumber = p.IdentityNumber ?? string.Empty,
+                    FirstName = p.FirstName ?? string.Empty,
+                    LastName = p.LastName ?? string.Empty,
+                    Gender = p.Gender ?? string.Empty,
+                    DateOfBirth = p.DateOfBirth,
+                    PhoneNumber = p.PhoneNumber ?? string.Empty,
+                    Email = p.Email ?? string.Empty,
+                    HomeAddress = p.HomeAddress ?? string.Empty,
+                    EmergencyContact = p.EmergencyContact ?? string.Empty,
+                    IsActive = !p.IsDeleted,
+                    LastVisit = p.DoctorVisits
+                        .OrderByDescending(v => v.VisitDate)
+                        .FirstOrDefault()?.VisitDate
+                }).ToList();
+
+                // Load Patient Select List
+                model.PatientSelectList = patients.Select(p => new PatientSelectViewModel
+                {
+                    PatientId = p.PatientId,
+                    FirstName = p.FirstName ?? string.Empty,
+                    LastName = p.LastName ?? string.Empty,
+                    IdentityNumber = p.IdentityNumber ?? string.Empty
+                }).ToList();
+
+                // Load Medications based on role
+                var medicationsQuery = _context.Medications.Where(m => !m.IsDeleted && m.QuantityAvailable > 0);
+
+                if (userRole == "Nurse")
+                {
+                    medicationsQuery = medicationsQuery.Where(m => !m.IsScheduledMedication);
                 }
 
-                // Create new vital sign with the provided date
+                var medications = await medicationsQuery.ToListAsync();
+
+                model.MedicationSelectList = medications.Select(m => new MedicationSelectViewModel
+                {
+                    MedicationId = m.MedicationId,
+                    Name = m.Name ?? string.Empty,
+                    QuantityAvailable = m.QuantityAvailable,
+                    ScheduleLevel = m.ScheduleLevel,
+                    IsScheduledMedication = m.IsScheduledMedication
+                }).ToList();
+
+                // Load Treatment Types
+                model.TreatmentTypes = await _context.Treatments
+                    .Where(t => !t.IsDeleted)
+                    .Select(t => t.TreatmentType ?? string.Empty)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Load Medication Assignments
+                var assignments = await _context.PatientMedications
+                    .Include(pm => pm.Patient)
+                    .Include(pm => pm.Medication)
+                    .Include(pm => pm.Employee)
+                    .Where(pm => !pm.IsDeleted && pm.IsActive)
+                    .ToListAsync();
+
+                model.MedicationAssignments = assignments.Select(pm => new MedicationAssignmentDashboardItemViewModel
+                {
+                    PatientMedicationId = pm.PatientMedicationId,
+                    PatientId = pm.PatientId,
+                    PatientName = pm.Patient != null ? $"{pm.Patient.FirstName ?? ""} {pm.Patient.LastName ?? ""}" : "",
+                    MedicationId = pm.MedicationId,
+                    MedicationName = pm.Medication != null ? pm.Medication.Name ?? "" : "",
+                    Dosage = pm.Dosage ?? "",
+                    Frequency = pm.Frequency ?? "",
+                    DurationDays = pm.DurationDays,
+                    QuantityAssigned = pm.QuantityAssigned,
+                    AssignmentDate = pm.AssignmentDate,
+                    ScheduleLevel = pm.Medication != null ? pm.Medication.ScheduleLevel : 0,
+                    IsScheduled = pm.Medication != null ? pm.Medication.IsScheduledMedication : false,
+                    IsActive = pm.IsActive,
+                    EmployeeName = pm.Employee != null ? $"{pm.Employee.FirstName ?? ""} {pm.Employee.LastName ?? ""}" : "",
+                    AdministrationNotes = pm.AdministrationNotes ?? ""
+                }).ToList();
+
+                // Load Prescriptions
+                var allPrescriptions = await _context.Prescriptions
+                    .Include(p => p.Patient)
+                    .Include(p => p.Employee)
+                    .Include(p => p.PrescriptionMedications)
+                        .ThenInclude(pm => pm.Medication)
+                    .Where(p => !p.IsDeleted)
+                    .ToListAsync();
+
+                // Filter prescriptions based on role
+                List<Prescription> filteredPrescriptions;
+                if (userRole == "Nurse")
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => !p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication))
+                        .ToList();
+                }
+                else if (userRole == "NursingSister")
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication))
+                        .ToList();
+                }
+                else
+                {
+                    filteredPrescriptions = allPrescriptions;
+                }
+
+                model.Prescriptions = filteredPrescriptions.Select(p => new PrescriptionDashboardItemViewModel
+                {
+                    PrescriptionId = p.PrescriptionId,
+                    PatientId = p.PatientId ?? 0,
+                    PatientName = p.Patient != null ? $"{p.Patient.FirstName ?? ""} {p.Patient.LastName ?? ""}" : "",
+                    DateWritten = p.DateWritten,
+                    DoctorName = p.Employee != null ? $"{p.Employee.FirstName ?? ""} {p.Employee.LastName ?? ""}" : "",
+                    EmployeeId = p.EmployeeId ?? "",
+                    Instructions = p.Instructions ?? "",
+                    Medications = p.PrescriptionMedications.Select(pm => new PrescriptionMedicationDashboardItemViewModel
+                    {
+                        MedicationId = pm.MedicationId,
+                        Name = pm.Medication != null ? pm.Medication.Name ?? "" : "",
+                        Dosage = pm.Dosage ?? ""
+                    }).ToList()
+                }).ToList();
+
+                // Load Doctor Visits
+                var visits = await _context.DoctorVisits
+                    .Include(v => v.Patient)
+                    .Where(v => !v.IsDeleted)
+                    .ToListAsync();
+
+                model.DoctorVisits = visits.Select(v => new DoctorVisitDashboardItemViewModel
+                {
+                    VisitId = v.VisitId,
+                    PatientId = v.PatientId ?? 0,
+                    PatientName = v.Patient != null ? $"{v.Patient.FirstName ?? ""} {v.Patient.LastName ?? ""}" : "",
+                    VisitDate = v.VisitDate,
+                    Instructions = v.Instructions ?? "",
+                    DoctorName = "N/A",
+                    EmployeeId = ""
+                }).ToList();
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                // Log the error
+                Console.WriteLine($"Error in Dashboard: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+                // Return an error view or redirect
+                TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
+                return View("Error");
+            }
+        }
+
+        // ============================================================
+        // FOLDER/VIEW PATIENT ACTION
+        // ============================================================
+        public async Task<IActionResult> Folder(int id)
+        {
+            try
+            {
+                var patient = await _context.Patients
+                    .Include(p => p.VitalSigns)
+                    .Include(p => p.Treatments)
+                    .Include(p => p.PatientAllergies)
+                        .ThenInclude(pa => pa.Allergy)
+                    .Include(p => p.PatientMedicalConditions)
+                        .ThenInclude(pmc => pmc.MedicalCondition)
+                    .Include(p => p.DoctorVisits)
+                    .Include(p => p.Prescriptions)
+                        .ThenInclude(pr => pr.PrescriptionMedications)
+                        .ThenInclude(pm => pm.Medication)
+                    .Include(p => p.Prescriptions)
+                        .ThenInclude(pr => pr.Employee)
+                    .Include(p => p.PatientMedications)
+                        .ThenInclude(pm => pm.Medication)
+                    .Include(p => p.PatientMedications)
+                        .ThenInclude(pm => pm.Employee)
+                    .Include(p => p.PatientAdmissions)
+                        .ThenInclude(pa => pa.Employee)
+                    .Include(p => p.PatientAdmissions)
+                        .ThenInclude(pa => pa.PatientMovements)
+                    .Include(p => p.PatientAdmissions)
+                        .ThenInclude(pa => pa.Discharges)
+                    .Include(p => p.PatientAdmissions)
+                        .ThenInclude(pa => pa.Bed)
+                            .ThenInclude(b => b.Room)
+                                .ThenInclude(r => r.Ward)
+                    .FirstOrDefaultAsync(p => p.PatientId == id);
+
+                if (patient == null)
+                {
+                    return NotFound();
+                }
+
+                // Load VisitNotes separately
+                var visitNotes = await _context.VisitNotes
+                    .Include(vn => vn.Doctor)
+                    .Where(vn => vn.PatientId == id && !vn.IsDeleted)
+                    .ToListAsync();
+
+                var allMedications = await _context.Medications.Where(m => !m.IsDeleted).ToListAsync();
+                var employees = await _context.Employees.ToListAsync();
+
+                // Get all prescriptions for the patient
+                var allPrescriptions = patient.Prescriptions?.Where(p => !p.IsDeleted).ToList() ?? new List<Prescription>();
+
+                // Filter prescriptions based on user role
+                List<Prescription> filteredPrescriptions;
+                Prescription recentPrescription;
+
+                if (User.IsInRole("Nurse"))
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => !p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication == true))
+                        .ToList();
+
+                    recentPrescription = filteredPrescriptions
+                        .OrderByDescending(p => p.DateWritten)
+                        .FirstOrDefault();
+                }
+                else if (User.IsInRole("Nursing Sister"))
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication == true))
+                        .ToList();
+
+                    recentPrescription = filteredPrescriptions
+                        .OrderByDescending(p => p.DateWritten)
+                        .FirstOrDefault();
+                }
+                else
+                {
+                    filteredPrescriptions = allPrescriptions;
+                    recentPrescription = allPrescriptions
+                        .OrderByDescending(p => p.DateWritten)
+                        .FirstOrDefault();
+                }
+
+                // Get active medication assignments
+                var activeMedicationAssignments = patient.PatientMedications?
+                    .Where(pm => !pm.IsDeleted && pm.IsActive)
+                    .ToList() ?? new List<PatientMedication>();
+
+                // Separate assignments by schedule type
+                var nonScheduledAssignments = activeMedicationAssignments
+                    .Where(pm => pm.Medication != null && !pm.Medication.IsScheduledMedication)
+                    .ToList();
+
+                var scheduledAssignments = activeMedicationAssignments
+                    .Where(pm => pm.Medication != null && pm.Medication.IsScheduledMedication)
+                    .ToList();
+
+                // Separate medications by schedule type
+                var nonScheduledMeds = allMedications.Where(m => m.IsScheduledMedication == false).ToList();
+                var scheduledMeds = allMedications.Where(m => m.IsScheduledMedication == true).ToList();
+
+                // Populate ViewBag with medications based on role
+                if (User.IsInRole("Nurse"))
+                {
+                    ViewBag.NonScheduledMedications = nonScheduledMeds;
+                    ViewBag.ScheduledMedications = new List<Medication>();
+                }
+                else if (User.IsInRole("Nursing Sister"))
+                {
+                    ViewBag.NonScheduledMedications = new List<Medication>();
+                    ViewBag.ScheduledMedications = scheduledMeds;
+                }
+                else
+                {
+                    ViewBag.NonScheduledMedications = nonScheduledMeds;
+                    ViewBag.ScheduledMedications = scheduledMeds;
+                }
+
+                // Get admissions data
+                var admissions = patient.PatientAdmissions?.Where(a => !a.IsDeleted).ToList() ?? new List<PatientAdmission>();
+
+                // Find current admission (not discharged)
+                var currentAdmission = admissions
+                    .Where(a => !a.Discharges.Any(d => !d.IsDeleted))
+                    .OrderByDescending(a => a.AdmissionDate)
+                    .FirstOrDefault();
+
+                // Get allergies and medical conditions from junction tables
+                var allergies = patient.PatientAllergies?
+                    .Where(pa => !pa.IsDeleted && pa.Allergy != null)
+                    .Select(pa => pa.Allergy)
+                    .ToList() ?? new List<Allergy>();
+
+                var medicalConditions = patient.PatientMedicalConditions?
+                    .Where(pmc => !pmc.IsDeleted && pmc.MedicalCondition != null)
+                    .Select(pmc => pmc.MedicalCondition)
+                    .ToList() ?? new List<MedicalCondition>();
+
+                var model = new PatientFolderViewModel
+                {
+                    Patient = patient,
+                    Medications = allMedications,
+                    ScheduledMedications = scheduledMeds,
+                    NonScheduledAssignments = nonScheduledAssignments,
+                    ScheduledAssignments = scheduledAssignments,
+                    VisitNotes = visitNotes,
+                    VitalSigns = patient.VitalSigns?.Where(v => !v.IsDeleted).ToList() ?? new List<VitalSigns>(),
+                    Treatments = patient.Treatments?.Where(t => !t.IsDeleted).ToList() ?? new List<Treatment>(),
+                    DoctorVisits = patient.DoctorVisits?.Where(d => !d.IsDeleted).ToList() ?? new List<DoctorVisit>(),
+                    Allergies = allergies,
+                    MedicalConditions = medicalConditions,
+                    Prescriptions = filteredPrescriptions,
+                    RecentPrescription = recentPrescription,
+                    HasPrescriptions = filteredPrescriptions.Any(),
+                    Admissions = admissions,
+                    CurrentAdmission = currentAdmission,
+                    IsCurrentlyAdmitted = currentAdmission != null,
+
+                    NewVitalSign = new VitalSigns { PatientId = patient.PatientId },
+                    NewTreatment = new Treatment { PatientId = patient.PatientId },
+                    NewDoctorVisit = new DoctorVisit { PatientId = patient.PatientId },
+                    NewPrescription = new Prescription { PatientId = patient.PatientId },
+                    NewMedicationAssignment = new PatientMedication { PatientId = patient.PatientId },
+                    NewAdmission = new PatientAdmission
+                    {
+                        PatientId = patient.PatientId,
+                        AdmissionDate = DateTime.Today
+                    }
+                };
+
+                ViewBag.PatientId = id;
+                ViewBag.Employees = employees;
+                ViewBag.UserRole = User.IsInRole("Nurse") ? "Nurse" :
+                                  User.IsInRole("Nursing Sister") ? "NursingSister" : "Other";
+
+                // Add current location to ViewBag
+                if (currentAdmission != null && currentAdmission.Bed != null)
+                {
+                    ViewBag.CurrentWard = currentAdmission.Bed.Room?.Ward?.Name ?? "Unknown";
+                    ViewBag.CurrentRoom = currentAdmission.Bed.Room?.RoomNumber ?? "N/A";
+                    ViewBag.CurrentBed = currentAdmission.Bed?.BedNumber ?? "N/A";
+                    ViewBag.CurrentLocation = $"{currentAdmission.Bed.Room?.Ward?.Name ?? "Unknown"} - Room {currentAdmission.Bed.Room?.RoomNumber ?? "N/A"} - Bed {currentAdmission.Bed?.BedNumber ?? "N/A"}";
+                }
+                else
+                {
+                    ViewBag.CurrentWard = "Not Admitted";
+                    ViewBag.CurrentRoom = "N/A";
+                    ViewBag.CurrentBed = "N/A";
+                    ViewBag.CurrentLocation = "Not Currently Admitted";
+                }
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Folder: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading the patient folder.";
+                return RedirectToAction("Dashboard");
+            }
+        }
+
+        // ============================================================
+        // INDEX ACTION - Redirect to Dashboard
+        // ============================================================
+        [Authorize(Roles = "Nurse,Nursing Sister")]
+        public async Task<IActionResult> Index()
+        {
+            // Redirect to Dashboard instead of showing the old Index view
+            return RedirectToAction("Dashboard");
+        }
+
+        // Get patients for dashboard
+        // ============================================================
+        // API ENDPOINTS FOR DASHBOARD (AJAX Calls)
+        // ============================================================
+
+        [HttpGet]
+        public async Task<IActionResult> GetPatients()
+        {
+            try
+            {
+                var patients = await _context.Patients
+                    .Where(p => !p.IsDeleted)
+                    .Include(p => p.DoctorVisits)
+                    .Select(p => new
+                    {
+                        p.PatientId,
+                        IdentityNumber = p.IdentityNumber ?? string.Empty,
+                        FirstName = p.FirstName ?? string.Empty,
+                        LastName = p.LastName ?? string.Empty,
+                        Gender = p.Gender ?? string.Empty,
+                        DateOfBirth = p.DateOfBirth,
+                        PhoneNumber = p.PhoneNumber ?? string.Empty,
+                        Email = p.Email ?? string.Empty,
+                        HomeAddress = p.HomeAddress ?? string.Empty,
+                        EmergencyContact = p.EmergencyContact ?? string.Empty,
+                        IsActive = !p.IsDeleted,
+                        LastVisit = p.DoctorVisits
+                            .OrderByDescending(v => v.VisitDate)
+                            .FirstOrDefault() != null ?
+                            p.DoctorVisits.OrderByDescending(v => v.VisitDate).FirstOrDefault().VisitDate :
+                            (DateTime?)null
+                    })
+                    .ToListAsync();
+
+                return Json(patients);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDashboardStats()
+        {
+            try
+            {
+                var today = DateTime.Today;
+
+                var stats = new
+                {
+                    TotalPatients = await _context.Patients.CountAsync(p => !p.IsDeleted),
+                    TodayVisits = await _context.DoctorVisits.CountAsync(v => v.VisitDate.Date == today && !v.IsDeleted),
+                    ActiveMeds = await _context.PatientMedications.CountAsync(pm => pm.IsActive && !pm.IsDeleted),
+                    PendingTreatments = await _context.Treatments.CountAsync(t => !t.IsDeleted),
+                    NewPatients = await _context.Patients.CountAsync(p => p.DateOfBirth >= DateOnly.FromDateTime(today.AddDays(-7)) && !p.IsDeleted),
+                    VitalsDue = 0
+                };
+
+                return Json(stats);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // API ENDPOINTS FOR SPECIFIC DATA
+        // ============================================================
+
+        [HttpGet]
+        [Route("Patient/GetVitals/{patientId}")]
+        public async Task<IActionResult> GetVitals(int patientId, string date = null)
+        {
+            try
+            {
+                Console.WriteLine($"[GetVitals] patientId={patientId}, date={date}");
+
+                var query = _context.VitalSigns
+                    .Include(v => v.Patient)
+                    .Include(v => v.Employee)
+                    .Where(v => v.PatientId == patientId && !v.IsDeleted);
+
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var filterDate))
+                {
+                    query = query.Where(v => v.RecordedDate.Date == filterDate.Date);
+                }
+
+                var vitals = await query
+                    .OrderByDescending(v => v.RecordedDate)
+                    .Select(v => new
+                    {
+                        v.VitalId,
+                        v.Temperature,          // ✅ Renamed
+                        v.HeartRate,
+                        v.BloodPressure,
+                        v.RecordedDate,
+                        PatientName = v.Patient != null
+                            ? (v.Patient.FirstName ?? "") + " " + (v.Patient.LastName ?? "")
+                            : "Unknown",
+                        EmployeeName = v.Employee != null
+                            ? (v.Employee.FirstName ?? "") + " " + (v.Employee.LastName ?? "")
+                            : "N/A"
+                    })
+                    .ToListAsync();
+
+                Console.WriteLine($"[GetVitals] Returning {vitals.Count} records");
+                return Json(vitals);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetVitals] ERROR: {ex.Message}");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTreatments(int patientId, string type = null)
+        {
+            try
+            {
+                var query = _context.Treatments
+                    .Include(t => t.Patient)
+                    .Where(t => t.PatientId == patientId && !t.IsDeleted);
+
+                if (!string.IsNullOrEmpty(type))
+                {
+                    query = query.Where(t => t.TreatmentType == type);
+                }
+
+                var treatments = await query
+                    .OrderByDescending(t => t.DatePerformed)
+                    .Select(t => new
+                    {
+                        t.TreatmentId,
+                        t.TreatmentType,
+                        t.DatePerformed,
+                        t.IsDeleted,
+                        PatientName = t.Patient != null ? $"{t.Patient.FirstName ?? ""} {t.Patient.LastName ?? ""}" : ""
+                    })
+                    .ToListAsync();
+
+                return Json(treatments);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPrescriptions()
+        {
+            try
+            {
+                var userRole = User.IsInRole("Nursing Sister") ? "NursingSister" :
+                              User.IsInRole("Nurse") ? "Nurse" :
+                              User.IsInRole("Doctor") ? "Doctor" : "Other";
+
+                var allPrescriptions = await _context.Prescriptions
+                    .Include(p => p.Patient)
+                    .Include(p => p.Employee)
+                    .Include(p => p.PrescriptionMedications)
+                        .ThenInclude(pm => pm.Medication)
+                    .Where(p => !p.IsDeleted)
+                    .ToListAsync();
+
+                List<Prescription> filteredPrescriptions;
+                if (userRole == "Nurse")
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => !p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication))
+                        .ToList();
+                }
+                else if (userRole == "NursingSister")
+                {
+                    filteredPrescriptions = allPrescriptions
+                        .Where(p => p.PrescriptionMedications.Any(pm =>
+                            pm.Medication != null && pm.Medication.IsScheduledMedication))
+                        .ToList();
+                }
+                else
+                {
+                    filteredPrescriptions = allPrescriptions;
+                }
+
+                var result = filteredPrescriptions.Select(p => new
+                {
+                    p.PrescriptionId,
+                    p.PatientId,
+                    PatientName = p.Patient != null ? $"{p.Patient.FirstName ?? ""} {p.Patient.LastName ?? ""}" : "",
+                    p.DateWritten,
+                    DoctorName = p.Employee != null ? $"{p.Employee.FirstName ?? ""} {p.Employee.LastName ?? ""}" : "",
+                    p.EmployeeId,
+                    p.Instructions,
+                    Medications = p.PrescriptionMedications.Select(pm => new
+                    {
+                        pm.MedicationId,
+                        Name = pm.Medication != null ? pm.Medication.Name ?? "" : "",
+                        pm.Dosage
+                    }).ToList()
+                }).ToList();
+
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDoctorVisits()
+        {
+            try
+            {
+                var visits = await _context.DoctorVisits
+                    .Include(v => v.Patient)
+                    .Where(v => !v.IsDeleted)
+                    .OrderByDescending(v => v.VisitDate)
+                    .Select(v => new
+                    {
+                        v.VisitId,
+                        PatientId = v.PatientId ?? 0,
+                        PatientName = v.Patient != null ? $"{v.Patient.FirstName ?? ""} {v.Patient.LastName ?? ""}" : "",
+                        v.VisitDate,
+                        Instructions = v.Instructions ?? "",
+                    })
+                    .ToListAsync();
+
+                return Json(visits);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // CREATE ACTIONS
+        // ============================================================
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddVital([FromForm] AddVitalSignsViewModel model)
+        {
+            try
+            {
+                Console.WriteLine($"[AddVital] PatientId={model.PatientId}, Temperature={model.Temperature}");
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return Json(new { success = false, message = "Invalid data: " + string.Join(", ", errors) });
+                }
+
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == model.PatientId);
+                if (patient == null)
+                    return Json(new { success = false, message = "Patient not found." });
+
                 var vital = new VitalSigns
                 {
-                    PatientId = patientId,
-                    Tempareture = Tempareture,
-                    HeartRate = HeartRate,
-                    BloodPressure = BloodPressure,
-                    RecordedDate = recordedDate, // Use the provided date
-                    IsDeleted = false
+                    PatientId = model.PatientId,
+                    Temperature = model.Temperature,   // ✅ Renamed
+                    HeartRate = model.HeartRate,
+                    BloodPressure = model.BloodPressure,
+                    RecordedDate = model.RecordedDate == DateTime.MinValue ? DateTime.Now : model.RecordedDate,
+                    IsDeleted = false,
+                    EmployeeId = User.FindFirstValue(ClaimTypes.NameIdentifier)
                 };
 
                 _context.VitalSigns.Add(vital);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Vital signs added successfully.";
 
-                return RedirectToAction("Folder", new { id = patientId });
+                Console.WriteLine($"[AddVital] Saved VitalId={vital.VitalId}");
+                return Json(new { success = true, message = "Vital signs recorded successfully.", vitalId = vital.VitalId });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
-                return RedirectToAction("Index");
+                Console.WriteLine($"[AddVital] ERROR: {ex.Message}");
+                return Json(new { success = false, message = ex.Message });
             }
         }
+
+        public async Task<IActionResult> History(int id)
+        {
+            var patient = await _context.Patients
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.Employee)
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.AssignedEmployee)
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.Bed)
+                        .ThenInclude(b => b.Room)
+                            .ThenInclude(r => r.Ward)
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.Discharges)
+                .Include(p => p.PatientAdmissions)
+                    .ThenInclude(pa => pa.PatientMovements)
+                        .ThenInclude(pm => pm.Bed)
+                            .ThenInclude(b => b.Room)
+                                .ThenInclude(r => r.Ward)
+                .FirstOrDefaultAsync(p => p.PatientId == id && !p.IsDeleted);
+
+            if (patient == null)
+                return NotFound();
+
+            var allAdmissions = patient.PatientAdmissions?
+    .Where(a => !a.IsDeleted)
+    .OrderByDescending(a => a.AdmissionDate)
+    .ToList() ?? new List<PatientAdmission>();  // Already List<PatientAdmission>
+
+            var allMovements = allAdmissions
+                .SelectMany(a => a.PatientMovements ?? new List<PatientMovement>())
+                .Where(m => !m.IsDeleted)
+                .OrderByDescending(m => m.Date)
+                .ToList() ?? new List<PatientMovement>();  // Already List<PatientMovement>
+
+            var allDischarges = allAdmissions
+                .SelectMany(a => a.Discharges ?? new List<Discharge>())
+                .Where(d => !d.IsDeleted)
+                .OrderByDescending(d => d.DischargeDate)
+                .ToList() ?? new List<Discharge>();  // Already List<Discharge>
+
+            var model = new PatientHistoryViewModel
+            {
+                Patient = patient,
+                AdmissionHistory = allAdmissions,
+                MovementHistory = allMovements,
+                DischargeHistory = allDischarges,
+
+                TotalAdmissions = allAdmissions.Count,
+                TotalMovements = allMovements.Count,
+                FirstAdmissionDate = allAdmissions.Any() ? allAdmissions.Last().AdmissionDate : null,
+                LastAdmissionDate = allAdmissions.Any() ? allAdmissions.First().AdmissionDate : null
+            };
+
+            ViewBag.PatientFullName = $"{patient.FirstName} {patient.LastName}";
+            ViewBag.PatientId = patient.PatientId;
+
+            return View(model);
+        }
+
+        //// ======================
+        //// ====================== VITAL SIGNS ======================
+        //// POST: Add vital signs
+        //// POST: Add vital signs
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> AddVital(int patientId, double Temperature, int HeartRate, string BloodPressure, DateTime recordedDate)
+        //{
+        //    try
+        //    {
+        //        // Validate input
+        //        if (Temperature < 30 || Temperature > 45)
+        //        {
+        //            TempData["ErrorMessage"] = "Temperature must be between 30°C and 45°C.";
+        //            return RedirectToAction("Dashboard", new { id = patientId });
+        //        }
+
+        //        if (HeartRate < 30 || HeartRate > 250)
+        //        {
+        //            TempData["ErrorMessage"] = "Heart rate must be between 30 and 250 bpm.";
+        //            return RedirectToAction("Dashboard", new { id = patientId });
+        //        }
+
+        //        if (string.IsNullOrEmpty(BloodPressure) || !System.Text.RegularExpressions.Regex.IsMatch(BloodPressure, @"^\d{2,3}/\d{2,3}$"))
+        //        {
+        //            TempData["ErrorMessage"] = "Blood pressure must be in format 120/80.";
+        //            return RedirectToAction("Dashboard", new { id = patientId });
+        //        }
+
+        //        // Validate patient exists
+        //        var patientExists = await _context.Patients.AnyAsync(p => p.PatientId == patientId && !p.IsDeleted);
+        //        if (!patientExists)
+        //        {
+        //            TempData["ErrorMessage"] = $"Patient with ID {patientId} does not exist.";
+        //            return RedirectToAction("Dashboard");
+        //        }
+
+        //        // Create new vital sign
+        //        var vital = new VitalSigns
+        //        {
+        //            PatientId = patientId,
+        //            Temperature = Temperature,
+        //            HeartRate = HeartRate,
+        //            BloodPressure = BloodPressure,
+        //            RecordedDate = recordedDate == DateTime.MinValue ? DateTime.Now : recordedDate,
+        //            IsDeleted = false
+        //        };
+
+        //        _context.VitalSigns.Add(vital);
+        //        await _context.SaveChangesAsync();
+
+        //        TempData["SuccessMessage"] = "Vital signs added successfully.";
+        //        return RedirectToAction("Dashboard", new { id = patientId });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Error in AddVital: {ex.Message}");
+        //        TempData["ErrorMessage"] = "An error occurred while saving vital signs.";
+        //        return RedirectToAction("Dashboard", new { id = patientId });
+        //    }
+        //}
 
         [HttpGet]
         public async Task<IActionResult> EditVital(int id)
@@ -312,7 +857,7 @@ namespace Wellness_Wardens_Project.Controllers
                 }
 
                 // Update the properties
-                existingVital.Tempareture = Tempareture;
+                existingVital.Temperature = Tempareture;
                 existingVital.HeartRate = HeartRate;
                 existingVital.BloodPressure = BloodPressure;
 

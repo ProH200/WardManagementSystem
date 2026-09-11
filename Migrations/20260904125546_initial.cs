@@ -556,7 +556,7 @@ namespace Wellness_Wardens_Project.Migrations
                 {
                     VitalId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Tempareture = table.Column<double>(type: "float", nullable: false),
+                    Temperature = table.Column<double>(type: "float", nullable: false),
                     HeartRate = table.Column<int>(type: "int", nullable: false),
                     BloodPressure = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -668,37 +668,40 @@ namespace Wellness_Wardens_Project.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MedicationAdministrations",
+                name: "PatientMedications",
                 columns: table => new
                 {
-                    AdministrationId = table.Column<int>(type: "int", nullable: false)
+                    PatientMedicationId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PatientId = table.Column<int>(type: "int", nullable: false),
                     MedicationId = table.Column<int>(type: "int", nullable: false),
-                    AdministeredById = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    AdministrationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Dosage = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Frequency = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Instructions = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EmployeeId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    AssignmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Dosage = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Frequency = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    QuantityAssigned = table.Column<int>(type: "int", nullable: false),
+                    DurationDays = table.Column<int>(type: "int", nullable: false),
+                    AdministrationNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MedicationAdministrations", x => x.AdministrationId);
+                    table.PrimaryKey("PK_PatientMedications", x => x.PatientMedicationId);
                     table.ForeignKey(
-                        name: "FK_MedicationAdministrations_AspNetUsers_AdministeredById",
-                        column: x => x.AdministeredById,
+                        name: "FK_PatientMedications_AspNetUsers_EmployeeId",
+                        column: x => x.EmployeeId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MedicationAdministrations_Medications_MedicationId",
+                        name: "FK_PatientMedications_Medications_MedicationId",
                         column: x => x.MedicationId,
                         principalTable: "Medications",
                         principalColumn: "MedicationId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MedicationAdministrations_Patients_PatientId",
+                        name: "FK_PatientMedications_Patients_PatientId",
                         column: x => x.PatientId,
                         principalTable: "Patients",
                         principalColumn: "PatientId",
@@ -978,21 +981,6 @@ namespace Wellness_Wardens_Project.Migrations
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MedicationAdministrations_AdministeredById",
-                table: "MedicationAdministrations",
-                column: "AdministeredById");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MedicationAdministrations_MedicationId",
-                table: "MedicationAdministrations",
-                column: "MedicationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MedicationAdministrations_PatientId",
-                table: "MedicationAdministrations",
-                column: "PatientId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Medications_EmployeeId",
                 table: "Medications",
                 column: "EmployeeId");
@@ -1035,6 +1023,21 @@ namespace Wellness_Wardens_Project.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_PatientMedicalConditions_PatientId",
                 table: "PatientMedicalConditions",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_EmployeeId",
+                table: "PatientMedications",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_MedicationId",
+                table: "PatientMedications",
+                column: "MedicationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMedications_PatientId",
+                table: "PatientMedications",
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
@@ -1142,13 +1145,13 @@ namespace Wellness_Wardens_Project.Migrations
                 name: "MedicalHistories");
 
             migrationBuilder.DropTable(
-                name: "MedicationAdministrations");
-
-            migrationBuilder.DropTable(
                 name: "PatientAllergies");
 
             migrationBuilder.DropTable(
                 name: "PatientMedicalConditions");
+
+            migrationBuilder.DropTable(
+                name: "PatientMedications");
 
             migrationBuilder.DropTable(
                 name: "PatientMovements");
